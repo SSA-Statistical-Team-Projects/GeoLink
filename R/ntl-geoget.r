@@ -1,19 +1,3 @@
-library("sf")
-library("parallel")
-library("data.table")
-library("terra")
-library("foreach")
-library("doParallel")
-library("stats")
-library("exactextractr")
-library("haven")
-library("svDialogs")
-library("rlang")
-library("tidyterra")
-library("parallelMap")
-library("XML")
-library("httr")
-library("lubridate")
 
 #' @title geoLINK package development
 

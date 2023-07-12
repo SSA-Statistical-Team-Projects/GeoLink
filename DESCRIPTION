@@ -9,3 +9,24 @@ Description: More about what it does (maybe more than one line)
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+Imports: 
+    data.table,
+    doParallel,
+    exactextractr,
+    foreach,
+    haven,
+    httr,
+    jsonlite,
+    lubridate,
+    parallel,
+    parallelMap,
+    R.utils,
+    raster,
+    RCurl,
+    rlang,
+    sf,
+    stats,
+    svDialogs,
+    terra,
+    tidyterra,
+    XML
