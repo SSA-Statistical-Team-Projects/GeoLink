@@ -24,6 +24,7 @@ Imports:
     raster,
     RCurl,
     rlang,
+    rvest,
     sf,
     stats,
     svDialogs,
