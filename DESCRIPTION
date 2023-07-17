@@ -31,3 +31,5 @@ Imports:
     terra,
     tidyterra,
     XML
+Suggests: 
+    rgdal
