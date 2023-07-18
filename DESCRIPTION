@@ -1,4 +1,4 @@
-Package: geolink
+Package: wbgeosae
 Type: Package
 Title: What the Package Does (Title Case)
 Version: 0.1.0
@@ -9,3 +9,27 @@ Description: More about what it does (maybe more than one line)
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
+Imports: 
+    data.table,
+    doParallel,
+    exactextractr,
+    foreach,
+    haven,
+    httr,
+    jsonlite,
+    lubridate,
+    parallel,
+    parallelMap,
+    R.utils,
+    raster,
+    RCurl,
+    rlang,
+    rvest,
+    sf,
+    stats,
+    svDialogs,
+    terra,
+    tidyterra,
+    XML
+Suggests: 
+    rgdal
