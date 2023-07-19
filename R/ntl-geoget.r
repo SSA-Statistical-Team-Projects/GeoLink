@@ -1,4 +1,3 @@
-
 #' @author Christopher T Lloyd <ctl1m14@soton.ac.uk>
 #'
 #' @param usergrid Raster usergrid input filename (*.tif) at resolution at which analysis is to be undertaken, and extent for country in question. If NULL filename is provided then a usergrid is created to the user's spec.
@@ -195,21 +194,23 @@ masterrf <- function(usergrid, adminunit, admin0, year, month, day, viirs, chirp
 }
 
 
-masterrfoutput <- masterrf(usergrid = "mwi_ppp_2020_UNadj_constrained.tif",
-                           adminunit = "mwi_admbnda_adm3_nso_20181016.shp",
-                           admin0 = NULL,
-                           year = "2019",
-                           month = "10",
-                           day = "01",
-                           viirs = FALSE,
-                           chirps = TRUE,
-                           username = "ctl1m14@soton.ac.uk",
-                           password = "password",
-                           version = "v10",
-                           no_tile = TRUE,
-                           slc_type = "vcmcfg",
-                           indicator = "avg_rade9h",
-                           noPopdf = FALSE)
+masterrfoutput <- masterrf(
+  usergrid = "mwi_ppp_2020_UNadj_constrained.tif",
+  adminunit = "mwi_admbnda_adm3_nso_20181016.shp",
+  admin0 = NULL,
+  year = "2019",
+  month = "10",
+  day = "01",
+  viirs = FALSE,
+  chirps = TRUE,
+  username = "ctl1m14@soton.ac.uk",
+  password = "password",
+  version = "v10",
+  no_tile = TRUE,
+  slc_type = "vcmcfg",
+  indicator = "avg_rade9h",
+  noPopdf = FALSE
+)
 
 
 ## admin0="mwi_admbnda_adm0_nso_20181016.shp"
