@@ -12,6 +12,7 @@ LazyData: true
 Imports: 
     data.table,
     doParallel,
+    dtplyr,
     exactextractr,
     foreach,
     haven,
@@ -33,3 +34,5 @@ Imports:
     XML
 Suggests: 
     rgdal
+Depends: 
+    R (>= 2.10)
