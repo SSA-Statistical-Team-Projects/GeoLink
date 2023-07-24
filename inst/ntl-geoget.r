@@ -64,7 +64,7 @@ masterrf <- function(usergrid, adminunit, admin0, year, month, day, viirs, chirp
   slc_type <- slc_type
   indicator <- indicator
   ## hs <<- hs
-  noPopdf <<- noPopdf
+  ##noPopdf <<- noPopdf
 
 
   ### CREATE GRID
