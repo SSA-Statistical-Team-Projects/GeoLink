@@ -11,6 +11,7 @@
 #' @param dsn data source name (a local folder where the data is to be stored)
 #' @param cores the number of PC cores to employ in pulling the data in parallel
 #'
+#' @import data.table parallel
 #' @export
 #'
 

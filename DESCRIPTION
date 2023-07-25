@@ -25,14 +25,17 @@ Imports:
     raster,
     RCurl,
     rlang,
+    roxygen2,
     rvest,
     sf,
     stats,
     svDialogs,
     terra,
+    testthat,
     tidyterra,
     XML
 Suggests: 
     rgdal
 Depends: 
     R (>= 2.10)
+RoxygenNote: 7.2.3

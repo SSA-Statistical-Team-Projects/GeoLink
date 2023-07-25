@@ -15,6 +15,7 @@
 #' "avg_rade9h", "cf_cvg" or "cvg"
 #' @param cores An integer, how many parallel cores to use for downloading to accelerate process
 #'
+#' @import httr rvest
 #'
 #' @export
 #'

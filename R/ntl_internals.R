@@ -1,3 +1,5 @@
+#' @import jsonlite
+
 ntl_downloader <- function(client_id,
                            client_secret,
                            username,
@@ -40,6 +42,8 @@ ntl_downloader <- function(client_id,
     headers = list(Authorization = auth)
   )
 }
+
+
 
 
 

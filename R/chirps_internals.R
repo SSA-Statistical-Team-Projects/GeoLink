@@ -8,7 +8,7 @@ chirpname_annual <- function(start_year,
   ### create the names
   year_list <- seq(start_year, end_year, 1)
 
-  year_dt <- data.table(
+  year_dt <- data.table::data.table(
     year = year_list,
     version = "chirps-v2.0.",
     ext = ".tif"
@@ -18,11 +18,6 @@ chirpname_annual <- function(start_year,
 
   return(year_dt$full_link)
 }
-
-
-
-
-
 
 
 
@@ -60,6 +55,9 @@ checkurl_exist <- function(url) {
 
 
 ################################################################################
+
+#' @import data.table
+
 #### functions for the monthly chirps pulls
 chirpname_monthly <- function(start_date,
                               end_date,
