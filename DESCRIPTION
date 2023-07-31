@@ -33,6 +33,7 @@ Imports:
     terra,
     testthat,
     tidyterra,
+    tools,
     XML
 Suggests: 
     rgdal

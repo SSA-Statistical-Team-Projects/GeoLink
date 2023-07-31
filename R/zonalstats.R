@@ -14,7 +14,7 @@
 #' @import parallelMap doParallel
 
 
-parallel_zonalstats <<- function(x,
+parallel_zonalstats <- function(x,
                                  y,
                                  fun,
                                  append_cols,
@@ -46,7 +46,8 @@ parallel_zonalstats <<- function(x,
     foreach(i = 1:numCores) %dopar% {
       ### adminunit <<- as.polygons(adminunitraster, values=TRUE, na.rm=TRUE, dissolve=FALSE)
       ### usergrid <- rast(resolution = usergridres, val=0, crs="+proj=longlat +datum=WGS84")
-      ### adminunitraster <<- rasterize(adminunit, usergrid, field="layer", filename="adminunit.tif", overwrite=TRUE, NAflag=3.40282346639e+038, datatype="FLT4S")
+      ### adminunitraster <<- rasterize(adminunit, usergrid, field="layer", filename="adminunit.tif",
+      ### overwrite=TRUE, NAflag=3.40282346639e+038, datatype="FLT4S")
 
       exactextractr::exact_extract(
         x = x,

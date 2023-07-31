@@ -21,37 +21,6 @@ chirpname_annual <- function(start_year,
 
 
 
-### download function for getting the actual files
-download_worker <- function(dsn,
-                            url) {
-  download.file(
-    url = url,
-    destfile = paste(dsn, basename(url), sep = "/"),
-    mode = "wb"
-  )
-
-  R.utils::gunzip(paste(dsn, basename(url), sep = "/"),
-    remove = TRUE,
-    overwrite = TRUE
-  )
-}
-
-## check that the url actually exists
-checkurl_exist <- function(url) {
-  HTTP_STATUS_OK <- 200
-
-  hd <- httr::HEAD(url)
-
-  status <- hd$all_headers[[1]]$status
-
-  test_result <- list(
-    exists = status == HTTP_STATUS_OK,
-    status = status
-  )
-
-
-  return(test_result$exists)
-}
 
 
 ################################################################################
