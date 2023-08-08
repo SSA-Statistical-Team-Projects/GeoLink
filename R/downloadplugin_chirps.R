@@ -18,9 +18,7 @@
 
 get_month_chirps <- function(start_date,
                              end_date,
-                             link_base = "https://data.chc.ucsb.edu/products/CHIRPS-2.0/",
-                             dsn = getwd(),
-                             cores = 1L) {
+                             link_base = "https://data.chc.ucsb.edu/products/CHIRPS-2.0/") {
   dt <- chirpname_monthly(
     start_date = start_date,
     end_date = end_date

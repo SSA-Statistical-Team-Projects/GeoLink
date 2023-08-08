@@ -19,5 +19,5 @@ hhgeo_dt <- as.data.table(hhgeo_dt)
 
 
 #### save the household geocoded survey and the shapefile
-save(hhgeo_dt, file = "data/hhsample.rda")
-save(shp_dt, file = "data/shapefile.rda")
+saveRDS(hhgeo_dt, "data/hhsample.RDS")
+saveRDS(shp_dt, "data/shapefile.RDS")

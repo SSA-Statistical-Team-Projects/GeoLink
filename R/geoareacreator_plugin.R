@@ -19,6 +19,7 @@
 #' @importFrom raster raster
 #' @importFrom raster cellStats
 #' @importFrom units set_units
+#' @import sf lwgeom
 #'
 #' @export
 
@@ -102,9 +103,6 @@ gengrid2 <- function(shp_dt,
                " km^2"))
 
   grid_check <- as.numeric(grid_system$poly_area)
-  hist(x = grid_check,
-       xlab = "Polygon Size (in km^2)",
-       main = "Distribution of Polygon Size")
 
   print("The plot window should show you a distribution of the polygon sizes")
 
