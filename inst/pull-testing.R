@@ -17,8 +17,10 @@ dt <- rgdal::make_EPSG()
 testraster <- raster("//esapov/esapov/RWA/GEO/Population/WorldPop/sle_ppp_2020_UNadj.tif")
 
 test <-
-geolink_chirps(time_unit = "month",
+geolink_chirps(time_unit = "year",
                shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+               start_date = "2020-01-01",
+               end_date = "2021-03-01",
                grid_size = 1000,
                grid = TRUE,
                use_survey = TRUE,

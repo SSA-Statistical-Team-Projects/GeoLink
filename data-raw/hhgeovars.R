@@ -18,6 +18,9 @@ hhgeo_dt <- sf::st_join(hhgeo_dt, shp_dt)
 hhgeo_dt <- as.data.table(hhgeo_dt)
 
 
-#### save the household geocoded survey and the shapefile
-saveRDS(hhgeo_dt, "data/hhsample.RDS")
-saveRDS(shp_dt, "data/shapefile.RDS")
+# #### save the household geocoded survey and the shapefile
+# saveRDS(hhgeo_dt, "data/hhsample.RDS")
+# saveRDS(shp_dt, "data/shapefile.RDS")
+
+usethis::use_data(hhgeo_dt)
+usethis::use_data(shp_dt)
