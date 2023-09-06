@@ -24,9 +24,9 @@ geolink_chirps(
 \item{time_unit}{A character, either "month" or "year" monthly or annual rainfall aggregates
 are to be estimated}
 
-\item{start_date}{An object of class date, must be specified like as.Date("yyyy-mm-dd")}
+\item{start_date}{An object of class date, must be specified like "yyyy-mm-dd"}
 
-\item{end_date}{An object of class date, must be specified like as.Date("yyyy-mm-dd")}
+\item{end_date}{An object of class date, must be specified like "yyyy-mm-dd"}
 
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons}
 
@@ -60,20 +60,21 @@ The data is downloaded in raster format and combined with shapefile and/or surve
 by the user
 }
 \details{
-Rainfall data is sourced from the Climate Hazards Group InfraRed Precipitation with Station data
-(CHIRPS). This a 35+ year quasi-global rainfall dataset. Spanning the entire world from 1981 to date. See
-https://www.chc.ucsb.edu/data/chirps for more details.
-The data is extracted into a shapefile provided by user. An added service for tesselating/gridding the
-shapefile is also provided for users that need this data further analytics that require equal area zonal
-statistics. Shapefile estimates at the grid or native polygon level is a permitted final output.
-However, a geocoded survey with rainfall estimates are the end goal if the user also choooses. The
-function will merge shapefile polygons (either gridded or native polygons) with the location of the
-survey units i.e. rainfall estimates for the locations of the units within the survey will be returned.
-The function is also set up for stata users and allows the user to pass file paths for the
-household survey `survey_fn` (with the lat and long variable names `survey_lon` and `survey_lat`) as
-well. This is requires a .dta file which is read in with `haven::read_dta()` package.
-Likewise, the user is permitted to pass a filepath for the location of the shapefile `shp_fn`
-which is read in with the `sf::read_sf()` function.
+Rainfall data is sourced from the Climate Hazards Group InfraRed Precipitation
+with Station data (CHIRPS). This a 35+ year quasi-global rainfall dataset. Spanning the
+entire world from 1981 to date. See https://www.chc.ucsb.edu/data/chirps for more details.
+The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+the shapefile is also provided for users that need this data further analytics that require
+equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+permitted final output. However, a geocoded survey with rainfall estimates are the end goal
+if the user also choooses. The function will merge shapefile polygons (either gridded or
+native polygons) with the location of the survey units i.e. rainfall estimates for the
+locations of the units within the survey will be returned. The function is also set up for
+stata users and allows the user to pass file paths for the household survey `survey_fn`
+(with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+`sf::read_sf()` function.
 }
 \examples{
 

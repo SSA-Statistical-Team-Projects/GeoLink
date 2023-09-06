@@ -6,8 +6,8 @@
 #'
 #' @param time_unit A character, either "month" or "year" monthly or annual rainfall aggregates
 #' are to be estimated
-#' @param start_date An object of class date, must be specified like as.Date("yyyy-mm-dd")
-#' @param end_date An object of class date, must be specified like as.Date("yyyy-mm-dd")
+#' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
+#' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
 #' @param grid logical, TRUE if shapefile needs to tesselated/gridded before estimating grid level
@@ -25,20 +25,21 @@
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #'
-#' @details Rainfall data is sourced from the Climate Hazards Group InfraRed Precipitation with Station data
-#' (CHIRPS). This a 35+ year quasi-global rainfall dataset. Spanning the entire world from 1981 to date. See
-#' https://www.chc.ucsb.edu/data/chirps for more details.
-#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding the
-#' shapefile is also provided for users that need this data further analytics that require equal area zonal
-#' statistics. Shapefile estimates at the grid or native polygon level is a permitted final output.
-#' However, a geocoded survey with rainfall estimates are the end goal if the user also choooses. The
-#' function will merge shapefile polygons (either gridded or native polygons) with the location of the
-#' survey units i.e. rainfall estimates for the locations of the units within the survey will be returned.
-#' The function is also set up for stata users and allows the user to pass file paths for the
-#' household survey `survey_fn` (with the lat and long variable names `survey_lon` and `survey_lat`) as
-#' well. This is requires a .dta file which is read in with `haven::read_dta()` package.
-#' Likewise, the user is permitted to pass a filepath for the location of the shapefile `shp_fn`
-#' which is read in with the `sf::read_sf()` function.
+#' @details Rainfall data is sourced from the Climate Hazards Group InfraRed Precipitation
+#' with Station data (CHIRPS). This a 35+ year quasi-global rainfall dataset. Spanning the
+#' entire world from 1981 to date. See https://www.chc.ucsb.edu/data/chirps for more details.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with rainfall estimates are the end goal
+#' if the user also choooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. rainfall estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #'
 #' @examples
@@ -65,7 +66,7 @@
 #'
 #' @export
 #' @import data.table parallel raster
-#' @importFrom haven read.dta
+#' @importFrom haven read_dta
 #' @importFrom crsuggest suggest_crs
 
 
@@ -236,10 +237,19 @@ geolink_chirps <- function(time_unit,
 
     crs_raster <- crs(raster_objs[[1]])
 
-    survey_dt <- st_transform(x = survey_dt,
-                              crs = crs_raster)
+    survey_dt <- st_as_sf(x = survey_dt,
+                          crs = crs_raster,
+                          agr = "constant")
 
     survey_dt <- st_join(survey_dt, shp_dt)
+
+    if (is.null(survey_fn) == FALSE){
+
+      survey_dt <- st_drop_geometry(survey_dt) ## remove geometry for STATA output
+
+      return(survey_dt)
+
+    }
 
     return(survey_dt)
 
