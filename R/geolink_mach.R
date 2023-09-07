@@ -55,7 +55,7 @@
 #' df <- geolink_chirps(time_unit = "month",
 #'                      start_date = "2020-01-01",
 #'                      end_date = "2020-03-01",
-#'                      shp_dt = shp_dt,
+#'                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
 #'                      grid = TRUE,
 #'                      grid_size = 1000,
 #'                      use_survey = TRUE,
