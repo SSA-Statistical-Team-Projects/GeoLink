@@ -690,6 +690,16 @@
       ],
       "Hash": "47b5f30c720c23999b913a1a635cf0bb"
     },
+    "gdalUtilities": {
+      "Package": "gdalUtilities",
+      "Version": "1.2.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "sf"
+      ],
+      "Hash": "497ee66a15db5446d185503aef047ba2"
+    },
     "generics": {
       "Package": "generics",
       "Version": "0.1.3",
@@ -2061,14 +2071,14 @@
     },
     "units": {
       "Package": "units",
-      "Version": "0.8-2",
+      "Version": "0.8-4",
       "Source": "Repository",
       "Repository": "CRAN",
       "Requirements": [
         "R",
         "Rcpp"
       ],
-      "Hash": "422376fe53419adcde4710d43acbcdd0"
+      "Hash": "e0fbcea25008a7540c83c2c294135de0"
     },
     "usethis": {
       "Package": "usethis",

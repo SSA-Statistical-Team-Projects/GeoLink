@@ -4,7 +4,7 @@
 #' The data is downloaded in raster format and combined with shapefile and/or survey data provided
 #' by the user
 #'
-#' @param time_unit A character, either "month" or "year" monthly or annual rainfall aggregates
+#' @param time_unit A character, either "month" or "annual" monthly or annual rainfall aggregates
 #' are to be estimated
 #' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
@@ -32,7 +32,7 @@
 #' the shapefile is also provided for users that need this data further analytics that require
 #' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
 #' permitted final output. However, a geocoded survey with rainfall estimates are the end goal
-#' if the user also choooses. The function will merge shapefile polygons (either gridded or
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
 #' native polygons) with the location of the survey units i.e. rainfall estimates for the
 #' locations of the units within the survey will be returned. The function is also set up for
 #' stata users and allows the user to pass file paths for the household survey `survey_fn`
@@ -89,7 +89,7 @@ geolink_chirps <- function(time_unit,
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
-  ## download the data via readlines seeking inputs
+  ## download the data
   if (time_unit == "month") {
 
     raster_objs <- get_month_chirps(start_date = as.Date(start_date),
@@ -98,40 +98,24 @@ geolink_chirps <- function(time_unit,
     name_count <- lubridate::interval(as.Date(start_date),
                                       as.Date(end_date)) %/% months(1) + 1
 
-  } else if (time_unit == "year") {
+  } else if (time_unit == "annual") {
 
     raster_objs <- get_annual_chirps(start_year = lubridate::year(start_date),
                                      end_year = lubridate::year(end_date))
 
-    name_count <- lubridate::year(start_date) - lubridate::year(end_date) + 1
+    name_count <- lubridate::year(end_date) - lubridate::year(start_date) + 1
 
   } else {
 
-    stop("Time unit should either be month or year")
+    stop("Time unit should either be month or annual")
 
   }
 
   print("Global Rainfall Raster Downloaded")
 
-  ## crop the rasters to size of area
-  if (time_unit == "month") {
-
-    raster_objs <- lapply(raster_objs,
-                          function(X) {
-
-                            raster_crop <- raster::crop(x = X,
-                                                        y = extent(shp_dt))
-
-                            return(raster_crop)
-
-                          })
-
-  }
-
-  print("Rainfall raster cropped to extent of the country")
   ## create the name for the variables
 
-  name_set <- paste0(time_unit, 1:name_count)
+  name_set <- paste0("rainfall_", time_unit, 1:name_count)
 
   if (is.null(shp_fn) == FALSE){
 
@@ -139,11 +123,16 @@ geolink_chirps <- function(time_unit,
 
   }
 
-
-  if (grid == TRUE) {
+  if (is.null(shp_dt) == FALSE) {
 
     #### check if the shapefile is a UTM or degree CRS projection
     crs_obj <- st_crs(shp_dt)
+
+  }
+
+
+  if (grid == TRUE) {
+
 
     if (!("m" %in% crs_obj$units)) {
 
@@ -262,6 +251,35 @@ geolink_chirps <- function(time_unit,
 
 
 
+geolink_ntl <- function(time_unit = "annual",
+                        year,
+                        version,
+                        indicator,
+                        username,
+                        password,
+                        shp_dt,
+                        shp_fn = NULL,
+                        grid = FALSE,
+                        grid_size = 1000,
+                        use_survey = TRUE,
+                        survey_dt,
+                        survey_fn = NULL,
+                        survey_lat = NULL,
+                        survey_lon = NULL){
+
+  ### download the datasets
+  if (time_unit == "annual") {
+
+    raster_objs <- get_annual_ntl(username = username,
+                                  password = password,
+                                  year = year,
+                                  version = version)
+
+  }
+
+  return(raster_objs)
+
+}
 
 
 

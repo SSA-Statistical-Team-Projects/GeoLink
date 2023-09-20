@@ -37,7 +37,8 @@ get_month_chirps <- function(start_date,
 
 
   raster_objs <- lapply(X = dt[exist_status == TRUE, full_link],
-                        FUN = download_reader)
+                        FUN = download_reader,
+                        shp_dt = shp_dt)
 
   return(raster_objs)
 }
@@ -84,7 +85,8 @@ get_annual_chirps <- function(start_year,
 
 
   raster_objs <- lapply(X = dt[exist_status == TRUE, full_link],
-                        FUN = download_reader)
+                        FUN = download_reader,
+                        shp_dt = shp_dt)
 
   return(raster_objs)
 
