@@ -30,17 +30,15 @@ ntl_downloader <- function(client_id,
   ## Change data_url variable to the file you want to download
 
   auth <- paste("Bearer", access_token)
-  ## You can either define the output file name directly
-  # output_file <- 'EOG_sensitive_contents.txt'
-  ## Or get the filename from the data_url variable
 
-  output_file <- basename(data_url)
+  raster_obj <-
+  download_reader(url = data_url,
+                  headers = list(Authorization = auth))
 
-  download.file(data_url,
-    output_file,
-    mode = "wb",
-    headers = list(Authorization = auth)
-  )
+
+  return(raster_obj)
+
+
 }
 
 
@@ -64,14 +62,13 @@ construct_month_link <- function(year,
 
   ### construct link
   url_link <- paste(link_base,
-    tile_type,
-    version,
-    year,
-    paste0(year, month),
-    slc_type,
-    "",
-    sep = "/"
-  )
+                    tile_type,
+                    version,
+                    year,
+                    paste0(year, month),
+                    slc_type,
+                    "",
+                    sep = "/")
 
   return(url_link)
 }

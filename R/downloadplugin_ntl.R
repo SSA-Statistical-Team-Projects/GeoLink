@@ -15,85 +15,92 @@
 #' "avg_rade9h", "cf_cvg" or "cvg"
 #' @param cores An integer, how many parallel cores to use for downloading to accelerate process
 #'
-#' @import httr rvest
+#' @import httr rvest data.table
 #'
 #' @export
 #'
-# username <- 'ctl1m14@soton.ac.uk'
-# password <- 'Canon30v%'
-# year <- "2021"
-# month <- "12"
-# version <- "v10"
-# no_tile <- TRUE
-# slc_type <- c("vcmcfg")
-# indicator <- c("avg_rade9h")
-# link_base <- "https://eogdata.mines.edu/nighttime_light"
-# cores <- 1L
 
 get_month_ntl <- function(username,
                           password,
-                          year,
-                          month,
+                          start_date,
+                          end_date,
                           version,
                           no_tile = TRUE,
                           slc_type = c("vcmcfg", "vcmslcfg"),
                           indicator = c("avg_rade9h", "cf_cvg", "cvg"),
                           link_base = "https://eogdata.mines.edu/nighttime_light",
                           cores = 4L) {
-  ### create the full link
-  url_link <- construct_month_link(
-    year = year,
-    month = month,
-    version = version,
-    slc_type = slc_type,
-    no_tile = no_tile
-  )
+
+  ### read in the data
+  date_dt <- data.table::data.table(ntl_date = seq(start_date, end_date, "day"))
+
+  date_dt[, c("year",
+              "month",
+              "day") := tstrsplit(ntl_date,
+                                  "-",
+                                  fixed = TRUE)]
+
+  date_dt <- unique(date_dt[ ,c("year", "month")])
+
+  url_link <- mapply(FUN = construct_month_link,
+                     year = date_dt$year,
+                     month = date_dt$month,
+                     version = rep(version, nrow(date_dt)),
+                     slc_type = rep(slc_type, nrow(date_dt)),
+                     no_tile = rep(no_tile, nrow(date_dt)))
+
 
 
   if (no_tile == TRUE) {
-    indicator <- match.arg(indicator, c("avg_rade9h", "cf_cvg", "cvg"), several.ok = FALSE)
+
+    indicator <- match.arg(indicator, c("avg_rade9h",
+                                        "cf_cvg",
+                                        "cvg"),
+                           several.ok = FALSE)
   }
 
-
-  cl <- makePSOCKcluster(cores)
-  on.exit(stopCluster(cl))
+  return(url_link)
 
 
-  ### find the list of files in the url
-  link_check <- valid_url(url_link)
-
-  if (link_check == TRUE) {
-    file_list <- as.data.table(readHTMLTable(content(GET(url_link), "text"))[[1]])
-
-    file_list <- file_list[!grepl("tif.gz", Name), ]
+  # cl <- makePSOCKcluster(cores)
+  # on.exit(stopCluster(cl))
 
 
-    if (no_tile == TRUE) {
-      file_list <- file_list[grepl(indicator, Name), Name]
-    }
+  # ### find the list of files in the url
+  # link_check <- valid_url(url_link)
+  #
+  # if (link_check == TRUE) {
+  #   file_list <- as.data.table(readHTMLTable(content(GET(url_link), "text"))[[1]])
+  #
+  #   file_list <- file_list[!grepl("tif.gz", Name), ]
+  #
+  #
+  #   if (no_tile == TRUE) {
+  #     file_list <- file_list[grepl(indicator, Name), Name]
+  #   }
+  #
+  #   file_list <- unlist(lapply(
+  #     X = url_link,
+  #     FUN = paste0,
+  #     file_list
+  #   ))
+  #
+  #
+  #   raster_list <-
+  #     lapply(X = file_list,
+  #            FUN = ntl_downloader,
+  #            username = username,
+  #            password = password,
+  #            client_id = "eogdata_oidc",
+  #            client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
+  #            grant_type = "password",
+  #            token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token")
+  #
+  #
+  #
+  #   return(raster_list)
+  # }
 
-    file_list <- unlist(lapply(
-      X = url_link,
-      FUN = paste0,
-      file_list
-    ))
-
-    ## file_list <- vrt(file_list, filename=(tools::file_path_sans_ext(file_list)), overwrite=TRUE)
-
-
-    parallel::parLapply(
-      cl = cl,
-      X = file_list,
-      fun = ntl_downloader,
-      username = username,
-      password = password,
-      client_id = "eogdata_oidc",
-      client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
-      grant_type = "password",
-      token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token"
-    )
-    return(file_list)
-  }
 }
 
 #' Download Annual Night Time Lights Data
@@ -157,24 +164,18 @@ get_annual_ntl <- function(username,
   ### create full link
   download_links <- paste0(url_link, "/", download_links)
 
-  ### run the downloader
-  cl <- makePSOCKcluster(cores)
-  on.exit(stopCluster(cl))
-
-  parallel::parLapply(
-    cl = cl,
-    X = download_links,
-    fun = ntl_downloader,
-    username = username,
-    password = password,
-    client_id = "eogdata_oidc",
-    client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
-    grant_type = "password",
-    token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token"
-  )
+  raster_list <-
+  lapply(X = download_links,
+         FUN = ntl_downloader,
+         username = username,
+         password = password,
+         client_id = "eogdata_oidc",
+         client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
+         grant_type = "password",
+         token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token")
 
 
 
 
-  return(download_links)
+  return(raster_list)
 }
