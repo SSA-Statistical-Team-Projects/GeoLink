@@ -52,7 +52,10 @@ construct_month_link <- function(year,
                                  slc_type,
                                  no_tile,
                                  link_base = "https://eogdata.mines.edu/nighttime_light") {
-  slc_type <- match.arg(slc_type, c("vcmcfg", "vcmslcfg"), several.ok = FALSE)
+
+  slc_type <- match.arg(slc_type,
+                        c("vcmcfg", "vcmslcfg"),
+                        several.ok = FALSE)
 
   tile_type <- ifelse(no_tile == TRUE, "monthly_notile", "monthly")
 
@@ -70,7 +73,14 @@ construct_month_link <- function(year,
                     "",
                     sep = "/")
 
-  return(url_link)
+  full_link <- get_url_data(url = url_link)
+
+  full_link <- unique(full_link)
+
+  full_link <- paste0(url_link, full_link)
+
+  return(full_link)
+
 }
 
 
@@ -119,3 +129,47 @@ construct_year_link <- function(year,
 
   return(url_link)
 }
+
+
+
+##### a function to read links
+
+#' @import stringr
+
+get_url_data <- function(url,
+                         file_type = "tif"){
+
+  page <- read_html(url)
+
+  data_file_links <-
+    page %>%
+    html_nodes("a") %>%
+    html_attr("href") %>%
+    str_subset(paste0(".", file_type, "$"))
+
+  return(data_file_links)
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

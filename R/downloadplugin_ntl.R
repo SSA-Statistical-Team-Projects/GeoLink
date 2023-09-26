@@ -27,7 +27,10 @@ get_month_ntl <- function(username,
                           version,
                           no_tile = TRUE,
                           slc_type = c("vcmcfg", "vcmslcfg"),
-                          indicator = c("avg_rade9h", "cf_cvg", "cvg"),
+                          indicator = c("avg_rade9h",
+                                        "cf_cvg",
+                                        "cvg",
+                                        "avg_rade9h.masked"),
                           link_base = "https://eogdata.mines.edu/nighttime_light",
                           cores = 4L) {
 
@@ -42,12 +45,18 @@ get_month_ntl <- function(username,
 
   date_dt <- unique(date_dt[ ,c("year", "month")])
 
+  ### match slc_type
+  slc_type <- match.arg(slc_type,
+                        c("vcmcfg", "vcmslcfg"),
+                        several.ok = FALSE)
+
   url_link <- mapply(FUN = construct_month_link,
                      year = date_dt$year,
                      month = date_dt$month,
                      version = rep(version, nrow(date_dt)),
                      slc_type = rep(slc_type, nrow(date_dt)),
-                     no_tile = rep(no_tile, nrow(date_dt)))
+                     no_tile = rep(no_tile, nrow(date_dt)),
+                     SIMPLIFY = FALSE)
 
 
 
@@ -55,51 +64,59 @@ get_month_ntl <- function(username,
 
     indicator <- match.arg(indicator, c("avg_rade9h",
                                         "cf_cvg",
-                                        "cvg"),
+                                        "cvg",
+                                        "avg_rade9h.masked"),
                            several.ok = FALSE)
   }
 
-  return(url_link)
+  #### select the set of indicators we want
+  indicator <- paste0(indicator, ".tif")
+
+  url_link <- lapply(url_link,
+                     function(x){
+
+                       base_x <- basename(x)
+
+                       y <- base_x[grepl(indicator, base_x)]
+
+                       if (is.null(y)){
+
+                         date_chr <- substr(base_x[[1]],
+                                            11,
+                                            27)
+
+                         warning(paste0(indicator,
+                                        " is missing from the EOG NTL database",
+                                        " for the month in",
+                                        date_chr))
+
+                       }
+
+                       full_link <- x[grepl(y, x)]
+
+                       return(full_link)
+
+                     })
+
+  url_link <- unlist(url_link)
+
+  ### download the data
+  raster_list <-
+    lapply(X = url_link,
+           FUN = ntl_downloader,
+           username = username,
+           password = password,
+           client_id = "eogdata_oidc",
+           client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
+           grant_type = "password",
+           token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token")
 
 
-  # cl <- makePSOCKcluster(cores)
-  # on.exit(stopCluster(cl))
 
 
-  # ### find the list of files in the url
-  # link_check <- valid_url(url_link)
-  #
-  # if (link_check == TRUE) {
-  #   file_list <- as.data.table(readHTMLTable(content(GET(url_link), "text"))[[1]])
-  #
-  #   file_list <- file_list[!grepl("tif.gz", Name), ]
-  #
-  #
-  #   if (no_tile == TRUE) {
-  #     file_list <- file_list[grepl(indicator, Name), Name]
-  #   }
-  #
-  #   file_list <- unlist(lapply(
-  #     X = url_link,
-  #     FUN = paste0,
-  #     file_list
-  #   ))
-  #
-  #
-  #   raster_list <-
-  #     lapply(X = file_list,
-  #            FUN = ntl_downloader,
-  #            username = username,
-  #            password = password,
-  #            client_id = "eogdata_oidc",
-  #            client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
-  #            grant_type = "password",
-  #            token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token")
-  #
-  #
-  #
-  #   return(raster_list)
-  # }
+  return(raster_list)
+
+
 
 }
 
