@@ -268,25 +268,11 @@ geolink_ntl <- function(time_unit = "annual",
                         survey_lon = NULL){
 
   ### download the datasets
-  if (time_unit == "annual") {
+  if (time_unit == "month"){
 
-    raster_objs <- get_annual_ntl(username = username,
-                                  password = password,
-                                  year = year,
-                                  version = version)
-
-  } else if (time_unit == "month") {
-
-    raster_objs <- get_month_ntl(username = username,
-                                 password = password,
-                                 year = year,
-                                 )
-
-  } else {
-
-    stop("Time unit should either be month or annual")
 
   }
+
 
   return(raster_objs)
 
