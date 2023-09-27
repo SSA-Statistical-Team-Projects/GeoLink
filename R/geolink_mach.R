@@ -250,13 +250,60 @@ geolink_chirps <- function(time_unit,
 }
 
 
+#' Download and Merge Monthly and Annual Night Time Light data into geocoded surveys
+#'
+#' Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period
+#' The data is downloaded in raster format and combined with shapefile and/or survey data provided
+#' by the user
+#'
+#' @param time_unit A character, either "month" or "annual" monthly or annual rainfall aggregates
+#' are to be estimated
+#' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
+#' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
+#' @param grid logical, TRUE if shapefile needs to tesselated/gridded before estimating grid level
+#' zonal statistics and performing a spatial join to the household survey
+#' @param grid_size A numeric, the grid size to be used in meters
+#' @param use_survey logical, if TRUE a survey is expected (i.e. survey_dt cannot be null)
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
+#' a household survey with latitude and longitude values.
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
+#' if use_survey is TRUE)
+#' @param survey_lat A character, latitude variable from survey (for STATA users only &
+#' if use_survey is TRUE)
+#' @param survey_lon A character, longitude variable from survey (for STATA users only &
+#' if use survey is TRUE)
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#' @inheritParams get_annual_ntl
+#'
+#'
+#' @details NTL data is sourced from the NASA's Earth Observation Group database.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with rainfall estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. rainfall estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
+#'
+#'
+
 
 geolink_ntl <- function(time_unit = "annual",
-                        year,
+                        start_date,
+                        end_date,
                         version,
                         indicator,
                         username,
                         password,
+                        slc_type,
                         shp_dt,
                         shp_fn = NULL,
                         grid = FALSE,
@@ -267,11 +314,179 @@ geolink_ntl <- function(time_unit = "annual",
                         survey_lat = NULL,
                         survey_lon = NULL){
 
-  ### download the datasets
-  if (time_unit == "month"){
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
 
+  ## download the data
+  if (time_unit == "month") {
+
+    raster_objs <- get_month_ntl(start_date = as.Date(start_date),
+                                 end_date = as.Date(end_date),
+                                 username = username,
+                                 password = password,
+                                 version = version,
+                                 slc_type = slc_type,
+                                 indicator = indicator)
+
+    name_count <- lubridate::interval(as.Date(start_date),
+                                      as.Date(end_date)) %/% months(1) + 1
+
+  } else if (time_unit == "annual") {
+
+    raster_objs <- lapply(X = year(seq(as.Date(start_date),
+                                       as.Date(end_date),
+                                       "years")),
+                          FUN = get_annual_ntl,
+                          username = username,
+                          password = password,
+                          version = version,
+                          indicator = indicator)
+
+    browser()
+
+    name_count <- lubridate::year(end_date) - lubridate::year(start_date) + 1
+
+  } else {
+
+    stop("Time unit should either be month or annual")
 
   }
+
+  print("Global NTL Raster Downloaded")
+
+  ## create the name for the variables
+
+  name_set <- paste0("ntl_", time_unit, 1:name_count)
+
+  if (is.null(shp_fn) == FALSE){
+
+    shp_dt <- sf::read_sf(shp_fn)
+
+  }
+
+  if (is.null(shp_dt) == FALSE) {
+
+    #### check if the shapefile is a UTM or degree CRS projection
+    crs_obj <- st_crs(shp_dt)
+
+  }
+
+
+  if (grid == TRUE) {
+
+
+    if (!("m" %in% crs_obj$units)) {
+
+      suggest_dt <- crsuggest::suggest_crs(shp_dt,
+                                           units = "m")
+
+      shp_dt <- st_transform(shp_dt,
+                             crs = as.numeric(suggest_dt$crs_code[1]))
+
+    }
+
+    shp_dt <- gengrid2(shp_dt = shp_dt,
+                       grid_size = grid_size)
+
+    shp_dt <- st_transform(shp_dt, crs = crs_obj)
+
+  }
+
+  ## extract into the shapefile with different column names
+  if (!identical(crs_obj, raster::crs(raster_objs[[1]]))){
+
+    shp_dt <- st_transform(shp_dt, crs = st_crs(raster_objs[[1]])$input)
+
+  }
+
+  ### reproject shapefile to match raster CRS if they are not the same
+  print("Extracting ntl data into shapefile")
+  shp_dt <-
+    mapply(FUN = function(x, n){
+      ### first ensure raster and shapefile have the same crs
+
+
+      shp_dt[[n]] <- exactextractr::exact_extract(x = x,
+                                                  y = shp_dt,
+                                                  fun = extract_fun)
+
+      return(shp_dt)
+
+    },
+    SIMPLIFY = FALSE,
+    x = raster_objs,
+    n = name_set)
+
+  if (length(shp_dt) > 1L) {
+
+    shp_dt <- lapply(shp_dt,
+                     function(X){
+
+                       X$geoID <- 1:nrow(X)
+
+                       return(X)
+
+                     })
+
+    geoid_dt <- shp_dt[[1]][, c("geoID")]
+
+    shp_crs <- st_crs(shp_dt[[1]])$input
+
+    shp_dt <- lapply(shp_dt,
+                     function(X){
+
+                       X <- X %>% st_drop_geometry()
+
+                       return(X)
+
+                     })
+
+    shp_dt <- Reduce(merge, shp_dt)
+
+    shp_dt <- merge(shp_dt, geoid_dt, by = "geoID")
+
+    shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
+
+  }
+
+
+  ## merge the shapefile and the household survey
+  if (use_survey == TRUE){
+
+    print("Merging shapefile rainfall estimates into survey")
+
+    if (is.null(survey_fn) == FALSE){
+
+      survey_dt <- haven::read_dta(survey_fn)
+
+      survey_dt <- st_as_sf(survey_dt,
+                            coords = c(survey_lon, survey_lat),
+                            crs = 4326,
+                            agr = "constant")
+    }
+
+    crs_raster <- crs(raster_objs[[1]])
+
+    survey_dt <- st_as_sf(x = survey_dt,
+                          crs = crs_raster,
+                          agr = "constant")
+
+    survey_dt <- st_join(survey_dt, shp_dt)
+
+    if (is.null(survey_fn) == FALSE){
+
+      survey_dt <- st_drop_geometry(survey_dt) ## remove geometry for STATA output
+
+      return(survey_dt)
+
+    }
+
+    return(survey_dt)
+
+  }
+
+  print("Process Complete!")
+  return(shp_dt)
 
 
   return(raster_objs)
