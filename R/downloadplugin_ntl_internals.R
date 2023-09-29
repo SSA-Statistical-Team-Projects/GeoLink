@@ -6,7 +6,8 @@ ntl_downloader <- function(client_id,
                            password,
                            grant_type,
                            token_url,
-                           data_url) {
+                           data_url,
+                           shp_dt) {
   params <- list(
     client_id = client_id,
     client_secret = client_secret,
@@ -33,7 +34,8 @@ ntl_downloader <- function(client_id,
 
   raster_obj <-
   download_reader(url = data_url,
-                  headers = list(Authorization = auth))
+                  headers = list(Authorization = auth),
+                  shp_dt = shp_dt)
 
 
   return(raster_obj)

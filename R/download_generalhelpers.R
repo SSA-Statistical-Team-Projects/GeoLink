@@ -20,6 +20,7 @@ download_dictionary <- function(){
 
 ### download and read in the tiff files
 download_reader <- function(url,
+                            shp_dt,
                             ...) {
 
   ext <- paste0(".", tools::file_ext(url))
@@ -36,6 +37,8 @@ download_reader <- function(url,
   opener_chr <- dict_dt[file_ext == tools::file_ext(temp_file), opener_function]
 
   raster_obj <- do.call(opener_chr, list(temp_file))
+
+  raster_obj <- crop(raster_obj, extent(shp_dt))
 
   return(raster_obj)
 

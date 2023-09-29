@@ -301,8 +301,6 @@ geolink_ntl <- function(time_unit = "annual",
                         end_date,
                         version,
                         indicator,
-                        username,
-                        password,
                         slc_type,
                         shp_dt,
                         shp_fn = NULL,
@@ -322,27 +320,23 @@ geolink_ntl <- function(time_unit = "annual",
 
     raster_objs <- get_month_ntl(start_date = as.Date(start_date),
                                  end_date = as.Date(end_date),
-                                 username = username,
-                                 password = password,
                                  version = version,
                                  slc_type = slc_type,
-                                 indicator = indicator)
+                                 indicator = indicator,
+                                 shp_dt = shp_dt)
 
     name_count <- lubridate::interval(as.Date(start_date),
                                       as.Date(end_date)) %/% months(1) + 1
 
   } else if (time_unit == "annual") {
 
-    raster_objs <- lapply(X = year(seq(as.Date(start_date),
-                                       as.Date(end_date),
+    raster_objs <- lapply(X = year(seq(start_date,
+                                       end_date,
                                        "years")),
                           FUN = get_annual_ntl,
-                          username = username,
-                          password = password,
                           version = version,
-                          indicator = indicator)
-
-    browser()
+                          indicator = indicator,
+                          shp_dt = shp_dt)
 
     name_count <- lubridate::year(end_date) - lubridate::year(start_date) + 1
 

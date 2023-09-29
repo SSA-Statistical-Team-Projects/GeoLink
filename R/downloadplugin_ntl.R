@@ -13,7 +13,6 @@
 #' "vcmslcfg"
 #' @param indicator A character, specifying the specific indicator of interest. Options are
 #' "avg_rade9h", "cf_cvg" or "cvg"
-#' @param cores An integer, how many parallel cores to use for downloading to accelerate process
 #'
 #' @import httr rvest data.table
 #'
@@ -32,7 +31,7 @@ get_month_ntl <- function(username,
                                         "cvg",
                                         "avg_rade9h.masked"),
                           link_base = "https://eogdata.mines.edu/nighttime_light",
-                          cores = 4L) {
+                          shp_dt) {
 
   ### read in the data
   date_dt <- data.table::data.table(ntl_date = seq(start_date, end_date, "day"))
@@ -103,13 +102,8 @@ get_month_ntl <- function(username,
   ### download the data
   raster_list <-
     lapply(X = url_link,
-           FUN = ntl_downloader,
-           username = username,
-           password = password,
-           client_id = "eogdata_oidc",
-           client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
-           grant_type = "password",
-           token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token")
+           FUN = download_reader,
+           shp_dt = shp_dt)
 
 
 
@@ -132,7 +126,6 @@ get_month_ntl <- function(username,
 #' @param password A character, password on NASA's Earth Observation Gruop database
 #' @param indicator A character, specifying the specific indicator of interest. Options are
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median", "median_masked" and "minimum"
-#' @param cores An integer, how many parallel cores to use for downloading to accelerate process
 #'
 #' @import rvest
 #' @export
@@ -140,17 +133,13 @@ get_month_ntl <- function(username,
 
 
 
-get_annual_ntl <- function(username,
-                           password,
-                           year,
+get_annual_ntl <- function(year,
                            version,
                            link_base = "https://eogdata.mines.edu/nighttime_light/annual/",
-                           indicator = c(
-                             "average", "average_masked", "cf_cvg", "cvg",
-                             "lit_mask", "maximum", "median", "median_masked",
-                             "minimum"
-                           ),
-                           cores = 1L) {
+                           indicator = c("average", "average_masked", "cf_cvg", "cvg",
+                                         "lit_mask", "maximum", "median", "median_masked",
+                                         "minimum"),
+                           shp_dt) {
   ### construct the link
   url_link <- construct_year_link(
     year = year,
@@ -183,13 +172,8 @@ get_annual_ntl <- function(username,
 
   raster_list <-
   lapply(X = download_links,
-         FUN = ntl_downloader,
-         username = username,
-         password = password,
-         client_id = "eogdata_oidc",
-         client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
-         grant_type = "password",
-         token_url = "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token")
+         FUN = download_reader,
+         shp_dt = shp_dt)
 
 
 
