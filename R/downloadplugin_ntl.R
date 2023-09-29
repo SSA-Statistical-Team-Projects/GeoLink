@@ -4,24 +4,21 @@
 #' Group's (EOG) database. The downloaded rasters are collected for different
 #' time intervals, daily, monthly and annually.
 #'
-#' @param year An integer, for the year of interest (yyyy)
-#' @param month An integer, for the month of interest
+#' @param start_date A character, the starting date of interest
+#' @param end_date A character, the ending date of interest
+#' @param shp_dt A sf/dataframe object, a polygon shapefile
 #' @param version A string character, for now only "v10" is supported more to come later
-#' @param username A character, username on NASA's Earth Observation Group database
-#' @param password A character, password on NASA's Earth Observation Gruop database
 #' @param slc_type A character, adjustment type made to the NTL data either "vcmcfg" or
 #' "vcmslcfg"
 #' @param indicator A character, specifying the specific indicator of interest. Options are
-#' "avg_rade9h", "cf_cvg" or "cvg"
+#' "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
 #'
 #' @import httr rvest data.table
 #'
 #' @export
 #'
 
-get_month_ntl <- function(username,
-                          password,
-                          start_date,
+get_month_ntl <- function(start_date,
                           end_date,
                           version,
                           no_tile = TRUE,
@@ -122,11 +119,10 @@ get_month_ntl <- function(username,
 #'
 #' @param year An integer, for the year of interest (yyyy), one year at a time
 #' @param version A string character, for now only "v10" is supported more to come later
-#' @param username A character, username on NASA's Earth Observation Group database
-#' @param password A character, password on NASA's Earth Observation Gruop database
 #' @param indicator A character, specifying the specific indicator of interest. Options are
-#' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median", "median_masked" and "minimum"
-#'
+#' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
+#' "median_masked" and "minimum"
+#' @param shp_dt A sf/dataframe object, a polygon shapefile
 #' @import rvest
 #' @export
 #'

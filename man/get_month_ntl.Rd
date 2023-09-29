@@ -7,24 +7,20 @@
 get_month_ntl(
   username,
   password,
-  year,
-  month,
+  start_date,
+  end_date,
   version,
   no_tile = TRUE,
   slc_type = c("vcmcfg", "vcmslcfg"),
-  indicator = c("avg_rade9h", "cf_cvg", "cvg"),
+  indicator = c("avg_rade9h", "cf_cvg", "cvg", "avg_rade9h.masked"),
   link_base = "https://eogdata.mines.edu/nighttime_light",
-  cores = 4L
+  shp_dt
 )
 }
 \arguments{
 \item{username}{A character, username on NASA's Earth Observation Group database}
 
 \item{password}{A character, password on NASA's Earth Observation Gruop database}
-
-\item{year}{An integer, for the year of interest (yyyy)}
-
-\item{month}{An integer, for the month of interest}
 
 \item{version}{A string character, for now only "v10" is supported more to come later}
 
@@ -34,7 +30,9 @@ get_month_ntl(
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
 "avg_rade9h", "cf_cvg" or "cvg"}
 
-\item{cores}{An integer, how many parallel cores to use for downloading to accelerate process}
+\item{year}{An integer, for the year of interest (yyyy)}
+
+\item{month}{An integer, for the month of interest}
 }
 \description{
 Functions to download night time lights data from NASA's Earth Observation

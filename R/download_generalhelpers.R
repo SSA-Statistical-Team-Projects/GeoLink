@@ -1,15 +1,26 @@
+################################################################################
+################## INTERNAL FUNCTIONS TO SUPPORT DOWNLOADING ###################
+################################################################################
+
+#' Basic function for downloading
+#' @param dsn a folder location
+#' @param url a link URL
+#'
+
 ### download function for getting any files from website
 download_worker <- function(dsn,
                             url) {
-  download.file(
-    url = url,
-    destfile = paste(dsn, basename(url), sep = "/"),
-    mode = "wb"
-  )
+
+  download.file(url = url,
+                destfile = paste(dsn, basename(url), sep = "/"),
+                mode = "wb")
 
 }
 
-### create a dataframe of file extensions and content readers
+#' A function to create dictionary of file extensions and the functions that
+#' read them so that a do.call can be applied to read in the results
+#'
+
 download_dictionary <- function(){
 
   dict_dt <- data.table(file_ext = c("tiff", "tif", "gz"),
@@ -18,7 +29,13 @@ download_dictionary <- function(){
   return(dict_dt)
 }
 
-### download and read in the tiff files
+#' A function to download and read in a file from the internet
+#'
+#' @param url a link URL
+#' @param shp_dt a shapefile to be used to crop raster
+#' @param ... additional arguments to be used in `download.file()`
+#'
+
 download_reader <- function(url,
                             shp_dt,
                             ...) {
@@ -44,7 +61,12 @@ download_reader <- function(url,
 
 }
 
-### a gunzip wrapper function that will read in the unzipped filed into R as well
+
+#' A function to unzip a download
+#'
+#' @param filename the filenames of the downloads
+#'
+
 gunzip_reader <- function(filename){
 
   unzip_file <- R.utils::gunzip(filename, remove = FALSE)

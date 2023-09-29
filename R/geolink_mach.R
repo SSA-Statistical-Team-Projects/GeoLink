@@ -277,6 +277,7 @@ geolink_chirps <- function(time_unit,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @inheritParams get_annual_ntl
+#' @inheritParams get_month_ntl
 #'
 #'
 #' @details NTL data is sourced from the NASA's Earth Observation Group database.
@@ -293,7 +294,32 @@ geolink_chirps <- function(time_unit,
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
+#' @examples
 #'
+#' \donttest{
+#'
+#' #loading the survey data and shapefile
+#'
+#' data("hhgeo_dt")
+#' data("shp_dt")
+#'
+#' #pull monthly night lights and combine with household survey based on
+#' #grid tesselation
+#' df <- geolink_ntl(time_unit = "month",
+#'                   start_date = "2020-01-01",
+#'                   end_date = "2020-03-01",
+#'                   shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+#'                   grid = TRUE,
+#'                   version = "v21",
+#'                   indicator = "average_masked",
+#'                   grid_size = 1000,
+#'                   use_survey = TRUE,
+#'                   survey_dt = hhgeo_dt,
+#'                   extract_fun = "mean")
+#'
+#' }
+#
+#' @export
 
 
 geolink_ntl <- function(time_unit = "annual",
@@ -358,12 +384,9 @@ geolink_ntl <- function(time_unit = "annual",
 
   }
 
-  if (is.null(shp_dt) == FALSE) {
 
-    #### check if the shapefile is a UTM or degree CRS projection
-    crs_obj <- st_crs(shp_dt)
-
-  }
+  #### check if the shapefile is a UTM or degree CRS projection
+  crs_obj <- st_crs(shp_dt)
 
 
   if (grid == TRUE) {

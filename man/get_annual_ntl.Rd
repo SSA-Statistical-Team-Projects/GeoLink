@@ -5,21 +5,15 @@
 \title{Download Annual Night Time Lights Data}
 \usage{
 get_annual_ntl(
-  username,
-  password,
   year,
   version,
   link_base = "https://eogdata.mines.edu/nighttime_light/annual/",
   indicator = c("average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum",
     "median", "median_masked", "minimum"),
-  cores = 1L
+  shp_dt
 )
 }
 \arguments{
-\item{username}{A character, username on NASA's Earth Observation Group database}
-
-\item{password}{A character, password on NASA's Earth Observation Gruop database}
-
 \item{year}{An integer, for the year of interest (yyyy), one year at a time}
 
 \item{version}{A string character, for now only "v10" is supported more to come later}
@@ -27,7 +21,9 @@ get_annual_ntl(
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
 "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median", "median_masked" and "minimum"}
 
-\item{cores}{An integer, how many parallel cores to use for downloading to accelerate process}
+\item{username}{A character, username on NASA's Earth Observation Group database}
+
+\item{password}{A character, password on NASA's Earth Observation Gruop database}
 }
 \description{
 Functions to download night time lights data from NASA's Earth Observation

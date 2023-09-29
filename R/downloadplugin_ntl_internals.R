@@ -1,3 +1,7 @@
+#' An deprecated function used to download NTL rasters from the EOG website
+#' This function was useful when EOG needed a username and password. Therefore
+#' this is not really in use anymore unless the opportunity necessitates
+
 #' @import jsonlite
 
 ntl_downloader <- function(client_id,
@@ -45,9 +49,15 @@ ntl_downloader <- function(client_id,
 
 
 
+#' Construct URL to the month night time lights data
+#'
+#' @param year an integer, the year
+#' @param month an integer, the month
+#' @param version a character, the NTL version "v10"
+#' @param slc_type a character, "vcmslcfg"
+#' @param no_tile a logical, always set to FALSE
+#' @param link_base a character, the base link to the NTL EOG database
 
-
-##### internal functions to help pull the monthly notile data
 construct_month_link <- function(year,
                                  month,
                                  version,
@@ -85,7 +95,31 @@ construct_month_link <- function(year,
 
 }
 
+#' Construct URL to the annual night time lights data
+#'
+#' @param year an integer, the year
+#' @param version a character, the NTL version ("v10", "v20", "v21" and "v22")
+#' @param link_base a character, the base link to the NTL EOG database
 
+construct_year_link <- function(year,
+                                version,
+                                link_base = "https://eogdata.mines.edu/nighttime_light/annual/") {
+  year <- as.integer(year)
+
+  url_link <- paste0(
+    link_base,
+    version,
+    "/",
+    year
+  )
+
+  return(url_link)
+}
+
+
+#' Check if the url actually works and contains data
+#'
+#' @param url character, the url
 
 
 valid_url <- function(url,
@@ -114,23 +148,6 @@ valid_url <- function(url,
 }
 
 
-
-#### internal functions to help pull the annual data
-
-construct_year_link <- function(year,
-                                version,
-                                link_base = "https://eogdata.mines.edu/nighttime_light/annual/") {
-  year <- as.integer(year)
-
-  url_link <- paste0(
-    link_base,
-    version,
-    "/",
-    year
-  )
-
-  return(url_link)
-}
 
 
 
