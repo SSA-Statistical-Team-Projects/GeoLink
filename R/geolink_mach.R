@@ -274,8 +274,11 @@ geolink_chirps <- function(time_unit,
 #' if use_survey is TRUE)
 #' @param survey_lon A character, longitude variable from survey (for STATA users only &
 #' if use survey is TRUE)
+#' @param buffer_survey A logical, specify TRUE if interested in estimating a statistic based on distance
+#' from the survey location.
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#'
 #' @inheritParams get_annual_ntl
 #' @inheritParams get_month_ntl
 #'
@@ -336,7 +339,10 @@ geolink_ntl <- function(time_unit = "annual",
                         survey_dt,
                         survey_fn = NULL,
                         survey_lat = NULL,
-                        survey_lon = NULL){
+                        survey_lon = NULL,
+                        extract_fun = "mean",
+                        buffer_survey,
+                        buffer_size){
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -364,6 +370,8 @@ geolink_ntl <- function(time_unit = "annual",
                           indicator = indicator,
                           shp_dt = shp_dt)
 
+    raster_objs <- unlist(raster_objs)
+
     name_count <- lubridate::year(end_date) - lubridate::year(start_date) + 1
 
   } else {
@@ -374,142 +382,28 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Global NTL Raster Downloaded")
 
-  ## create the name for the variables
+  result_dt <-
+  postdownload_processor(varname = "ntl_",
+                         time_unit = time_unit,
+                         name_count = name_count,
+                         shp_dt = shp_dt,
+                         raster_objs = raster_objs,
+                         shp_fn = shp_fn,
+                         grid = grid,
+                         grid_size = grid_size,
+                         use_survey = use_survey,
+                         survey_dt = survey_dt,
+                         survey_fn = survey_fn,
+                         survey_lat = survey_lat,
+                         survey_lon = survey_lon,
+                         extract_fun = extract_fun,
+                         buffer_survey = buffer_survey,
+                         buffer_size = buffer_size)
 
-  name_set <- paste0("ntl_", time_unit, 1:name_count)
+  return(result_dt)
 
-  if (is.null(shp_fn) == FALSE){
-
-    shp_dt <- sf::read_sf(shp_fn)
-
-  }
-
-
-  #### check if the shapefile is a UTM or degree CRS projection
-  crs_obj <- st_crs(shp_dt)
-
-
-  if (grid == TRUE) {
-
-
-    if (!("m" %in% crs_obj$units)) {
-
-      suggest_dt <- crsuggest::suggest_crs(shp_dt,
-                                           units = "m")
-
-      shp_dt <- st_transform(shp_dt,
-                             crs = as.numeric(suggest_dt$crs_code[1]))
-
-    }
-
-    shp_dt <- gengrid2(shp_dt = shp_dt,
-                       grid_size = grid_size)
-
-    shp_dt <- st_transform(shp_dt, crs = crs_obj)
-
-  }
-
-  ## extract into the shapefile with different column names
-  if (!identical(crs_obj, raster::crs(raster_objs[[1]]))){
-
-    shp_dt <- st_transform(shp_dt, crs = st_crs(raster_objs[[1]])$input)
-
-  }
-
-  ### reproject shapefile to match raster CRS if they are not the same
-  print("Extracting ntl data into shapefile")
-  shp_dt <-
-    mapply(FUN = function(x, n){
-      ### first ensure raster and shapefile have the same crs
-
-
-      shp_dt[[n]] <- exactextractr::exact_extract(x = x,
-                                                  y = shp_dt,
-                                                  fun = extract_fun)
-
-      return(shp_dt)
-
-    },
-    SIMPLIFY = FALSE,
-    x = raster_objs,
-    n = name_set)
-
-  if (length(shp_dt) > 1L) {
-
-    shp_dt <- lapply(shp_dt,
-                     function(X){
-
-                       X$geoID <- 1:nrow(X)
-
-                       return(X)
-
-                     })
-
-    geoid_dt <- shp_dt[[1]][, c("geoID")]
-
-    shp_crs <- st_crs(shp_dt[[1]])$input
-
-    shp_dt <- lapply(shp_dt,
-                     function(X){
-
-                       X <- X %>% st_drop_geometry()
-
-                       return(X)
-
-                     })
-
-    shp_dt <- Reduce(merge, shp_dt)
-
-    shp_dt <- merge(shp_dt, geoid_dt, by = "geoID")
-
-    shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
-
-  }
-
-
-  ## merge the shapefile and the household survey
-  if (use_survey == TRUE){
-
-    print("Merging shapefile rainfall estimates into survey")
-
-    if (is.null(survey_fn) == FALSE){
-
-      survey_dt <- haven::read_dta(survey_fn)
-
-      survey_dt <- st_as_sf(survey_dt,
-                            coords = c(survey_lon, survey_lat),
-                            crs = 4326,
-                            agr = "constant")
-    }
-
-    crs_raster <- crs(raster_objs[[1]])
-
-    survey_dt <- st_as_sf(x = survey_dt,
-                          crs = crs_raster,
-                          agr = "constant")
-
-    survey_dt <- st_join(survey_dt, shp_dt)
-
-    if (is.null(survey_fn) == FALSE){
-
-      survey_dt <- st_drop_geometry(survey_dt) ## remove geometry for STATA output
-
-      return(survey_dt)
-
-    }
-
-    return(survey_dt)
-
-  }
-
-  print("Process Complete!")
-  return(shp_dt)
-
-
-  return(raster_objs)
 
 }
-
 
 
 
