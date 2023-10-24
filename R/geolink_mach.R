@@ -10,10 +10,7 @@
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param grid logical, TRUE if shapefile needs to tesselated/gridded before estimating grid level
-#' zonal statistics and performing a spatial join to the household survey
 #' @param grid_size A numeric, the grid size to be used in meters
-#' @param use_survey logical, if TRUE a survey is expected (i.e. survey_dt cannot be null)
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
@@ -76,14 +73,14 @@ geolink_chirps <- function(time_unit,
                            end_date,
                            shp_dt,
                            shp_fn = NULL,
-                           grid = FALSE,
                            grid_size = 1000,
-                           use_survey = TRUE,
                            survey_dt,
                            survey_fn = NULL,
                            survey_lat = NULL,
                            survey_lon = NULL,
-                           extract_fun = "mean") {
+                           buffer_size = NULL,
+                           extract_fun = "mean",
+                           survey_crs = 4326) {
 
 
   start_date <- as.Date(start_date)
@@ -113,139 +110,30 @@ geolink_chirps <- function(time_unit,
 
   print("Global Rainfall Raster Downloaded")
 
+
+  name_set <- paste0("rainfall_", time_unit, name_count)
+
+
   ## create the name for the variables
 
-  name_set <- paste0("rainfall_", time_unit, 1:name_count)
-
-  if (is.null(shp_fn) == FALSE){
-
-    shp_dt <- sf::read_sf(shp_fn)
-
-  }
-
-  if (is.null(shp_dt) == FALSE) {
-
-    #### check if the shapefile is a UTM or degree CRS projection
-    crs_obj <- st_crs(shp_dt)
-
-  }
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_objs,
+                               shp_fn = shp_dt,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
 
 
-  if (grid == TRUE) {
+  print("Process Complete!!!")
 
+  return(dt)
 
-    if (!("m" %in% crs_obj$units)) {
-
-      suggest_dt <- crsuggest::suggest_crs(shp_dt,
-                                           units = "m")
-
-      shp_dt <- st_transform(shp_dt,
-                             crs = as.numeric(suggest_dt$crs_code[1]))
-
-    }
-
-    shp_dt <- gengrid2(shp_dt = shp_dt,
-                       grid_size = grid_size)
-
-    shp_dt <- st_transform(shp_dt, crs = crs_obj)
-
-  }
-
-  ## extract into the shapefile with different column names
-  if (!identical(crs_obj, raster::crs(raster_objs[[1]]))){
-
-    shp_dt <- st_transform(shp_dt, crs = st_crs(raster_objs[[1]])$input)
-
-  }
-
-  ### reproject shapefile to match raster CRS if they are not the same
-  print("Extracting rainfall data into shapefile")
-  shp_dt <-
-    mapply(FUN = function(x, n){
-      ### first ensure raster and shapefile have the same crs
-
-
-      shp_dt[[n]] <- exactextractr::exact_extract(x = x,
-                                                  y = shp_dt,
-                                                  fun = extract_fun)
-
-      return(shp_dt)
-
-  },
-  SIMPLIFY = FALSE,
-  x = raster_objs,
-  n = name_set)
-
-  if (length(shp_dt) > 1L) {
-
-    shp_dt <- lapply(shp_dt,
-                     function(X){
-
-                       X$geoID <- 1:nrow(X)
-
-                       return(X)
-
-                     })
-
-    geoid_dt <- shp_dt[[1]][, c("geoID")]
-
-    shp_crs <- st_crs(shp_dt[[1]])$input
-
-    shp_dt <- lapply(shp_dt,
-                     function(X){
-
-                       X <- X %>% st_drop_geometry()
-
-                       return(X)
-
-                     })
-
-    shp_dt <- Reduce(merge, shp_dt)
-
-    shp_dt <- merge(shp_dt, geoid_dt, by = "geoID")
-
-    shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
-
-  }
-
-
-  ## merge the shapefile and the household survey
-  if (use_survey == TRUE){
-
-    print("Merging shapefile rainfall estimates into survey")
-
-    if (is.null(survey_fn) == FALSE){
-
-      survey_dt <- haven::read_dta(survey_fn)
-
-      survey_dt <- st_as_sf(survey_dt,
-                            coords = c(survey_lon, survey_lat),
-                            crs = 4326,
-                            agr = "constant")
-    }
-
-    crs_raster <- crs(raster_objs[[1]])
-
-    survey_dt <- st_as_sf(x = survey_dt,
-                          crs = crs_raster,
-                          agr = "constant")
-
-    survey_dt <- st_join(survey_dt, shp_dt)
-
-    if (is.null(survey_fn) == FALSE){
-
-      survey_dt <- st_drop_geometry(survey_dt) ## remove geometry for STATA output
-
-      return(survey_dt)
-
-    }
-
-    return(survey_dt)
-
-  }
-
-  print("Process Complete!")
-  return(shp_dt)
 
 }
 
@@ -262,10 +150,7 @@ geolink_chirps <- function(time_unit,
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param grid logical, TRUE if shapefile needs to tesselated/gridded before estimating grid level
-#' zonal statistics and performing a spatial join to the household survey
 #' @param grid_size A numeric, the grid size to be used in meters
-#' @param use_survey logical, if TRUE a survey is expected (i.e. survey_dt cannot be null)
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
@@ -307,18 +192,34 @@ geolink_chirps <- function(time_unit,
 #' data("shp_dt")
 #'
 #' #pull monthly night lights and combine with household survey based on
-#' #grid tesselation
+#' #grid tesselation of shapefile at 1000m
+#'
 #' df <- geolink_ntl(time_unit = "month",
 #'                   start_date = "2020-01-01",
 #'                   end_date = "2020-03-01",
-#'                   shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-#'                   grid = TRUE,
+#'                   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                   version = "v21",
 #'                   indicator = "average_masked",
 #'                   grid_size = 1000,
-#'                   use_survey = TRUE,
-#'                   survey_dt = hhgeo_dt,
+#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
 #'                   extract_fun = "mean")
+#'
+#' #estimate annual night time luminosity for each household within a 100 meters
+#' #of it's location
+#'
+#' df <- geolink_ntl(time_unit = "annual",
+#'                   start_date = "2020-01-01",
+#'                   end_date = "2020-03-01",
+#'                   shp_dt = NULL,
+#'                   grid = TRUE,
+#'                   version = "v21",
+#'                   indicator = "average_masked",
+#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+#'                   extract_fun = "mean",
+#'                   buffer_size = 100)
+#'
+#'
+#'
 #'
 #' }
 #
@@ -333,7 +234,6 @@ geolink_ntl <- function(time_unit = "annual",
                         slc_type,
                         shp_dt,
                         shp_fn = NULL,
-                        grid = FALSE,
                         grid_size = 1000,
                         use_survey = TRUE,
                         survey_dt,
@@ -341,8 +241,8 @@ geolink_ntl <- function(time_unit = "annual",
                         survey_lat = NULL,
                         survey_lon = NULL,
                         extract_fun = "mean",
-                        buffer_survey,
-                        buffer_size){
+                        buffer_size = NULL,
+                        survey_crs = 4326){
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -382,23 +282,21 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Global NTL Raster Downloaded")
 
-  result_dt <-
-  postdownload_processor(varname = "ntl_",
-                         time_unit = time_unit,
-                         name_count = name_count,
-                         shp_dt = shp_dt,
-                         raster_objs = raster_objs,
-                         shp_fn = shp_fn,
-                         grid = grid,
-                         grid_size = grid_size,
-                         use_survey = use_survey,
-                         survey_dt = survey_dt,
-                         survey_fn = survey_fn,
-                         survey_lat = survey_lat,
-                         survey_lon = survey_lon,
-                         extract_fun = extract_fun,
-                         buffer_survey = buffer_survey,
-                         buffer_size = buffer_size)
+  name_set <- paste0("radians_", time_unit, name_count)
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_objs,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs)
+
+  print("Process Complete!!!")
 
   return(result_dt)
 

@@ -68,8 +68,6 @@ parallel_zonalstats <- function(x,
 #' @param shp_dt a sf/data.frame object, the shapefile
 #' @param raster_objs a list of raster object(s), a list of raster objects
 #' @param shp_fn a character, the name of shapefile for STATA users only (.shp/.gpkg file)
-#' @param grid a logical, will a tesselation/grid be created. One of shp_dt or shp_fn
-#' must be specified
 #' @param grid_size a numeric, size of the size of the grid in meters
 #' @param survey_dt a sf/data.frame object, the household survey with point geometry
 #' @param survey_fn a character, the filename of the survey (.dta file) (STATA users only)
@@ -130,6 +128,33 @@ zonalstats_prepsurvey <- function(survey_dt,
 
 }
 
+#' A function to process raster downloads and compute zonal statistics for shapefiles
+#' and geocoded surveys
+#'
+#' @param varname_tag a character, a tag on to be used in created the set of variables
+#' the common portion of the variable name (e.g. "ntl_" for the night time light
+#' variables)
+#' @param time_unit a character, for the time intervals for the dataset e.g. daily,
+#' monthly, annual
+#' @param name_count a character, the number of periods of data collected e.g. 10 days,
+#' vs or 10 months or 10 years etc.
+#' @param shp_dt a sf/data.frame object, the shapefile
+#' @param raster_objs a list of raster object(s), a list of raster objects
+#' @param shp_fn a character, the name of shapefile for STATA users only (.shp/.gpkg file)
+#' @param grid_size a numeric, size of the size of the grid in meters
+#' @param survey_dt a sf/data.frame object, the household survey with point geometry
+#' @param survey_fn a character, the filename of the survey (.dta file) (STATA users only)
+#' @param survey_lat a character, for latitude variable name in survey_fn
+#' (STATA users only)
+#' @param survey_lon a character, for longitude variable name in survey_fn
+#' (STATA users only)
+#' @param survey_dt a sf/data.frame object, the geocoded survey
+#' @param extract_fun a character, an extraction fun. See `exactextractr::exact_extract()`
+#' for examples
+#' @param buffer_size a numeric, radius of buffer for survey_dt (or survey_fn) units.
+#' @import parallelMap doParallel
+
+
 
 zonalstats_prepshp <- function(shp_dt,
                                shp_fn,
@@ -171,6 +196,8 @@ zonalstats_prepshp <- function(shp_dt,
 #'
 #' @param shp_dt an sf/dataframe with polygons
 #' @param raster_objs a list of raster objects to be extracted from
+#' @param extract_fun function to be extracted
+#' @param name_set a nameset which will be created for the variables
 #'
 #' @details A parallelization option will need to be created in this code at
 #' some point
@@ -182,7 +209,7 @@ compute_zonalstats <- function(shp_dt,
                                name_set){
 
   ### reproject shapefile to match raster CRS if they are not the same
-  print("Extracting ntl data into shapefile")
+  print("Extracting raster/vector data into shapefile")
 
 
   shp_dt <-
@@ -244,10 +271,7 @@ compute_zonalstats <- function(shp_dt,
 
 
 
-postdownload_processor <- function(varname_tag,
-                                   time_unit,
-                                   name_count,
-                                   shp_dt,
+postdownload_processor <- function(shp_dt,
                                    raster_objs,
                                    shp_fn,
                                    grid_size,
@@ -257,12 +281,9 @@ postdownload_processor <- function(varname_tag,
                                    survey_lon,
                                    extract_fun,
                                    buffer_size,
-                                   survey_crs){
+                                   survey_crs,
+                                   name_set){
 
-
-  #### -------- create the name for the variables --------- ####
-
-  name_set <- paste0(varname_tag, time_unit, 1:name_count)
 
   #### ------ create the required survey and shapefile frames ------- ####
 
@@ -309,7 +330,7 @@ postdownload_processor <- function(varname_tag,
   }
 
 
-  if (as.character(unique(st_geometry_type(survey_dt))) %in% "POINT") {
+  if (is.null(survey_dt) == FALSE) {
 
     survey_dt <- st_transform(x = survey_dt,
                               crs = st_crs(shp_dt)$wkt)
