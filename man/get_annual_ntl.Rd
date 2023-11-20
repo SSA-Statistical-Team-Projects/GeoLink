@@ -9,8 +9,7 @@ get_annual_ntl(
   version,
   link_base = "https://eogdata.mines.edu/nighttime_light/annual/",
   indicator = c("average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum",
-    "median", "median_masked", "minimum"),
-  shp_dt
+    "median", "median_masked", "minimum")
 )
 }
 \arguments{
@@ -19,11 +18,10 @@ get_annual_ntl(
 \item{version}{A string character, for now only "v10" is supported more to come later}
 
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
-"average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median", "median_masked" and "minimum"}
+"average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
+"median_masked" and "minimum"}
 
-\item{username}{A character, username on NASA's Earth Observation Group database}
-
-\item{password}{A character, password on NASA's Earth Observation Gruop database}
+\item{shp_dt}{A sf/dataframe object, a polygon shapefile}
 }
 \description{
 Functions to download night time lights data from NASA's Earth Observation

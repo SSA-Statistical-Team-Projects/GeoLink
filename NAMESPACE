@@ -2,6 +2,7 @@
 
 export(gengrid2)
 export(geolink_chirps)
+export(geolink_ntl)
 export(get_annual_chirps)
 export(get_annual_ntl)
 export(get_month_chirps)

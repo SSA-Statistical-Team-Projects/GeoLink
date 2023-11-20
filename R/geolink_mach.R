@@ -161,6 +161,8 @@ geolink_chirps <- function(time_unit,
 #' from the survey location.
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#' @param month_version A character, the version of month EOG data to use. default set to "v10".
+#' @param annual_version A character, the version of annual EOG data for download, default set to "v21"
 #'
 #' @inheritParams get_annual_ntl
 #' @inheritParams get_month_ntl
@@ -199,7 +201,7 @@ geolink_chirps <- function(time_unit,
 #'                   version = "v21",
 #'                   indicator = "average_masked",
 #'                   grid_size = 1000,
-#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326)
 #'                   extract_fun = "mean")
 #'
 #' #estimate annual night time luminosity for each household within a 100 meters
@@ -226,12 +228,13 @@ geolink_chirps <- function(time_unit,
 geolink_ntl <- function(time_unit = "annual",
                         start_date,
                         end_date,
-                        version,
+                        annual_version = "v21",
+                        month_version = "v10",
                         indicator,
-                        slc_type,
+                        slc_type = TRUE,
                         shp_dt,
                         shp_fn = NULL,
-                        grid_size = 1000,
+                        grid_size,
                         use_survey = TRUE,
                         survey_dt,
                         survey_fn = NULL,
@@ -249,7 +252,7 @@ geolink_ntl <- function(time_unit = "annual",
 
     raster_objs <- get_month_ntl(start_date = as.Date(start_date),
                                  end_date = as.Date(end_date),
-                                 version = version,
+                                 version = month_version,
                                  slc_type = slc_type,
                                  indicator = indicator,
                                  shp_dt = shp_dt)
@@ -263,9 +266,8 @@ geolink_ntl <- function(time_unit = "annual",
                                        end_date,
                                        "years")),
                           FUN = get_annual_ntl,
-                          version = version,
-                          indicator = indicator,
-                          shp_dt = shp_dt)
+                          version = annual_version,
+                          indicator = indicator)
 
     raster_objs <- unlist(raster_objs)
 
@@ -291,11 +293,12 @@ geolink_ntl <- function(time_unit = "annual",
                                survey_lon = survey_lon,
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
-                               survey_crs = survey_crs)
+                               survey_crs = survey_crs,
+                               name_set = name_set)
 
   print("Process Complete!!!")
 
-  return(result_dt)
+  return(dt)
 
 
 }

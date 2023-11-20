@@ -32,12 +32,10 @@ download_dictionary <- function(){
 #' A function to download and read in a file from the internet
 #'
 #' @param url a link URL
-#' @param shp_dt a shapefile to be used to crop raster
 #' @param ... additional arguments to be used in `download.file()`
 #'
 
 download_reader <- function(url,
-                            shp_dt,
                             ...) {
 
   ext <- paste0(".", tools::file_ext(url))
@@ -55,7 +53,7 @@ download_reader <- function(url,
 
   raster_obj <- do.call(opener_chr, list(temp_file))
 
-  raster_obj <- crop(raster_obj, extent(shp_dt))
+  # raster_obj <- crop(raster_obj, extent(shp_dt))
 
   return(raster_obj)
 

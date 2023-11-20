@@ -21,14 +21,13 @@
 get_month_ntl <- function(start_date,
                           end_date,
                           version,
-                          no_tile = TRUE,
+                          no_tile,
                           slc_type = c("vcmcfg", "vcmslcfg"),
                           indicator = c("avg_rade9h",
                                         "cf_cvg",
                                         "cvg",
                                         "avg_rade9h.masked"),
-                          link_base = "https://eogdata.mines.edu/nighttime_light",
-                          shp_dt) {
+                          link_base = "https://eogdata.mines.edu/nighttime_light") {
 
   ### read in the data
   date_dt <- data.table::data.table(ntl_date = seq(start_date, end_date, "day"))
@@ -99,8 +98,7 @@ get_month_ntl <- function(start_date,
   ### download the data
   raster_list <-
     lapply(X = url_link,
-           FUN = download_reader,
-           shp_dt = shp_dt)
+           FUN = download_reader)
 
 
 
@@ -134,8 +132,7 @@ get_annual_ntl <- function(year,
                            link_base = "https://eogdata.mines.edu/nighttime_light/annual/",
                            indicator = c("average", "average_masked", "cf_cvg", "cvg",
                                          "lit_mask", "maximum", "median", "median_masked",
-                                         "minimum"),
-                           shp_dt) {
+                                         "minimum")) {
   ### construct the link
   url_link <- construct_year_link(
     year = year,
@@ -168,8 +165,7 @@ get_annual_ntl <- function(year,
 
   raster_list <-
   lapply(X = download_links,
-         FUN = download_reader,
-         shp_dt = shp_dt)
+         FUN = download_reader)
 
 
 

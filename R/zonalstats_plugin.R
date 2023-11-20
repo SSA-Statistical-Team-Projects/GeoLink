@@ -83,10 +83,10 @@ parallel_zonalstats <- function(x,
 
 
 zonalstats_prepsurvey <- function(survey_dt,
-                                  survey_fn,
-                                  survey_lat,
-                                  survey_lon,
-                                  buffer_size,
+                                  survey_fn = NULL,
+                                  survey_lat = NULL,
+                                  survey_lon = NULL,
+                                  buffer_size = NULL,
                                   survey_crs){
 
   ### read in stata file and convert to an sf/data.frame obj
@@ -157,7 +157,7 @@ zonalstats_prepsurvey <- function(survey_dt,
 
 
 zonalstats_prepshp <- function(shp_dt,
-                               shp_fn,
+                               shp_fn = NULL,
                                grid_size){
 
   if (is.null(shp_fn) == FALSE){
@@ -271,25 +271,29 @@ compute_zonalstats <- function(shp_dt,
 
 
 
-postdownload_processor <- function(shp_dt,
-                                   raster_objs,
-                                   shp_fn,
-                                   grid_size,
+postdownload_processor <- function(raster_objs,
                                    survey_dt,
-                                   survey_fn,
-                                   survey_lat,
-                                   survey_lon,
-                                   extract_fun,
-                                   buffer_size,
-                                   survey_crs,
-                                   name_set){
+                                   survey_fn = NULL,
+                                   survey_lat = NULL,
+                                   survey_lon = NULL,
+                                   extract_fun = "mean",
+                                   buffer_size = NULL,
+                                   survey_crs = 4326,
+                                   name_set,
+                                   shp_dt,
+                                   shp_fn = NULL,
+                                   grid_size){
 
 
   #### ------ create the required survey and shapefile frames ------- ####
 
-  shp_dt <- zonalstats_prepshp(shp_dt = shp_dt,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size)
+  if (!is.null(shp_fn)) {
+    shp_dt <- zonalstats_prepshp(shp_fn = shp_fn,
+                                 grid_size = grid_size)
+  } else {
+    shp_dt <- zonalstats_prepshp(shp_dt = shp_dt,
+                                 grid_size = grid_size)
+  }
 
   survey_dt <- zonalstats_prepsurvey(survey_dt = survey_dt,
                                      survey_fn = survey_fn,
@@ -303,7 +307,7 @@ postdownload_processor <- function(shp_dt,
 
   ##### extract raster into buffered survey
 
-  if (is.null(buffer_size) == FALSE){
+  if (!is.null(buffer_size)){
 
     survey_dt <- st_transform(survey_dt,
                               crs = st_crs(raster_objs[[1]])$input)
@@ -318,9 +322,9 @@ postdownload_processor <- function(shp_dt,
   }
 
 
-  ##### extract raster into shapefile and if there is no survey return
-  #### shapefile
-  if ((is.null(shp_dt) == FALSE) | (is.null(shp_fn) == FALSE)){
+  ##### extract raster into shapefile for survey
+
+  if (!is.null(shp_dt)){
 
     shp_dt <- compute_zonalstats(shp_dt = shp_dt,
                                  raster_objs = raster_objs,
@@ -330,7 +334,7 @@ postdownload_processor <- function(shp_dt,
   }
 
 
-  if (is.null(survey_dt) == FALSE) {
+  if (!is.null(survey_dt)) {
 
     survey_dt <- st_transform(x = survey_dt,
                               crs = st_crs(shp_dt)$wkt)

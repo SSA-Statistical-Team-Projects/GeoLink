@@ -8,18 +8,21 @@ geolink_ntl(
   time_unit = "annual",
   start_date,
   end_date,
-  version,
+  annual_version = "v21",
+  month_version = "v10",
   indicator,
-  slc_type,
+  slc_type = TRUE,
   shp_dt,
   shp_fn = NULL,
-  grid = FALSE,
-  grid_size = 1000,
+  grid_size,
   use_survey = TRUE,
   survey_dt,
   survey_fn = NULL,
   survey_lat = NULL,
-  survey_lon = NULL
+  survey_lon = NULL,
+  extract_fun = "mean",
+  buffer_size = NULL,
+  survey_crs = 4326
 )
 }
 \arguments{
@@ -30,10 +33,13 @@ are to be estimated}
 
 \item{end_date}{An object of class date, must be specified like "yyyy-mm-dd"}
 
-\item{version}{A string character, for now only "v10" is supported more to come later}
+\item{annual_version}{A character, the version of annual EOG data for download, default set to "v21"}
+
+\item{month_version}{A character, the version of month EOG data to use. default set to "v10".}
 
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
-"average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median", "median_masked" and "minimum"}
+"average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
+"median_masked" and "minimum"}
 
 \item{slc_type}{A character, adjustment type made to the NTL data either "vcmcfg" or
 "vcmslcfg"}
@@ -42,12 +48,7 @@ are to be estimated}
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only)}
 
-\item{grid}{logical, TRUE if shapefile needs to tesselated/gridded before estimating grid level
-zonal statistics and performing a spatial join to the household survey}
-
 \item{grid_size}{A numeric, the grid size to be used in meters}
-
-\item{use_survey}{logical, if TRUE a survey is expected (i.e. survey_dt cannot be null)}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.
 a household survey with latitude and longitude values.}
@@ -63,6 +64,9 @@ if use survey is TRUE)}
 
 \item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
+
+\item{buffer_survey}{A logical, specify TRUE if interested in estimating a statistic based on distance
+from the survey location.}
 }
 \description{
 Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period
@@ -83,4 +87,44 @@ stata users and allows the user to pass file paths for the household survey `sur
 a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
 to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 `sf::read_sf()` function.
+}
+\examples{
+
+\donttest{
+
+#loading the survey data and shapefile
+
+data("hhgeo_dt")
+data("shp_dt")
+
+#pull monthly night lights and combine with household survey based on
+#grid tesselation of shapefile at 1000m
+
+df <- geolink_ntl(time_unit = "month",
+                  start_date = "2020-01-01",
+                  end_date = "2020-03-01",
+                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                  version = "v21",
+                  indicator = "average_masked",
+                  grid_size = 1000,
+                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+                  extract_fun = "mean")
+
+#estimate annual night time luminosity for each household within a 100 meters
+#of it's location
+
+df <- geolink_ntl(time_unit = "annual",
+                  start_date = "2020-01-01",
+                  end_date = "2020-03-01",
+                  shp_dt = NULL,
+                  version = "v21",
+                  indicator = "average_masked",
+                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+                  extract_fun = "mean",
+                  buffer_size = 100)
+
+
+
+
+}
 }

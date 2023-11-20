@@ -2,6 +2,10 @@
 
 hhgeo_dt <- fread("data-raw/nga_householdgeovars_y4.csv")
 
+
+haven::write_dta(data = hhgeo_dt,
+                 path = "data-raw/nga_househldgeovars_y4.dta")
+
 shp_dt <- sf::st_read(dsn = "data-raw/shapefiles",
                       layer = "nga_admbnda_adm2_osgof_20190417")
 

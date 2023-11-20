@@ -5,22 +5,19 @@
 \title{Download Monthly Night Time Lights Data}
 \usage{
 get_month_ntl(
-  username,
-  password,
   start_date,
   end_date,
   version,
-  no_tile = TRUE,
+  no_tile,
   slc_type = c("vcmcfg", "vcmslcfg"),
   indicator = c("avg_rade9h", "cf_cvg", "cvg", "avg_rade9h.masked"),
-  link_base = "https://eogdata.mines.edu/nighttime_light",
-  shp_dt
+  link_base = "https://eogdata.mines.edu/nighttime_light"
 )
 }
 \arguments{
-\item{username}{A character, username on NASA's Earth Observation Group database}
+\item{start_date}{A character, the starting date of interest}
 
-\item{password}{A character, password on NASA's Earth Observation Gruop database}
+\item{end_date}{A character, the ending date of interest}
 
 \item{version}{A string character, for now only "v10" is supported more to come later}
 
@@ -28,11 +25,9 @@ get_month_ntl(
 "vcmslcfg"}
 
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
-"avg_rade9h", "cf_cvg" or "cvg"}
+"avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"}
 
-\item{year}{An integer, for the year of interest (yyyy)}
-
-\item{month}{An integer, for the month of interest}
+\item{shp_dt}{A sf/dataframe object, a polygon shapefile}
 }
 \description{
 Functions to download night time lights data from NASA's Earth Observation

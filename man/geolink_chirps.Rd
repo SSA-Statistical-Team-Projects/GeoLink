@@ -10,14 +10,14 @@ geolink_chirps(
   end_date,
   shp_dt,
   shp_fn = NULL,
-  grid = FALSE,
   grid_size = 1000,
-  use_survey = TRUE,
   survey_dt,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
-  extract_fun = "mean"
+  buffer_size = NULL,
+  extract_fun = "mean",
+  survey_crs = 4326
 )
 }
 \arguments{
@@ -32,12 +32,7 @@ are to be estimated}
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only)}
 
-\item{grid}{logical, TRUE if shapefile needs to tesselated/gridded before estimating grid level
-zonal statistics and performing a spatial join to the household survey}
-
 \item{grid_size}{A numeric, the grid size to be used in meters}
-
-\item{use_survey}{logical, if TRUE a survey is expected (i.e. survey_dt cannot be null)}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.
 a household survey with latitude and longitude values.}
@@ -90,9 +85,7 @@ df <- geolink_chirps(time_unit = "month",
                      start_date = "2020-01-01",
                      end_date = "2020-03-01",
                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                     grid = TRUE,
                      grid_size = 1000,
-                     use_survey = TRUE,
                      survey_dt = hhgeo_dt,
                      extract_fun = "mean")
 
