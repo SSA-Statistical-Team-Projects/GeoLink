@@ -201,7 +201,7 @@ geolink_chirps <- function(time_unit,
 #'                   version = "v21",
 #'                   indicator = "average_masked",
 #'                   grid_size = 1000,
-#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326)
+#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
 #'                   extract_fun = "mean")
 #'
 #' #estimate annual night time luminosity for each household within a 100 meters
@@ -213,7 +213,7 @@ geolink_chirps <- function(time_unit,
 #'                   shp_dt = NULL,
 #'                   version = "v21",
 #'                   indicator = "average_masked",
-#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
 #'                   extract_fun = "mean",
 #'                   buffer_size = 100)
 #'
@@ -234,7 +234,7 @@ geolink_ntl <- function(time_unit = "annual",
                         slc_type = TRUE,
                         shp_dt,
                         shp_fn = NULL,
-                        grid_size,
+                        grid_size = 1000,
                         use_survey = TRUE,
                         survey_dt,
                         survey_fn = NULL,
@@ -254,8 +254,7 @@ geolink_ntl <- function(time_unit = "annual",
                                  end_date = as.Date(end_date),
                                  version = month_version,
                                  slc_type = slc_type,
-                                 indicator = indicator,
-                                 shp_dt = shp_dt)
+                                 indicator = indicator)
 
     name_count <- lubridate::interval(as.Date(start_date),
                                       as.Date(end_date)) %/% months(1) + 1

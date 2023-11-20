@@ -162,7 +162,7 @@ zonalstats_prepshp <- function(shp_dt,
 
   if (is.null(shp_fn) == FALSE){
 
-    shp_dt <- sf::read_sf(shp_dt)
+    shp_dt <- sf::read_sf(shp_fn)
 
   }
 
@@ -282,7 +282,7 @@ postdownload_processor <- function(raster_objs,
                                    name_set,
                                    shp_dt,
                                    shp_fn = NULL,
-                                   grid_size){
+                                   grid_size = 1000){
 
 
   #### ------ create the required survey and shapefile frames ------- ####
@@ -290,17 +290,22 @@ postdownload_processor <- function(raster_objs,
   if (!is.null(shp_fn)) {
     shp_dt <- zonalstats_prepshp(shp_fn = shp_fn,
                                  grid_size = grid_size)
-  } else {
+  } else if (!missing(shp_dt)){
     shp_dt <- zonalstats_prepshp(shp_dt = shp_dt,
                                  grid_size = grid_size)
   }
 
-  survey_dt <- zonalstats_prepsurvey(survey_dt = survey_dt,
-                                     survey_fn = survey_fn,
-                                     survey_lat = survey_lat,
-                                     survey_lon = survey_lon,
-                                     buffer_size = buffer_size,
-                                     survey_crs = survey_crs)
+
+  if (!missing(survey_dt) | !is.null(survey_fn)) {
+
+    survey_dt <- zonalstats_prepsurvey(survey_dt = survey_dt,
+                                       survey_fn = survey_fn,
+                                       survey_lat = survey_lat,
+                                       survey_lon = survey_lon,
+                                       buffer_size = buffer_size,
+                                       survey_crs = survey_crs)
+
+  }
 
 
   #### ------- begin extraction in objects as necessary -------- ####
@@ -334,7 +339,7 @@ postdownload_processor <- function(raster_objs,
   }
 
 
-  if (!is.null(survey_dt)) {
+  if (!missing(survey_dt)) {
 
     survey_dt <- st_transform(x = survey_dt,
                               crs = st_crs(shp_dt)$wkt)
