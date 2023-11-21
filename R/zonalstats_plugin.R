@@ -12,6 +12,7 @@
 #' @param numCores the number of cores to be used in parallel processing
 #'
 #' @import parallelMap doParallel
+#' @export
 
 
 parallel_zonalstats <- function(x,
@@ -58,17 +59,6 @@ parallel_zonalstats <- function(x,
 #' A function to process raster downloads and compute zonal statistics for shapefiles
 #' and geocoded surveys
 #'
-#' @param varname_tag a character, a tag on to be used in created the set of variables
-#' the common portion of the variable name (e.g. "ntl_" for the night time light
-#' variables)
-#' @param time_unit a character, for the time intervals for the dataset e.g. daily,
-#' monthly, annual
-#' @param name_count a character, the number of periods of data collected e.g. 10 days,
-#' vs or 10 months or 10 years etc.
-#' @param shp_dt a sf/data.frame object, the shapefile
-#' @param raster_objs a list of raster object(s), a list of raster objects
-#' @param shp_fn a character, the name of shapefile for STATA users only (.shp/.gpkg file)
-#' @param grid_size a numeric, size of the size of the grid in meters
 #' @param survey_dt a sf/data.frame object, the household survey with point geometry
 #' @param survey_fn a character, the filename of the survey (.dta file) (STATA users only)
 #' @param survey_lat a character, for latitude variable name in survey_fn
@@ -76,10 +66,9 @@ parallel_zonalstats <- function(x,
 #' @param survey_lon a character, for longitude variable name in survey_fn
 #' (STATA users only)
 #' @param survey_dt a sf/data.frame object, the geocoded survey
-#' @param extract_fun a character, an extraction fun. See `exactextractr::exact_extract()`
-#' for examples
 #' @param buffer_size a numeric, radius of buffer for survey_dt (or survey_fn) units.
 #' @import parallelMap doParallel
+#' @export
 
 
 zonalstats_prepsurvey <- function(survey_dt,
@@ -131,30 +120,11 @@ zonalstats_prepsurvey <- function(survey_dt,
 #' A function to process raster downloads and compute zonal statistics for shapefiles
 #' and geocoded surveys
 #'
-#' @param varname_tag a character, a tag on to be used in created the set of variables
-#' the common portion of the variable name (e.g. "ntl_" for the night time light
-#' variables)
-#' @param time_unit a character, for the time intervals for the dataset e.g. daily,
-#' monthly, annual
-#' @param name_count a character, the number of periods of data collected e.g. 10 days,
-#' vs or 10 months or 10 years etc.
 #' @param shp_dt a sf/data.frame object, the shapefile
-#' @param raster_objs a list of raster object(s), a list of raster objects
 #' @param shp_fn a character, the name of shapefile for STATA users only (.shp/.gpkg file)
 #' @param grid_size a numeric, size of the size of the grid in meters
-#' @param survey_dt a sf/data.frame object, the household survey with point geometry
-#' @param survey_fn a character, the filename of the survey (.dta file) (STATA users only)
-#' @param survey_lat a character, for latitude variable name in survey_fn
-#' (STATA users only)
-#' @param survey_lon a character, for longitude variable name in survey_fn
-#' (STATA users only)
-#' @param survey_dt a sf/data.frame object, the geocoded survey
-#' @param extract_fun a character, an extraction fun. See `exactextractr::exact_extract()`
-#' for examples
-#' @param buffer_size a numeric, radius of buffer for survey_dt (or survey_fn) units.
-#' @import parallelMap doParallel
-
-
+#'
+#' @export
 
 zonalstats_prepshp <- function(shp_dt,
                                shp_fn = NULL,
@@ -199,8 +169,11 @@ zonalstats_prepshp <- function(shp_dt,
 #' @param extract_fun function to be extracted
 #' @param name_set a nameset which will be created for the variables
 #'
-#' @details A parallelization option will need to be created in this code at
+#'
+#' @details A parallelization option will be added
 #' some point
+#'
+#' @export
 
 
 compute_zonalstats <- function(shp_dt,
@@ -270,6 +243,14 @@ compute_zonalstats <- function(shp_dt,
 }
 
 
+#' A function to process downloaded raster into the final output in shapefile/geocoded survey
+#'
+#' @inheritParams compute_zonalstats
+#' @inheritParams zonalstats_prepsurvey
+#' @param shp_fn a character, the name of shapefile for STATA users only (.shp/.gpkg file)
+#' @param grid_size a numeric, size of the size of the grid in meters
+#'
+#' @export
 
 postdownload_processor <- function(raster_objs,
                                    survey_dt,
