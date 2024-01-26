@@ -109,14 +109,14 @@ geolink_chirps <- function(time_unit,
   print("Global Rainfall Raster Downloaded")
 
 
-  name_set <- paste0("rainfall_", time_unit, name_count)
+  name_set <- paste0("rainfall_", time_unit, 1:name_count)
 
 
   ## create the name for the variables
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
-                               shp_fn = shp_dt,
+                               shp_fn = shp_fn,
                                grid_size = grid_size,
                                survey_dt = survey_dt,
                                survey_fn = survey_fn,
@@ -231,7 +231,7 @@ geolink_ntl <- function(time_unit = "annual",
                         annual_version = "v21",
                         month_version = "v10",
                         indicator,
-                        slc_type = TRUE,
+                        slc_type = "vcmslcfg",
                         shp_dt,
                         shp_fn = NULL,
                         grid_size = 1000,
@@ -254,7 +254,8 @@ geolink_ntl <- function(time_unit = "annual",
                                  end_date = as.Date(end_date),
                                  version = month_version,
                                  slc_type = slc_type,
-                                 indicator = indicator)
+                                 indicator = indicator,
+                                 no_tile = TRUE)
 
     name_count <- lubridate::interval(as.Date(start_date),
                                       as.Date(end_date)) %/% months(1) + 1

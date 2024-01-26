@@ -184,6 +184,8 @@ compute_zonalstats <- function(shp_dt,
   ### reproject shapefile to match raster CRS if they are not the same
   print("Extracting raster/vector data into shapefile")
 
+  shp_dt <- st_transform(shp_dt,
+                         crs = st_crs(raster_objs[[1]])$input)
 
   shp_dt <-
     mapply(FUN = function(x, n){
@@ -236,6 +238,10 @@ compute_zonalstats <- function(shp_dt,
     shp_dt <- shp_dt[[1]]
 
   }
+
+  shp_dt <- st_as_sf(x = shp_dt,
+                     crs = st_crs(raster_objs[[1]])$input,
+                     agr = "constant")
 
   return(shp_dt)
 
@@ -295,13 +301,17 @@ postdownload_processor <- function(raster_objs,
 
   if (!is.null(buffer_size)){
 
-    survey_dt <- st_transform(survey_dt,
-                              crs = st_crs(raster_objs[[1]])$input)
+    # survey_dt <- st_transform(survey_dt,
+    #                           crs = st_crs(raster_objs[[1]])$input)
 
     survey_dt <- compute_zonalstats(shp_dt = survey_dt,
                                     raster_objs = raster_objs,
                                     extract_fun = extract_fun,
                                     name_set = name_set)
+
+    # survey_dt <- st_as_sf(survey_dt,
+    #                       crs = st_crs(raster_objs[[1]]$input),
+    #                       agr = "constant")
 
     return(survey_dt)
 
@@ -312,18 +322,28 @@ postdownload_processor <- function(raster_objs,
 
   if (!is.null(shp_dt)){
 
+    # shp_dt <- st_transform(shp_dt,
+    #                        crs = st_crs(raster_objs[[1]])$input)
+
     shp_dt <- compute_zonalstats(shp_dt = shp_dt,
                                  raster_objs = raster_objs,
                                  extract_fun = extract_fun,
                                  name_set = name_set)
+
+    # shp_dt <- st_as_sf(shp_dt,
+    #                    crs = st_crs(raster_objs[[1]]$input),
+    #                    agr = "constant")
 
   }
 
 
   if (!missing(survey_dt)) {
 
-    survey_dt <- st_transform(x = survey_dt,
-                              crs = st_crs(shp_dt)$wkt)
+    shp_dt <- st_as_sf(shp_dt,
+                       crs = st_crs(raster_objs[[1]])$input)
+
+    survey_dt <- st_as_sf(survey_dt,
+                          crs = st_crs(raster_objs[[1]])$input)
 
     survey_dt <- st_join(survey_dt, shp_dt)
 
