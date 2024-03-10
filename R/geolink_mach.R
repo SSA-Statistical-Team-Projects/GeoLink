@@ -305,6 +305,134 @@ geolink_ntl <- function(time_unit = "annual",
 
 
 
+#' Download and Merge Annual Land Use Land Cover data into geocoded surveys
+#'
+#' Download Land Use Land Cover data from the LULC dataset at annual intervals for a specified period
+#' The data is downloaded in raster format and combined with shapefile and/or survey data provided
+#' by the user. Source data: https://planetarycomputer.microsoft.com/dataset/io-lulc-annual-v02
+#'
+#' @param time_unit A character, must be annual as the dataset only provides annual data
+#' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
+#' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
+#' @param grid_size A numeric, the grid size to be used in meters
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
+#' a household survey with latitude and longitude values.
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
+#' if use_survey is TRUE)
+#' @param survey_lat A character, latitude variable from survey (for STATA users only &
+#' if use_survey is TRUE)
+#' @param survey_lon A character, longitude variable from survey (for STATA users only &
+#' if use survey is TRUE)
+#' @param buffer_survey A logical, specify TRUE if interested in estimating a statistic based on distance
+#' from the survey location.
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#' @param survey_crs A numeric, the default is 4326
+#'
+#' @details LULC data is sourced from Microsoft Planetary Computer.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with land use land cover estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. land use land cover estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
+#'
+#' @examples
+#'
+#' \donttest{
+#'
+#' #loading the survey data and shapefile
+#'
+#' data("hhgeo_dt")
+#' data("shp_dt")
+#'
+#' #pull annual land use land cover and combine with household survey based on
+#' #grid tesselation of shapefile at 1000m
+#'
+#'df <- geolink_landcover(time_unit,
+#                         start_date = "2020-01-01",
+#                         end_date = "2021-01-01",
+#                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#                         grid_size = 1000,
+#                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
+#                         extract_fun = "mean")
+#'
+#'
+#'
+geolink_landcover <- function(time_unit = "annual",
+                              start_date,
+                              end_date,
+                              shp_dt,
+                              shp_fn = NULL,
+                              grid_size = 1000,
+                              survey_dt,
+                              survey_fn = NULL,
+                              survey_lat = NULL,
+                              survey_lon = NULL,
+                              buffer_size = NULL,
+                              extract_fun = "mean",
+                              survey_crs = 4326){
+
+
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  it_obj <- s_obj %>%
+    stac_search(collections = "io-lulc-annual-v02",
+                bbox = sf::st_bbox(shp_dt),
+                datetime = paste(start_date, end_date, sep = "/")) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
+
+
+  url_list <- lapply(1:length(it_obj$features),
+                     function(x){
+
+                       url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$data$href)
+
+                       return(url)
+
+                     })
+
+  raster_objs <- lapply(url_list,
+                        terra::rast)
+
+  name_count <- lubridate::year(end_date) - lubridate::year(start_date) + 1
+
+  name_set <- paste0("landcover_", "annual", 1:name_count)
+
+  print("Landcover Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_objs,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)}
+
+
+
 
 
 
