@@ -4,3 +4,7 @@
 .httr-oauth
 .DS_Store
 .quarto
+data/nga_ppp_2020_UNadj_constrained.tif
+data-raw/chirps-v2.0.2020.01.tif
+data-raw/chirps-v2.0.2020.02.tif
+data-raw/chirps-v2.0.2020.03.tif
