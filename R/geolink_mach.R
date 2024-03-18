@@ -433,6 +433,121 @@ geolink_landcover <- function(time_unit = "annual",
 
 
 
+#' Download and Merge Annual Population data into geocoded surveys
+#'
+#' Download Population data from the World Pop dataset at annual intervals for a specified period
+#' The data is downloaded in raster format and combined with shapefile and/or survey data provided
+#' by the user. Source data: https://www.worldpop.org/
+#'
+#' @param time_unit A character, must be annual as the dataset only provides annual data
+#' @param start_year A numeric specifying the start year
+#' @param end_year A numeric specifying the end year, if only one year is required then enter start year into
+#' end year also, for example if start year = 2015, end year = 2015 also.
+#' @param iso_code A character, specifying the iso code for country to download data from
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
+#' @param grid_size A numeric, the grid size to be used in meters
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
+#' a household survey with latitude and longitude values.
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
+#' if use_survey is TRUE)
+#' @param survey_lat A character, latitude variable from survey (for STATA users only &
+#' if use_survey is TRUE)
+#' @param survey_lon A character, longitude variable from survey (for STATA users only &
+#' if use survey is TRUE)
+#' @param buffer_survey A logical, specify TRUE if interested in estimating a statistic based on distance
+#' from the survey location.
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#' @param survey_crs A numeric, the default is 4326
+#'
+#' @details Population data is sourced from WorldPop.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
+#'
+#' @import reticulate
+#'
+#' @examples
+#'\donttest{
+#'
+#'
+#'use_python("") make sure python environment is specified
+#'
+#'df <- geolink_population(time_unit,
+#'                         start_year=2018,
+#'                         end_year = 2019,
+#'                         iso_code = "NGA",
+#'                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#'                         grid_size = 1000,
+#'                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
+#'                                              extract_fun = "mean"))
+#'
+#'
+geolink_population <- function(time_unit = "annual",
+                               start_year,
+                               end_year,
+                               iso_code,
+                               shp_dt,
+                               shp_fn = NULL,
+                               grid_size = 1000,
+                               survey_dt,
+                               survey_fn = NULL,
+                               survey_lat = NULL,
+                               survey_lon = NULL,
+                               buffer_size = NULL,
+                               extract_fun = "mean",
+                               survey_crs = 4326){
+  temp_dir <- tempdir()
+
+  years <- seq(start_year, end_year)
+
+  result_list <- paste0("ppp_", years)
+
+  dl <- import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
+
+  data <- dl(iso_code, temp_dir, result_list)
+
+  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  name_count <- lubridate::year(start_year) - lubridate::year(end_year) + 1
+
+  name_set <- paste0("population_", "annual_", 1:name_count)
+
+  print("Population Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_objs,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)}
+
+
+
+
+
 
 
 
