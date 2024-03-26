@@ -9,4 +9,4 @@
 library(testthat)
 library(GeoLink)
 
-test_check("GeoLink")
+test_check("GeoLink", path = "tests/")
