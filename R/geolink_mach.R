@@ -439,11 +439,17 @@ geolink_landcover <- function(time_unit = "annual",
 #' The data is downloaded in raster format and combined with shapefile and/or survey data provided
 #' by the user. Source data: https://www.worldpop.org/
 #'
+#' The individual country datasets use modelling methods found it Stevens et al. The 'Global per country 2000-2020'
+#' The datasets provided are the outputs of a project utilising various modelling methods to develop consistent 100m
+#' resolution population count datasets for all countries of the World for each year 2000-2020.
+#'
+#'
 #' @param time_unit A character, must be annual as the dataset only provides annual data
 #' @param start_year A numeric specifying the start year
 #' @param end_year A numeric specifying the end year, if only one year is required then enter start year into
 #' end year also, for example if start year = 2015, end year = 2015 also.
 #' @param iso_code A character, specifying the iso code for country to download data from
+#' @param const_UNadj_2020 A character, "Y" if constrained UN adjusted population data for 2020 is required
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
 #' @param grid_size A numeric, the grid size to be used in meters
@@ -497,6 +503,7 @@ geolink_population <- function(time_unit = "annual",
                                start_year,
                                end_year,
                                iso_code,
+                               const_UNadj_2020,
                                shp_dt,
                                shp_fn = NULL,
                                grid_size = 1000,
@@ -516,6 +523,19 @@ geolink_population <- function(time_unit = "annual",
   dl <- import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
 
   data <- dl(iso_code, temp_dir, result_list)
+
+  if (const_UNadj_2020 == "Y") {
+    url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code)
+
+
+    tryCatch({
+      download.file(url, temp_dir, basename(url))
+    }, error = function(e) {
+
+      url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code)
+      download.file(url, temp_dir, basename(url))
+    })
+  }
 
   tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
 
@@ -542,7 +562,8 @@ geolink_population <- function(time_unit = "annual",
 
   print("Process Complete!!!")
 
-  return(dt)}
+  return(dt)
+}
 
 
 
