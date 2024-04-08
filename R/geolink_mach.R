@@ -370,21 +370,10 @@ geolink_ntl <- function(time_unit = "annual",
 geolink_landcover <- function(time_unit = "annual",
                               start_date,
                               end_date,
-                              shp_dt,
-                              shp_fn = NULL,
-                              grid_size = 1000,
-                              survey_dt,
-                              survey_fn = NULL,
-                              survey_lat = NULL,
-                              survey_lon = NULL,
-                              buffer_size = NULL,
-                              extract_fun = "mean",
-                              survey_crs = 4326){
-
+                              shp_dt) {
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
-
 
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
@@ -395,41 +384,46 @@ geolink_landcover <- function(time_unit = "annual",
     get_request() %>%
     items_sign(sign_fn = sign_planetary_computer())
 
-
   url_list <- lapply(1:length(it_obj$features),
-                     function(x){
-
+                     function(x) {
                        url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$data$href)
-
                        return(url)
-
                      })
 
-  raster_objs <- lapply(url_list,
-                        terra::rast)
+  raster_objs <- lapply(url_list, terra::rast)
 
-  name_count <- lubridate::year(end_date) - lubridate::year(start_date) + 1
+  raster_list <- lapply(raster_objs, raster)
 
-  name_set <- paste0("landcover_", "annual", 1:name_count)
+  raster_list <- lapply(seq_along(raster_objs), function(i) {
+    setNames(raster_objs[[i]], as.character(i))
+  })
 
-  print("Landcover Raster Downloaded")
+  class_names <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops", "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
 
-  dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_objs,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size,
-                               survey_dt = survey_dt,
-                               survey_fn = survey_fn,
-                               survey_lat = survey_lat,
-                               survey_lon = survey_lon,
-                               extract_fun = extract_fun,
-                               buffer_size = buffer_size,
-                               survey_crs = survey_crs,
-                               name_set = name_set)
+  class_values <- c(No_Data = 0, Water = 1, Trees = 2, Flooded_Vegetation = 4,
+                    Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9, Clouds = 10, Rangeland = 11)
 
-  print("Process Complete!!!")
+  proportions_list <- list()
 
-  return(dt)}
+  for (i in seq_along(raster_list)) {
+    print(paste("Processing raster for year:", i))
+
+    extracted_values <- exact_extract(raster_list[[i]], shp_dt, coverage_area = TRUE)
+
+    class_proportions <- lapply(class_values, function(class_val) {
+      class_proportion <- sum(extracted_values$value == class_val, na.rm = TRUE) / length(extracted_values$value)
+      return(class_proportion)
+    })
+
+    proportions_list[[i]] <- class_proportions
+  }
+
+  proportions_df <- do.call(rbind, proportions_list)
+
+  colnames(proportions_df) <- names(class_values)
+
+  return(proportions_df)
+}
 
 
 
@@ -566,7 +560,80 @@ geolink_population <- function(time_unit = "annual",
 }
 
 
+#' Download points of interest from OSM data using open street maps API.
+#'
+#' @param osm_feature_category A character, refering to the osm key wiki page, please see details below
+#' @param osm_feature_subcategory A character, refering to the osm key wiki page, please see details below
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
+#' @param shp_dsn A link to location of shapefile for stat users
+#' @param buffer buffer area around shapefile
+#' @param stata A flag for stata users
+#'
+#' @details
+#'
+#' Details for feature category and sub-category can be found here: https://wiki.openstreetmap.org/wiki/Map_features
+#'
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#'\donttest{
+#'
+#'
 
+#df <- geolink_get_poi(osm_feature_category = "building",
+# osm_feature_subcategory ="farm",
+# shp_dt = shp_dt)
+
+#'
+
+geolink_get_poi <- function(osm_feature_category,
+                            osm_feature_subcategory,
+                            shp_dt,
+                            shp_dsn = NULL,
+                            buffer = NULL,
+                            stata = FALSE){
+
+  if (!is.null(shp_dsn)) {
+    shp_dt <- st_read(shp_dsn)
+  }
+
+
+  bbox <- create_query_bbox(shp_dt = shp_dt,
+                            area_name = NULL,
+                            buffer_dist = c(0, 0, 0, 0),
+                            metric_crs = FALSE,
+                            osm_crs = 4326)
+
+  datapull <- opq(c(bbox = bbox)) %>%
+    add_osm_feature(osm_feature_category, osm_feature_subcategory)
+
+  features <- osmdata_sf(datapull)
+
+
+  if (nrow(features$osm_points) == 0) {
+    print("No points of interest")
+    return()
+  } else {
+    results <- (features$osm_points)
+  }
+
+  query_dt <- st_join(results, shp_dt)
+
+  if (stata) {
+
+    query_dt <- query_dt[, !grepl("geometry", names(query_dt))]
+  }
+
+
+
+
+  print("Open Street Maps Raster Downloaded")
+
+
+
+  print("Process Complete!!!")
+
+  return(query_dt)}
 
 
 

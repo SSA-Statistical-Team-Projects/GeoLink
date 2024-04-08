@@ -109,3 +109,112 @@ gengrid2 <- function(shp_dt,
   return(grid_system)
 
 }
+
+
+#' A function to create an osmdata package readable bounding box (bbox)
+#' with a buffer distance
+#'
+#'
+#' @export
+#' @importFrom osmdata getbb
+#' @importFrom sf st_bbox
+#' @importFrom crsuggest suggest_crs
+#' @importFrom raster extent
+#' @importFrom dbscan dbscan
+#' @import dplyr
+
+create_query_bbox <- function(shp_dt = NULL,
+                              area_name,
+                              buffer_dist = c(0, 0, 0, 0),
+                              metric_crs = FALSE,
+                              osm_crs = 4326){
+
+  if (is.null(shp_dt)){
+
+    bbox_obj <- getbb(area_name)
+
+    bbox_obj <- sf::st_bbox(raster::extent(bbox_obj),
+                            crs = osm_crs)
+
+    if (is.null(buffer_dist) == FALSE){
+
+      ### convert to metric scale
+      bbox_obj <- sf::st_as_sfc(x = bbox_obj,
+                                crs = osm_crs)
+
+      suggest_dt <- crsuggest::suggest_crs(bbox_obj, units = "m")
+
+      bbox_obj <- st_transform(bbox_obj,
+                               crs = as.numeric(suggest_dt$crs_code[1]))
+
+      bbox_obj <- st_bbox(bbox_obj)
+
+    }
+
+  } else {
+
+    if (metric_crs == FALSE) {
+
+      suggest_dt <- crsuggest::suggest_crs(st_as_sfc(st_bbox(shp_dt)),
+                                           units = "m")
+
+      bbox_obj <- st_transform(st_as_sfc(st_bbox(shp_dt)),
+                               crs = as.numeric(suggest_dt$crs_code[1]))
+    } else {
+
+      bbox_obj <- st_as_sfc(st_bbox(shp_dt))
+
+    }
+
+    bbox_obj <- sf::st_bbox(bbox_obj)
+
+  }
+
+  #### add buffer dist
+  if (is.null(buffer_dist) == FALSE){
+
+    bbox_obj[1] <- bbox_obj[1] - buffer_dist[1]
+    bbox_obj[2] <- bbox_obj[2] - buffer_dist[2]
+    bbox_obj[3] <- bbox_obj[3] + buffer_dist[3]
+    bbox_obj[4] <- bbox_obj[4] + buffer_dist[4]
+
+
+    ### recreate an st_as_sfc readable object
+    if (metric_crs == TRUE) {
+
+      bbox_obj <- sf::st_bbox(raster::extent(bbox_obj),
+                              crs = st_crs(shp_dt))
+
+    } else {
+
+      bbox_obj <- sf::st_bbox(raster::extent(bbox_obj),
+                              crs = as.numeric(suggest_dt$crs_code[1]))
+
+    }
+
+    bbox_obj <- st_as_sfc(bbox_obj)
+
+    bbox_obj <- st_transform(bbox_obj,
+                             crs = osm_crs)
+
+    bbox_obj <- sf::st_bbox(bbox_obj)
+
+    ## convert to osm_bbox type
+    bbox_obj <- matrix(c(bbox_obj[[1]],
+                         bbox_obj[[3]],
+                         bbox_obj[[2]],
+                         bbox_obj[[4]]),
+                       ncol = 2,
+                       byrow = TRUE)
+
+    colnames(bbox_obj) <- c("min", "max")
+    rownames(bbox_obj) <- c("x", "y")
+
+
+  }
+
+  return(bbox_obj)
+
+
+}
+
