@@ -733,15 +733,634 @@ geolink_electaccess <- function(time_unit = "annual",
 
   return(dt)}
 
+#' Download high resolution elevation data based on shapefile coordinates
+#'
+#' This function downloads high-resolution elevation data based on the coordinates provided by either a shapefile or a file path to a shapefile. It can also incorporate survey data for further analysis. The elevation data is downloaded using the `elevation_3s` function and post-processed using the `postdownload_processor` function.
+#'
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the elevation data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage with shapefile
+#' df <- geolink_elevation(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#'
+#' # Example usage with file path
+#' df <- geolink_elevation(shp_fn = "path/to/shapefile.shp")
+#' }
+#'
+
+geolink_elevation <- function(shp_dt,
+                              shp_fn = NULL,
+                              grid_size = 1000,
+                              survey_dt = NULL,
+                              survey_fn = NULL,
+                              survey_lat = NULL,
+                              survey_lon = NULL,
+                              buffer_size = NULL,
+                              extract_fun = "mean",
+                              survey_crs = 4326){
+
+
+  if (!is.null(shp_dt)) {
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else if (!is.null(shp_fn)) {
+    shp_dt <- st_read(shp_fn)
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else {
+    stop("Provide either shp_dt or shp_fn.")
+  }
+
+  data <- elevation_3s(lon=lon, lat=lat, path=tempdir())
+
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
+
+  epsg_4326 <- "+init=EPSG:4326"
+
+  for (i in seq_along(raster_list)) {
+    projection(raster_list[[i]]) <- epsg_4326
+    if (is.null(projection(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", i))
+    } else {
+      print(paste("Raster", i, "projected successfully."))
+    }
+  }
+
+  name_set <- paste0("elevation_")
+
+  print("Elevation Raster Downloaded")
+
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_list,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(df)}
+
+#' Download high resolution building data from WorldPop
+#'
+#' This function downloads high-resolution building data from WorldPop based on the specified version and ISO country code. It can incorporate survey data for further analysis. The building data is downloaded as raster files and can be processed and analyzed using the `postdownload_processor` function.
+#'
+#' @param version A character, the version of the building data to download. Options are "v1.1" and "v2.0".
+#' @param iso_code A character, the ISO country code for the country of interest.
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the building data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @importFrom httr GET http_type write_disk
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage with version 1.1
+#' df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt)
+#'
+#' }
+#'
+
+geolink_buildings <- function(version,
+                              iso_code,
+                              shp_dt,
+                              shp_fn = NULL,
+                              grid_size = 1000,
+                              survey_dt,
+                              survey_fn = NULL,
+                              survey_lat = NULL,
+                              survey_lon = NULL,
+                              buffer_size = NULL,
+                              extract_fun = "mean",
+                              survey_crs = 4326){
+
+  temp_dir <- tempdir()
+
+  if (version == "v1.1") {
+    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v1.1/", iso_code, "_buildings_v1_1.zip")
+    tryCatch({
+      # Download the ZIP file
+      response <- GET(url, write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
+      if (http_type(response) == "application/zip") {
+        message("File downloaded successfully.")
+
+        # Unzip the downloaded file
+        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
+        message("File unzipped successfully.")
+      } else {
+        warning("Downloaded file may not be a ZIP file.")
+      }
+    }, error = function(e) {
+      print(e)
+    })
+  }
+
+  if (version == "v2.0") {
+    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v2.0/", iso_code, "_buildings_v2_0.zip")
+    tryCatch({
+      # Download the ZIP file
+      response <- GET(url, write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
+      if (http_type(response) == "application/zip") {
+        message("File downloaded successfully.")
+
+        # Unzip the downloaded file
+        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
+        message("File unzipped successfully.")
+      } else {
+        warning("Downloaded file may not be a ZIP file.")
+      }
+    }, error = function(e) {
+      print(e)
+    })
+  }
 
 
 
+  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
+
+  epsg_4326 <- "+init=EPSG:4326"
+
+  for (i in seq_along(raster_list)) {
+    projection(raster_list[[i]]) <- epsg_4326
+    if (is.null(projection(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", i))
+    } else {
+      print(paste("Raster", i, "projected successfully."))
+    }
+  }
+
+  name_set <- paste0("buildings_")
+
+  print("Building Raster Downloaded")
+
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_list,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)
+}
 
 
 
+Copy code
+#' Download CMIP6 climate model data
+#'
+#' This function downloads CMIP6 (Coupled Model Intercomparison Project Phase 6) climate model data for a specific variable, resolution, model, Shared Socioeconomic Pathway (SSP), and time period. It allows for further analysis of the data in conjunction with geographic data.
+#'
+#' @param var A character, the variable of interest (e.g., "temperature", "precipitation").
+#' @param res A character, the resolution of the data (e.g., "2.5m", "5m").
+#' @param model A character, the climate model name (e.g., "ACCESS-ESM1-5", "CanESM5").
+#' @param ssp A character, the Shared Socioeconomic Pathway (SSP) scenario (e.g., "ssp126", "ssp585").
+#' @param time A character, the time period of interest (e.g., "historical", "2020-2049").
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate model data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @importFrom httr GET http_type write_disk
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage
+#' df <- geolink_CMIP6(var = "temperature", res = "2.5m", model = "ACCESS-ESM1-5", ssp = "ssp126", time = "2020-2049", shp_dt = shp_dt)
+#'
+#' bio10 <- geolink_CMIP6(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],"CNRM-CM6-1", "585", "2061-2080", var="bioc", res=10)
+#' }
+#'
 
 
+geolink_CMIP6 <- function(var,
+                          res,
+                          model,
+                          ssp,
+                          time,
+                          shp_dt,
+                          shp_fn = NULL,
+                          grid_size = 1000,
+                          survey_dt = NULL,
+                          survey_fn = NULL,
+                          survey_lat = NULL,
+                          survey_lon = NULL,
+                          buffer_size = NULL,
+                          extract_fun = "mean",
+                          survey_crs = 4326){
 
 
+  if (!is.null(shp_dt)) {
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else if (!is.null(shp_fn)) {
+    shp_dt <- st_read(shp_fn)
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else {
+    stop("Provide either shp_dt or shp_fn.")
+  }
+
+
+  data <- cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
+
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
+
+  for (i in seq_along(raster_list)) {
+    projection(raster_list[[i]]) <- epsg_4326
+    if (is.null(projection(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", i))
+    } else {
+      print(paste("Raster", i, "projected successfully."))
+    }
+  }
+
+  name_set <- paste0("elevation_")
+
+
+  print("CMIP6  Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_list,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+
+  print("Process Complete!!!")
+
+  return(df)}
+
+#' Download cropland data
+#'
+#' This function downloads cropland data from a specified source, such as WorldCover. It allows for further analysis of cropland distribution in a given area.
+#'
+#' @param source A character, the source of cropland data. Default is "WorldCover".
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the cropland data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @importFrom terra rast
+#' @importFrom httr GET http_type write_disk
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage
+#' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt)
+#' }
+#'
+
+geolink_cropland <- function(source = "WorldCover",
+                             shp_dt,
+                             shp_fn = NULL,
+                             grid_size = 1000,
+                             survey_dt,
+                             survey_fn = NULL,
+                             survey_lat = NULL,
+                             survey_lon = NULL,
+                             buffer_size = NULL,
+                             extract_fun = "mean",
+                             survey_crs = 4326){
+
+  if (!is.null(shp_dt)) {
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else if (!is.null(shp_fn)) {
+    shp_dt <- st_read(shp_fn)
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else {
+    stop("Provide either shp_dt or shp_fn.")
+  }
+
+  data <- cropland(source = source, path=tempdir())
+
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
+
+  epsg_4326 <- "+init=EPSG:4326"
+
+  for (i in seq_along(raster_list)) {
+    projection(raster_list[[i]]) <- epsg_4326
+    if (is.null(projection(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", i))
+    } else {
+      print(paste("Raster", i, "projected successfully."))
+    }
+  }
+
+  name_set <- paste0("cropland_")
+
+  print("WorldCover Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_list,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+
+  print("Process Complete!!!")
+
+  return(df)}
+
+#' Download WorldClim climate data
+#'
+#' This function downloads WorldClim climate data for a specific variable and resolution. It allows for further analysis of climate patterns in a given area.
+#'
+#' @param var A character, the variable of interest (e.g., "temperature", "precipitation").
+#' @param res A character, the resolution of the data (e.g., "2.5m", "5m").
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @importFrom terra rast
+#' @importFrom httr GET http_type write_disk
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage
+#' df <- geolink_worldclim(var = "temperature", res = "2.5m", shp_dt = shp_dt)
+#' }
+#'
+
+
+geolink_worldclim <- function(var,
+                              res,
+                              shp_dt,
+                              shp_fn = NULL,
+                              grid_size = 1000,
+                              survey_dt = NULL,
+                              survey_fn = NULL,
+                              survey_lat = NULL,
+                              survey_lon = NULL,
+                              buffer_size = NULL,
+                              extract_fun = "mean",
+                              survey_crs = 4326){
+
+  if (!is.null(shp_dt)) {
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else if (!is.null(shp_fn)) {
+    shp_dt <- st_read(shp_fn)
+    coords <- st_coordinates(shp_dt)
+    midpoint <- ceiling(nrow(coords) / 2)
+    lon <- coords[midpoint, "X"]
+    lat <- coords[midpoint, "Y"]
+  } else {
+    stop("Provide either shp_dt or shp_fn.")
+  }
+
+  data <- worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
+
+  for (i in seq_along(raster_list)) {
+    projection(raster_list[[i]]) <- epsg_4326
+    if (is.null(projection(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", i))
+    } else {
+      print(paste("Raster", i, "projected successfully."))
+    }
+  }
+
+  name_set <- paste0("worldclim_")
+
+  print("WorldClim Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_list,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+
+  print("Process Complete!!!")
+
+  return(dt)}
+
+#' Download OpenCellID data
+#'
+#' This function downloads OpenCellID data, which provides information about cell towers and their coverage areas. It allows for further analysis of cellular network coverage in a given area.
+#'
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the cell tower data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @importFrom terra rast
+#' @importFrom httr GET timeout
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage
+#' df <- geolink_opencellid(shp_dt = shp_dt)
+#' }
+#'
+
+
+geolink_opencellid <- function(shp_dt,
+                               shp_fn = NULL,
+                               grid_size = 1000,
+                               survey_dt,
+                               survey_fn = NULL,
+                               survey_lat = NULL,
+                               survey_lon = NULL,
+                               buffer_size = NULL,
+                               extract_fun = "mean",
+                               survey_crs = 4326){
+
+
+  url <- "https://datacatalogfiles.worldbank.org/ddh-published/0038043/DR0046250/opencellid_global_1km_int.tif?versionId=2023-01-18T19:13:42.1710620Z"
+
+  destination <- file.path(tempdir(), "opencellid_global_1km_int.tif")
+
+  timeout_seconds <- 7200
+
+  response <- GET(url, timeout(timeout_seconds)) ##check to see if response is tiff?
+
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
+
+  epsg_4326 <- "+init=EPSG:4326"
+
+  for (i in seq_along(raster_list)) {
+    projection(raster_list[[i]]) <- epsg_4326
+    if (is.null(projection(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", i))
+    } else {
+      print(paste("Raster", i, "projected successfully."))
+    }
+  }
+
+  name_set <- paste0("opencellid_")
+
+  print("Opencellid Raster Downloaded")
+
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_list,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)
+
+}
 
 

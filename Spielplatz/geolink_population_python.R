@@ -3,6 +3,16 @@ use_python("C:/Users/Diana Jaganjac/anaconda3")
 
 #print(reticulate::py_config())
 
+# "desc": "WorldPop produces different types of gridded population count datasets,
+#depending on the methods used and end application. An overview of the data can be found in Tatem et al,
+#and a description of the modelling methods used found in Stevens et al. The 'Global per country 2000-2020'
+#datasets represent the outputs from a project focused on construction of consistent 100m
+#resolution population count datasets for all countries of the World for each year 2000-2020.
+#These efforts necessarily involved some shortcuts for consistency. The 'individual countries'
+#datasets represent older efforts to map populations for each country separately,
+#using a set of tailored geospatial inputs and differing methods and time periods.
+
+
 
 
 
@@ -10,6 +20,7 @@ geolink_population <- function(time_unit = "annual",
                                start_year,
                                end_year,
                                iso_code,
+                               const_UNadj_2020,
                                shp_dt,
                                shp_fn = NULL,
                                grid_size = 1000,
@@ -26,9 +37,12 @@ geolink_population <- function(time_unit = "annual",
 
   result_list <- paste0("ppp_", years)
 
+
   dl <- import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
 
   data <- dl(iso_code, temp_dir, result_list)
+
+
 
   tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
 
