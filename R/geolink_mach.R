@@ -498,6 +498,8 @@ geolink_population <- function(time_unit = "annual",
                                end_year,
                                iso_code,
                                const_UNadj_2020,
+                               bespoke,
+                               version,
                                shp_dt,
                                shp_fn = NULL,
                                grid_size = 1000,
@@ -519,7 +521,8 @@ geolink_population <- function(time_unit = "annual",
   data <- dl(iso_code, temp_dir, result_list)
 
   if (const_UNadj_2020 == "Y") {
-    url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code)
+    url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/",
+                  iso_code)
 
 
     tryCatch({
@@ -531,9 +534,19 @@ geolink_population <- function(time_unit = "annual",
     })
   }
 
+  if (bespoke == "Y") {
+    url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
+                  "/population/", version, "_population_",
+                  gsub("\\.", "_", version), "_mastergrid.tif")
+    download.file(url, temp_dir, basename(url))
+
+  }
+
   tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
 
   raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list = lapply(raster_objs, raster)
 
   name_count <- lubridate::year(start_year) - lubridate::year(end_year) + 1
 
@@ -635,6 +648,90 @@ geolink_get_poi <- function(osm_feature_category,
 
   return(query_dt)}
 
+
+#' Download high resolution electrification access data from HREA
+#'
+#' @param time_unit A character, either "month" or "annual" monthly or annual rainfall aggregates are to be estimated
+#' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
+#' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
+#' @param grid_size A numeric, the grid size to be used in meters
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e. a household survey with latitude and longitude values.
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE)
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE)
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE)
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#'
+#' @details
+#'
+#' Details for the dataset can be found here: https://hrea.isr.umich.edu/
+#'
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#'
+#' @examples
+#'\donttest{
+#'
+#'
+#' df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#'
+
+geolink_electaccess <- function(time_unit = "annual",
+                                start_date = NULL,
+                                end_date = NULL,
+                                shp_dt,
+                                shp_fn = NULL,
+                                grid_size = 1000,
+                                survey_dt,
+                                survey_fn = NULL,
+                                survey_lat = NULL,
+                                survey_lon = NULL,
+                                buffer_size = NULL,
+                                extract_fun = "mean",
+                                survey_crs = 4326){
+
+
+
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  it_obj <- s_obj %>%
+    stac_search(collections = "hrea",
+                bbox = sf::st_bbox(shp_dt)) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
+
+  url_list <- lapply(1:length(it_obj$features),
+                     function(x) {
+                       url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$lightscore$href)
+                       return(url)
+                     })
+
+  raster_objs <- lapply(url_list, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
+
+  name_set <- paste0("elect_")
+
+  print("Electrification Access Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_list,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)}
 
 
 
