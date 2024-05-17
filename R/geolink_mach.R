@@ -960,8 +960,6 @@ geolink_buildings <- function(version,
 }
 
 
-
-Copy code
 #' Download CMIP6 climate model data
 #'
 #' This function downloads CMIP6 (Coupled Model Intercomparison Project Phase 6) climate model data for a specific variable, resolution, model, Shared Socioeconomic Pathway (SSP), and time period. It allows for further analysis of the data in conjunction with geographic data.

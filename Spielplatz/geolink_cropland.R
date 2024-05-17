@@ -1,3 +1,4 @@
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
 
 geolink_cropland <- function(source = "WorldCover",
                           shp_dt,
@@ -49,7 +50,7 @@ geolink_cropland <- function(source = "WorldCover",
 
   print("WorldCover Raster Downloaded")
 
-  dt <- postdownload_processor(shp_dt = shp_dt,
+  df <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_list,
                                shp_fn = shp_fn,
                                grid_size = grid_size,
@@ -69,5 +70,9 @@ geolink_cropland <- function(source = "WorldCover",
 
 
 
-df <- geolink_cropland(shp_dt = shp_dt)
+df <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+
+
+
 

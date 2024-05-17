@@ -65,7 +65,7 @@ geolink_electaccess <- function(time_unit = "annual",
   return(dt)}
 
 
-df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",])
 
 
 

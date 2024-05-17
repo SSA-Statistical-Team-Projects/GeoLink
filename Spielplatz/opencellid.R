@@ -60,3 +60,5 @@ geolink_opencellid <- function(shp_dt,
 
 }
 
+dff<- geolink_opencellid(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
