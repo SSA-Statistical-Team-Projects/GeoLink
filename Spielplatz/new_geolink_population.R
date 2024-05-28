@@ -1,13 +1,14 @@
-library(reticulate)
-use_python("C:/Users/Diana Jaganjac/anaconda3")
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
+
 
 geolink_population <- function(time_unit = "annual",
                                start_year,
                                end_year,
                                iso_code,
-                               const_UNadj_2020,
-                               bespoke,
-                               version,
+                               UN_adjst,
+                               constrained = NULL,
+                               bespoke = NULL,
+                               version = NULL,
                                shp_dt,
                                shp_fn = NULL,
                                grid_size = 1000,
@@ -17,48 +18,60 @@ geolink_population <- function(time_unit = "annual",
                                survey_lon = NULL,
                                buffer_size = NULL,
                                extract_fun = "mean",
-                               survey_crs = 4326){
+                               survey_crs = 4326) {
   temp_dir <- tempdir()
 
   years <- seq(start_year, end_year)
 
   result_list <- paste0("ppp_", years)
 
-  dl <- import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
-
-  data <- dl(iso_code, temp_dir, result_list)
-
-  if (const_UNadj_2020 == "Y") {
-    url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/",
-                  iso_code)
-
+  if (!is.null(constrained) && constrained == "Y") {
+    url2 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code)
+    url1 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code)
 
     tryCatch({
-      download.file(url, temp_dir, basename(url))
+      download.file(url1, file.path(temp_dir, basename(url1)))
     }, error = function(e) {
-
-      url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code)
-      download.file(url, temp_dir, basename(url))
+      tryCatch({
+        download.file(url2, file.path(temp_dir, basename(url2)))
+      }, error = function(e) {
+        message("No file found")
+      })
     })
+
+  } else {
+    for (year in years) {
+      url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020", year, "/",
+                    iso_code, "/")
+      download.file(url, file.path(temp_dir, basename(url)))
+    }
   }
 
-  if (bespoke == "Y") {
+  if (!is.null(bespoke) && bespoke == "Y") {
     url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
                   "/population/", version, "_population_",
                   gsub("\\.", "_", version), "_mastergrid.tif")
-    download.file(url, temp_dir, basename(url))
-
+    download.file(url, file.path(temp_dir, basename(url)))
   }
 
-  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  if (!is.null(UN_adjst) && UN_adjst == "Y") {
+    tif_files <- list.files(temp_dir, pattern = paste0(iso_code, "_ppp_\\d{4}_UNadj\\.tif$"), full.names = TRUE)
+  } else {
+    tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
-  raster_list = lapply(raster_objs, raster)
+  raster_list <- lapply(raster_objs, raster)
 
   name_count <- lubridate::year(start_year) - lubridate::year(end_year) + 1
 
   name_set <- paste0("population_", "annual_", 1:name_count)
+
+  dir_contents <- list.files(temp_dir, full.names = TRUE, recursive = TRUE)
+  print(dir_contents)
+
+  print(length(raster_objs))
 
   print("Population Raster Downloaded")
 
@@ -82,12 +95,13 @@ geolink_population <- function(time_unit = "annual",
 
 
 
-df <- geolink_population(time_unit,
-                         start_year=2018,
+
+df <- geolink_population(time_unit = "annual",
+                         start_year = 2018,
                          end_year = 2019,
                          iso_code = "NGA",
-                         const_UNadj_2020 = "Y",
+                         UN_adjst = "Y",
+                         constrained = "Y",
                          shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                          grid_size = 1000,
-                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
-                                              extract_fun = "mean"))
+                         extract_fun = "mean")

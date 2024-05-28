@@ -92,3 +92,49 @@ checkurl_exist <- function(url) {
 
   return(test_result$exists)
 }
+
+# Create a function to scrape file names from the directory listing
+get_file_list <- function(url) {
+  # Read the HTML content from the URL
+  page <- read_html(url)
+
+  # Extract the file names from the links
+  files <- page %>% html_nodes("a") %>% html_attr("href")
+
+  # Filter out directories and parent directory link
+  files <- files[grepl("\\.tif$", files)]
+
+  # Return the full URLs of the files
+  return(paste0(url, files))
+}
+
+
+# Function to try downloading files from a URL
+try_download <- function(url) {
+  file_urls <- NULL
+  try({
+    file_urls <- get_file_list(url)
+    if (length(file_urls) == 0) stop("No files found at URL")
+  }, silent = TRUE)
+  return(file_urls)
+}
+
+# Function to download files from a list of URLs
+download_files <- function(file_urls, UN_adjst) {
+  dest_dir <- tempdir()
+  for (file_url in file_urls) {
+    if (!is.null(UN_adjst) && UN_adjst == "Y") {
+      # Download only files containing 'UNadj'
+      if (grepl("UNadj", basename(file_url))) {
+        destfile <- file.path(dest_dir, basename(file_url))
+        download.file(file_url, destfile, method = "auto")
+      }
+    } else {
+      # Download all files except those containing 'UNadj'
+      if (!grepl("UNadj", basename(file_url))) {
+        destfile <- file.path(dest_dir, basename(file_url))
+        download.file(file_url, destfile, method = "auto")
+      }
+    }
+  }
+}
