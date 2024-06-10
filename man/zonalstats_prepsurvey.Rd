@@ -26,27 +26,6 @@ zonalstats_prepsurvey(
 (STATA users only)}
 
 \item{buffer_size}{a numeric, radius of buffer for survey_dt (or survey_fn) units.}
-
-\item{varname_tag}{a character, a tag on to be used in created the set of variables
-the common portion of the variable name (e.g. "ntl_" for the night time light
-variables)}
-
-\item{time_unit}{a character, for the time intervals for the dataset e.g. daily,
-monthly, annual}
-
-\item{name_count}{a character, the number of periods of data collected e.g. 10 days,
-vs or 10 months or 10 years etc.}
-
-\item{shp_dt}{a sf/data.frame object, the shapefile}
-
-\item{raster_objs}{a list of raster object(s), a list of raster objects}
-
-\item{shp_fn}{a character, the name of shapefile for STATA users only (.shp/.gpkg file)}
-
-\item{grid_size}{a numeric, size of the size of the grid in meters}
-
-\item{extract_fun}{a character, an extraction fun. See `exactextractr::exact_extract()`
-for examples}
 }
 \description{
 A function to process raster downloads and compute zonal statistics for shapefiles

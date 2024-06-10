@@ -345,6 +345,7 @@ geolink_ntl <- function(time_unit = "annual",
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
+#' @import rstac
 #' @examples
 #'
 #' \donttest{
@@ -429,7 +430,9 @@ geolink_landcover <- function(time_unit = "annual",
 
   print("Process Complete!!!")
 
-  return(dt)}
+  return(dt)
+
+}
 
 
 

@@ -69,4 +69,13 @@ geolink_landcover <- function(time_unit = "annual",
                       #extract_fun = "mean")
 
 
+dt <-
+  geolink_landcover(time_unit,
+                    start_date = "2020-01-01",
+                    end_date = "2020-03-01",
+                    shp_dt = shp_dt[shp_dt$ADM2_PCODE == "NG001001",],
+                    grid_size = 1000,
+                    survey_dt = hhgeo_dt,
+                    extract_fun = "mean")
+
 
