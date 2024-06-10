@@ -859,7 +859,7 @@ geolink_elevation <- function(shp_dt,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac, reticulate, terra, raster, osmdata, sf
 #'
 #' @examples
 #' \donttest{
@@ -868,6 +868,8 @@ geolink_elevation <- function(shp_dt,
 #' df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt)
 #'
 #' }
+#'
+#' @export
 #'
 
 geolink_buildings <- function(version,

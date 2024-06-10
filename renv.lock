@@ -76,6 +76,16 @@
       ],
       "Hash": "e779c7d9f35cc364438578f334cffee2"
     },
+    "PROJ": {
+      "Package": "PROJ",
+      "Version": "0.4.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "1cc61d76dc4058622a28742c0eb362f9"
+    },
     "R.methodsS3": {
       "Package": "R.methodsS3",
       "Version": "1.8.2",
@@ -157,6 +167,17 @@
         "utils"
       ],
       "Hash": "5ea2700d21e038ace58269ecdbeb9ec0"
+    },
+    "RcppTOML": {
+      "Package": "RcppTOML",
+      "Version": "0.2.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "Rcpp"
+      ],
+      "Hash": "c232938949fcd8126034419cc529333a"
     },
     "XML": {
       "Package": "XML",
@@ -436,6 +457,17 @@
       ],
       "Hash": "ab12c7b080a57475248a30f4db6298c0"
     },
+    "crsmeta": {
+      "Package": "crsmeta",
+      "Version": "0.3.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "methods"
+      ],
+      "Hash": "76ad515a0acb138c0e93f017c7aefd11"
+    },
     "crsuggest": {
       "Package": "crsuggest",
       "Version": "0.4",
@@ -471,6 +503,18 @@
         "methods"
       ],
       "Hash": "8ee9ac56ef633d0c7cab8b2ca87d683e"
+    },
+    "dbscan": {
+      "Package": "dbscan",
+      "Version": "1.1-12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "Rcpp",
+        "graphics",
+        "stats"
+      ],
+      "Hash": "7f069f590906941ff4bb801ecedabff0"
     },
     "desc": {
       "Package": "desc",
@@ -837,6 +881,16 @@
       ],
       "Hash": "9171f898db9d9c4c1b2c745adc2c1ef1"
     },
+    "here": {
+      "Package": "here",
+      "Version": "1.0.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "rprojroot"
+      ],
+      "Hash": "24b224366f9c2e7534d2344d10d59211"
+    },
     "highr": {
       "Package": "highr",
       "Version": "0.11",
@@ -972,6 +1026,16 @@
         "utils"
       ],
       "Hash": "8954069286b4b2b0d023d1b288dce978"
+    },
+    "jpeg": {
+      "Package": "jpeg",
+      "Version": "0.1-10",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "031a0b683d001a7519202f0628fc0358"
     },
     "jquerylib": {
       "Package": "jquerylib",
@@ -1286,6 +1350,27 @@
       ],
       "Hash": "2bcca3848e4734eb3b16103bc9aa4b8e"
     },
+    "osmdata": {
+      "Package": "osmdata",
+      "Version": "0.2.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "Rcpp",
+        "curl",
+        "httr2",
+        "lubridate",
+        "magrittr",
+        "methods",
+        "reproj",
+        "rvest",
+        "tibble",
+        "utils",
+        "xml2"
+      ],
+      "Hash": "484fb25b6267ae0a885511dbac53f193"
+    },
     "parallelMap": {
       "Package": "parallelMap",
       "Version": "1.5.1",
@@ -1429,6 +1514,16 @@
       ],
       "Hash": "f4625e061cb2865f111b47ff163a5ca6"
     },
+    "proj4": {
+      "Package": "proj4",
+      "Version": "1.0-14",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R"
+      ],
+      "Hash": "1e3f9f3e86ddcb8542794fec82eee6e2"
+    },
     "promises": {
       "Package": "promises",
       "Version": "1.3.0",
@@ -1557,6 +1652,41 @@
       ],
       "Hash": "c321cd99d56443dbffd1c9e673c0c1a2"
     },
+    "reproj": {
+      "Package": "reproj",
+      "Version": "0.4.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "PROJ",
+        "R",
+        "crsmeta",
+        "proj4"
+      ],
+      "Hash": "35bffc8308f82594dcf28e374488d0cb"
+    },
+    "reticulate": {
+      "Package": "reticulate",
+      "Version": "1.37.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "Matrix",
+        "R",
+        "Rcpp",
+        "RcppTOML",
+        "graphics",
+        "here",
+        "jsonlite",
+        "methods",
+        "png",
+        "rappdirs",
+        "rlang",
+        "utils",
+        "withr"
+      ],
+      "Hash": "9465d3bc6ec44eeaa52527ac2cba4020"
+    },
     "rlang": {
       "Package": "rlang",
       "Version": "1.1.4",
@@ -1626,6 +1756,25 @@
         "R"
       ],
       "Hash": "4c8415e0ec1e29f3f4f6fc108bef0144"
+    },
+    "rstac": {
+      "Package": "rstac",
+      "Version": "1.0.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "R",
+        "crayon",
+        "grid",
+        "httr",
+        "jpeg",
+        "jsonlite",
+        "magrittr",
+        "png",
+        "sf",
+        "utils"
+      ],
+      "Hash": "d0937bcdd648726a4c7af0fcd0fa49cc"
     },
     "rstudioapi": {
       "Package": "rstudioapi",

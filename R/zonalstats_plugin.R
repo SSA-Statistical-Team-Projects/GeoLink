@@ -188,6 +188,8 @@ compute_zonalstats <- function(shp_dt,
 
   shp_dt <- st_transform(shp_dt, crs = raster_crs_proj4)
 
+  geocol_obj <- shp_dt$geometry ## keep the geometry column before the merge
+
   shp_dt <-
     mapply(FUN = function(x, n){
       ### first ensure raster and shapefile have the same crs
@@ -206,17 +208,6 @@ compute_zonalstats <- function(shp_dt,
 
   if (length(shp_dt) > 1L) {
 
-    shp_dt <- lapply(shp_dt,
-                     function(X){
-
-                       X$geoID <- 1:nrow(X)
-
-                       return(X)
-
-                     })
-
-    geoid_dt <- shp_dt[[1]][, c("geoID")]
-
     shp_crs <- st_crs(shp_dt[[1]])$input
 
     shp_dt <- lapply(shp_dt,
@@ -230,7 +221,8 @@ compute_zonalstats <- function(shp_dt,
 
     shp_dt <- Reduce(merge, shp_dt)
 
-    shp_dt <- merge(shp_dt, geoid_dt, by = "geoID")
+    ### reinclude the geometry column
+    shp_dt$geometry <- geocol_obj
 
     shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
 
