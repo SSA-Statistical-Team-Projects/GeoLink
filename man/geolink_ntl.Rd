@@ -11,10 +11,10 @@ geolink_ntl(
   annual_version = "v21",
   month_version = "v10",
   indicator,
-  slc_type = TRUE,
+  slc_type = "vcmslcfg",
   shp_dt,
   shp_fn = NULL,
-  grid_size,
+  grid_size = 1000,
   use_survey = TRUE,
   survey_dt,
   survey_fn = NULL,
@@ -107,7 +107,7 @@ df <- geolink_ntl(time_unit = "month",
                   version = "v21",
                   indicator = "average_masked",
                   grid_size = 1000,
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
                   extract_fun = "mean")
 
 #estimate annual night time luminosity for each household within a 100 meters
@@ -119,7 +119,7 @@ df <- geolink_ntl(time_unit = "annual",
                   shp_dt = NULL,
                   version = "v21",
                   indicator = "average_masked",
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
                   extract_fun = "mean",
                   buffer_size = 100)
 

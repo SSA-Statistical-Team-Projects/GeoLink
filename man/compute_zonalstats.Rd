@@ -21,6 +21,6 @@ A function to compute zonal statistics from multiple rasters into one shapefile
 object
 }
 \details{
-A parallelization option will need to be created in this code at
+A parallelization option will be added
 some point
 }

@@ -345,6 +345,8 @@ geolink_ntl <- function(time_unit = "annual",
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
+#' @import rstac
+#'
 #' @examples
 #'
 #' \donttest{
@@ -365,7 +367,7 @@ geolink_ntl <- function(time_unit = "annual",
 #                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
 #                         extract_fun = "mean")
 #'
-#'
+#'}
 #'
 geolink_landcover <- function(time_unit = "annual",
                               start_date,
@@ -398,7 +400,8 @@ geolink_landcover <- function(time_unit = "annual",
     setNames(raster_objs[[i]], as.character(i))
   })
 
-  class_names <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops", "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
+  class_names <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops",
+                   "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
 
   class_values <- c(No_Data = 0, Water = 1, Trees = 2, Flooded_Vegetation = 4,
                     Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9, Clouds = 10, Rangeland = 11)
@@ -491,7 +494,7 @@ geolink_landcover <- function(time_unit = "annual",
 #'                         grid_size = 1000,
 #'                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
 #'                                              extract_fun = "mean"))
-#'
+#'}
 #'
 geolink_population <- function(time_unit = "annual",
                                start_year,
@@ -591,12 +594,13 @@ geolink_population <- function(time_unit = "annual",
 #' @examples
 #'\donttest{
 #'
+#' df <- geolink_get_poi(osm_feature_category = "building",
+#'                       osm_feature_subcategory = "farm",
+#'                       shp_dt = shp_dt)
 #'
-
-#df <- geolink_get_poi(osm_feature_category = "building",
-# osm_feature_subcategory ="farm",
-# shp_dt = shp_dt)
-
+#'
+#'}
+#'
 #'
 
 geolink_get_poi <- function(osm_feature_category,
@@ -675,6 +679,8 @@ geolink_get_poi <- function(osm_feature_category,
 #'
 #'
 #' df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#'
+#' }
 #'
 
 geolink_electaccess <- function(time_unit = "annual",

@@ -5,7 +5,16 @@
 \alias{shp_dt}
 \title{Boundary Shapefile for Nigeria}
 \format{
-
+An `sf` and `data.frame` object with 774 features (polygons) and 6 fields:
+\describe{
+  \item{ADM0_EN}{Country name, i.e., Nigeria}
+  \item{ADM0_PCODE}{Two-letter country code (NG)}
+  \item{ADM1_EN}{State name (Administrative Division 1)}
+  \item{ADM1_PCODE}{State code (Administrative Division 1)}
+  \item{ADM2_EN}{Local government area name (Administrative Division 2)}
+  \item{ADM2_PCODE}{Local government area code (Administrative Division 2)}
+  \item{geometry}{The polygon geometry features}
+}
 }
 \source{
 World Bank subnational boundary repository
@@ -14,7 +23,6 @@ World Bank subnational boundary repository
 shp_dt
 }
 \description{
-The full shapefile of Nigeria up to the second administrative divisions i.e. the local government
-areas
+This shapefile contains the boundaries of Nigeria up to the second administrative division, i.e., the local government areas (LGAs).
 }
 \keyword{datasets}
