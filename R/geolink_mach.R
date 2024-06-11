@@ -346,6 +346,7 @@ geolink_ntl <- function(time_unit = "annual",
 #' `sf::read_sf()` function.
 #'
 #' @import rstac
+#' @importFrom exactextractr exact_extract
 #'
 #' @examples
 #'
@@ -394,7 +395,7 @@ geolink_landcover <- function(time_unit = "annual",
 
   raster_objs <- lapply(url_list, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
+  # raster_list <- lapply(raster_objs, raster)
 
   raster_list <- lapply(seq_along(raster_objs), function(i) {
     setNames(raster_objs[[i]], as.character(i))
@@ -404,7 +405,8 @@ geolink_landcover <- function(time_unit = "annual",
                    "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
 
   class_values <- c(No_Data = 0, Water = 1, Trees = 2, Flooded_Vegetation = 4,
-                    Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9, Clouds = 10, Rangeland = 11)
+                    Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9,
+                    Clouds = 10, Rangeland = 11)
 
   proportions_list <- list()
 
@@ -414,7 +416,8 @@ geolink_landcover <- function(time_unit = "annual",
     extracted_values <- exact_extract(raster_list[[i]], shp_dt, coverage_area = TRUE)
 
     class_proportions <- lapply(class_values, function(class_val) {
-      class_proportion <- sum(extracted_values$value == class_val, na.rm = TRUE) / length(extracted_values$value)
+      class_proportion <- sum(extracted_values$value == class_val,
+                              na.rm = TRUE) / length(extracted_values$value)
       return(class_proportion)
     })
 
@@ -426,6 +429,7 @@ geolink_landcover <- function(time_unit = "annual",
   colnames(proportions_df) <- names(class_values)
 
   return(proportions_df)
+
 }
 
 
@@ -888,41 +892,23 @@ geolink_buildings <- function(version,
   temp_dir <- tempdir()
 
   if (version == "v1.1") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v1.1/", iso_code, "_buildings_v1_1.zip")
-    tryCatch({
-      # Download the ZIP file
-      response <- GET(url, write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
-      if (http_type(response) == "application/zip") {
-        message("File downloaded successfully.")
 
-        # Unzip the downloaded file
-        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
-        message("File unzipped successfully.")
-      } else {
-        warning("Downloaded file may not be a ZIP file.")
-      }
-    }, error = function(e) {
-      print(e)
-    })
+    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v1.1/",
+                  iso_code,
+                  "_buildings_v1_1.zip")
+
+    get_worker(url = url)
+
   }
 
   if (version == "v2.0") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v2.0/", iso_code, "_buildings_v2_0.zip")
-    tryCatch({
-      # Download the ZIP file
-      response <- GET(url, write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
-      if (http_type(response) == "application/zip") {
-        message("File downloaded successfully.")
 
-        # Unzip the downloaded file
-        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
-        message("File unzipped successfully.")
-      } else {
-        warning("Downloaded file may not be a ZIP file.")
-      }
-    }, error = function(e) {
-      print(e)
-    })
+    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v2.0/",
+                  iso_code,
+                  "_buildings_v2_0.zip")
+
+    get_worker(url = url)
+
   }
 
 
@@ -933,10 +919,10 @@ geolink_buildings <- function(version,
 
   raster_list <- lapply(raster_objs, raster)
 
-  epsg_4326 <- "+init=EPSG:4326"
+  # epsg_4326 <- "+init=EPSG:4326"
 
   for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
+    # projection(raster_list[[i]]) <- epsg_4326
     if (is.null(projection(raster_list[[i]]))) {
       print(paste("Projection failed for raster", i))
     } else {

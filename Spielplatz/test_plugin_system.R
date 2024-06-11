@@ -133,5 +133,52 @@ postdownload_processor(raster_objs = list(pop_raster),
 
 
 
+##### testing the diana functions
+
+df <- geolink_landcover(start_date = "2020-01-01",
+                        end_date = "2021-01-01",
+                        shp_dt = shp_dt)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

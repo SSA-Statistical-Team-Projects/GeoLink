@@ -17,6 +17,40 @@ download_worker <- function(dsn,
 
 }
 
+
+get_worker <- function(url,
+                       resp_class = "application/zip"){
+
+  tryCatch({
+    # Download the ZIP file
+    response <- GET(url, write_disk(file.path(tempdir(),
+                                              basename(url)),
+                                    overwrite = TRUE))
+
+    if (http_type(response) == resp_class) {
+      message("File downloaded successfully.")
+
+      # Unzip the downloaded file
+      unzip(file.path(tempdir(),
+                      basename(url)),
+            exdir = tempdir())
+
+      message("File unzipped successfully.")
+
+    } else {
+
+      warning("Downloaded file may not be a ZIP file.")
+
+    }
+  }, error = function(e) {
+
+    print(e)
+
+  })
+
+}
+
+
 #' A function to create dictionary of file extensions and the functions that
 #' read them so that a do.call can be applied to read in the results
 #'
@@ -138,3 +172,7 @@ download_files <- function(file_urls, UN_adjst) {
     }
   }
 }
+
+
+
+
