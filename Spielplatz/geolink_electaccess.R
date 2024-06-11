@@ -4,7 +4,7 @@ pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
 geolink_electaccess <- function(time_unit = "annual",
                                start_date = NULL,
                                end_date = NULL,
-                               shp_dt,
+                               shp_dt = NULL,
                                shp_fn = NULL,
                                grid_size = 1000,
                                survey_dt,
@@ -16,20 +16,16 @@ geolink_electaccess <- function(time_unit = "annual",
                                survey_crs = 4326){
 
 
-
-  #start_date <- "2018-12-31"
-  #end_date <- "2019-12-31"
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
 
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
 
-  #year_start <- "2018-01-01T00:00:00Z"
-  #year_end <- "2019-01-01T00:00:00Z"
-
-
   it_obj <- s_obj %>%
     stac_search(collections = "hrea",
-                bbox = sf::st_bbox(shp_dt)) %>%
+                bbox = sf::st_bbox(shp_dt),
+                datetime = paste(start_date, end_date, sep = "/")) %>%
     get_request() %>%
     items_sign(sign_fn = sign_planetary_computer())
 
@@ -43,7 +39,9 @@ geolink_electaccess <- function(time_unit = "annual",
 
   raster_list <- lapply(raster_objs, raster)
 
-  name_set <- paste0("elect_")
+  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+
+  name_set <- paste0("lightscore_", year_sequence)
 
   print("Electrification Access Raster Downloaded")
 
@@ -65,7 +63,7 @@ geolink_electaccess <- function(time_unit = "annual",
   return(dt)}
 
 
-df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",])
+df <- geolink_electaccess(start_date = "2018-12-31", end_date = "2019-12-31", shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",])
 
 
 
