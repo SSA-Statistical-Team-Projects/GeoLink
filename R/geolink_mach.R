@@ -516,7 +516,7 @@ geolink_population <- function(time_unit = "annual",
 
   result_list <- paste0("ppp_", years)
 
-  dl <- import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
+  dl <- reticulate::import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
 
   data <- dl(iso_code, temp_dir, result_list)
 
@@ -694,13 +694,13 @@ geolink_electaccess <- function(time_unit = "annual",
 
 
 
-  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+  s_obj <- rstac::stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
   it_obj <- s_obj %>%
-    stac_search(collections = "hrea",
+    rstac::stac_search(collections = "hrea",
                 bbox = sf::st_bbox(shp_dt)) %>%
-    get_request() %>%
-    items_sign(sign_fn = sign_planetary_computer())
+    rstac::get_request() %>%
+    rstac::items_sign(sign_fn = rstac::sign_planetary_computer())
 
   url_list <- lapply(1:length(it_obj$features),
                      function(x) {
