@@ -1,7 +1,7 @@
 pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
 
 
-geolink_electaccess <- function(time_unit = "annual",
+geolink_electaccess <- function(
                                start_date = NULL,
                                end_date = NULL,
                                shp_dt = NULL,

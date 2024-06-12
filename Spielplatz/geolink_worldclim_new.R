@@ -6,7 +6,7 @@ geolink_worldclim <- function(var,
                               shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt = NULL,
+                              survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -29,9 +29,21 @@ geolink_worldclim <- function(var,
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+  unlink(tempdir(), recursive = TRUE)
+
+  data <- geodata::worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -46,7 +58,6 @@ geolink_worldclim <- function(var,
     }
   }
 
-  name_set <- paste0("worldclim_")
 
   print("WorldClim Raster Downloaded")
 

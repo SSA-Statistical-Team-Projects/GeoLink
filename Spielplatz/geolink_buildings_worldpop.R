@@ -1,9 +1,9 @@
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, httr, geodata)
+pacman::p_load(rstac, terra, raster, osmdata, sp, sf, httr, geodata)
 
 
 geolink_buildings <- function(version,
                               iso_code,
-                              shp_dt,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt,
@@ -56,7 +56,17 @@ geolink_buildings <- function(version,
 
 
 
-  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub(".*1_([^\\.]+)\\.tif$", "\\1", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -73,7 +83,6 @@ geolink_buildings <- function(version,
     }
   }
 
-  name_set <- paste0("buildings_")
 
   print("Building Raster Downloaded")
 
@@ -96,7 +105,9 @@ geolink_buildings <- function(version,
   return(dt)
 }
 
-
+test_dt <- geolink_buildings(version = "v1.1",
+                             iso_code = "NGA",
+                             shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
 
 
 

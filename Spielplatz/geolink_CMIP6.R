@@ -7,7 +7,7 @@ geolink_CMIP6 <- function(var,
                               shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt = NULL,
+                              survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -31,10 +31,21 @@ geolink_CMIP6 <- function(var,
     stop("Provide either shp_dt or shp_fn.")
   }
 
+  unlink(tempdir(), recursive = TRUE)
 
-  data <- cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
+  data <- geodata::cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -48,8 +59,6 @@ geolink_CMIP6 <- function(var,
       print(paste("Raster", i, "projected successfully."))
     }
   }
-
-  name_set <- paste0("elevation_")
 
 
   print("CMIP6  Raster Downloaded")
@@ -70,7 +79,7 @@ geolink_CMIP6 <- function(var,
 
   print("Process Complete!!!")
 
-  return(df)}
+  return(dt)}
 
 
 bio10 <- geolink_CMIP6(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],"CNRM-CM6-1", "585", "2061-2080", var="bioc", res=10)

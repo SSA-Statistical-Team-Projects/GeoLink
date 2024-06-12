@@ -1,15 +1,14 @@
 pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
 
 
-geolink_population <- function(time_unit = "annual",
-                               start_year,
+geolink_population <- function(start_year,
                                end_year,
                                iso_code,
                                UN_adjst,
                                constrained = NULL,
                                bespoke = NULL,
                                version = NULL,
-                               shp_dt,
+                               shp_dt = NULL,
                                shp_fn = NULL,
                                grid_size = 1000,
                                survey_dt,
@@ -64,9 +63,9 @@ geolink_population <- function(time_unit = "annual",
 
   raster_list <- lapply(raster_objs, raster)
 
-  name_count <- lubridate::year(start_year) - lubridate::year(end_year) + 1
+  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
 
-  name_set <- paste0("population_", "annual_", 1:name_count)
+  name_set <- paste0("population_", year_sequence)
 
   dir_contents <- list.files(temp_dir, full.names = TRUE, recursive = TRUE)
   print(dir_contents)
@@ -96,8 +95,7 @@ geolink_population <- function(time_unit = "annual",
 
 
 
-df <- geolink_population(time_unit = "annual",
-                         start_year = 2018,
+df <- geolink_population(start_year = 2018,
                          end_year = 2019,
                          iso_code = "NGA",
                          UN_adjst = "Y",

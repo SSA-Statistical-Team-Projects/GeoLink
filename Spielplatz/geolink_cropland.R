@@ -27,9 +27,21 @@ geolink_cropland <- function(source = "WorldCover",
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- cropland(source = source, path=tempdir())
+  unlink(tempdir(), recursive = TRUE)
+
+  data <- geodata::cropland(source = source, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -45,8 +57,6 @@ geolink_cropland <- function(source = "WorldCover",
       print(paste("Raster", i, "projected successfully."))
     }
   }
-
-  name_set <- paste0("cropland_")
 
   print("WorldCover Raster Downloaded")
 

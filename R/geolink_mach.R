@@ -367,6 +367,9 @@ geolink_ntl <- function(time_unit = "annual",
 #'
 #'
 #'
+#' @import rstac terra raster osmdata sp sf httr geodata
+#'
+#'
 geolink_landcover <- function(time_unit = "annual",
                               start_date,
                               end_date,
@@ -477,7 +480,7 @@ geolink_landcover <- function(time_unit = "annual",
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#' @import reticulate
+#''@import rstac terra raster osmdata sp sf httr geodata reticulate
 #'
 #' @examples
 #'\donttest{
@@ -588,7 +591,7 @@ geolink_population <- function(time_unit = "annual",
 #'
 #' Details for feature category and sub-category can be found here: https://wiki.openstreetmap.org/wiki/Map_features
 #'
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #'\donttest{
@@ -670,7 +673,7 @@ geolink_get_poi <- function(osm_feature_category,
 #'
 #' Details for the dataset can be found here: https://hrea.isr.umich.edu/
 #'
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #'\donttest{
@@ -758,8 +761,7 @@ geolink_electaccess <- function(time_unit = "annual",
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
-#'
+#' @import rstac terra raster osmdata sp sf httr geodata
 #' @examples
 #' \donttest{
 #'
@@ -774,7 +776,7 @@ geolink_electaccess <- function(time_unit = "annual",
 geolink_elevation <- function(shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt = NULL,
+                              survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -798,9 +800,21 @@ geolink_elevation <- function(shp_dt,
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- elevation_3s(lon=lon, lat=lat, path=tempdir())
+  unlink(tempdir(), recursive = TRUE)
+
+  data <- geodata::elevation_3s(lon=lon, lat=lat, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -816,8 +830,6 @@ geolink_elevation <- function(shp_dt,
       print(paste("Raster", i, "projected successfully."))
     }
   }
-
-  name_set <- paste0("elevation_")
 
   print("Elevation Raster Downloaded")
 
@@ -837,7 +849,7 @@ geolink_elevation <- function(shp_dt,
 
   print("Process Complete!!!")
 
-  return(df)}
+  return(dt)}
 
 #' Download high resolution building data from WorldPop
 #'
@@ -860,7 +872,7 @@ geolink_elevation <- function(shp_dt,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
@@ -873,7 +885,7 @@ geolink_elevation <- function(shp_dt,
 
 geolink_buildings <- function(version,
                               iso_code,
-                              shp_dt,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt,
@@ -926,7 +938,17 @@ geolink_buildings <- function(version,
 
 
 
-  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub(".*1_([^\\.]+)\\.tif$", "\\1", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -943,7 +965,6 @@ geolink_buildings <- function(version,
     }
   }
 
-  name_set <- paste0("buildings_")
 
   print("Building Raster Downloaded")
 
@@ -991,7 +1012,7 @@ geolink_buildings <- function(version,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
@@ -1098,13 +1119,13 @@ geolink_CMIP6 <- function(var,
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt)
+#' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #' }
 #'
 
@@ -1135,9 +1156,21 @@ geolink_cropland <- function(source = "WorldCover",
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- cropland(source = source, path=tempdir())
+  unlink(tempdir(), recursive = TRUE)
+
+  data <- geodata::cropland(source = source, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -1154,11 +1187,9 @@ geolink_cropland <- function(source = "WorldCover",
     }
   }
 
-  name_set <- paste0("cropland_")
-
   print("WorldCover Raster Downloaded")
 
-  dt <- postdownload_processor(shp_dt = shp_dt,
+  df <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_list,
                                shp_fn = shp_fn,
                                grid_size = grid_size,
@@ -1198,7 +1229,7 @@ geolink_cropland <- function(source = "WorldCover",
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
@@ -1296,7 +1327,7 @@ geolink_worldclim <- function(var,
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET timeout
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
