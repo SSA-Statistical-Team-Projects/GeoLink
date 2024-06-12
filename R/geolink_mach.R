@@ -402,6 +402,8 @@ geolink_landcover <- function(time_unit = "annual",
 
   class_values <- c(No_Data = 0, Water = 1, Trees = 2, Flooded_Vegetation = 4,
                     Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9, Clouds = 10, Rangeland = 11)
+  #return classes and values without hardcoding them
+  #geos package
 
   proportions_list <- list()
 
@@ -680,7 +682,7 @@ geolink_get_poi <- function(osm_feature_category,
 geolink_electaccess <- function(time_unit = "annual",
                                 start_date = NULL,
                                 end_date = NULL,
-                                shp_dt,
+                                shp_dt = NULL,
                                 shp_fn = NULL,
                                 grid_size = 1000,
                                 survey_dt,
@@ -692,15 +694,19 @@ geolink_electaccess <- function(time_unit = "annual",
                                 survey_crs = 4326){
 
 
-
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
 
   s_obj <- rstac::stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
+
   it_obj <- s_obj %>%
+
     rstac::stac_search(collections = "hrea",
                 bbox = sf::st_bbox(shp_dt)) %>%
     rstac::get_request() %>%
     rstac::items_sign(sign_fn = rstac::sign_planetary_computer())
+
 
   url_list <- lapply(1:length(it_obj$features),
                      function(x) {
@@ -712,7 +718,9 @@ geolink_electaccess <- function(time_unit = "annual",
 
   raster_list <- lapply(raster_objs, raster)
 
-  name_set <- paste0("elect_")
+  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+
+  name_set <- paste0("lightscore_", year_sequence)
 
   print("Electrification Access Raster Downloaded")
 
