@@ -1246,7 +1246,7 @@ geolink_worldclim <- function(var,
                               shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt = NULL,
+                              survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -1269,13 +1269,27 @@ geolink_worldclim <- function(var,
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+  unlink(tempdir(), recursive = TRUE)
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+  data <- geodata::worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
   raster_list <- lapply(raster_objs, raster)
+
+  epsg_4326 <- CRS("+init=epsg:4326")
 
   for (i in seq_along(raster_list)) {
     projection(raster_list[[i]]) <- epsg_4326
@@ -1286,7 +1300,6 @@ geolink_worldclim <- function(var,
     }
   }
 
-  name_set <- paste0("worldclim_")
 
   print("WorldClim Raster Downloaded")
 
@@ -1307,6 +1320,7 @@ geolink_worldclim <- function(var,
   print("Process Complete!!!")
 
   return(dt)}
+
 
 #' Download OpenCellID data
 #'

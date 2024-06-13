@@ -35,7 +35,7 @@ geolink_CMIP6 <- function(var,
 
   data <- geodata::cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
   name_set <- c()
 
@@ -50,6 +50,10 @@ geolink_CMIP6 <- function(var,
   raster_objs <- lapply(tif_files, terra::rast)
 
   raster_list <- lapply(raster_objs, raster)
+
+  print(length(raster_list))
+
+  epsg_4326 <- CRS("+init=epsg:4326")
 
   for (i in seq_along(raster_list)) {
     projection(raster_list[[i]]) <- epsg_4326
