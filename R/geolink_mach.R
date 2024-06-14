@@ -443,12 +443,13 @@ geolink_landcover <- function(time_unit = "annual",
 #' resolution population count datasets for all countries of the World for each year 2000-2020.
 #'
 #'
-#' @param time_unit A character, must be annual as the dataset only provides annual data
 #' @param start_year A numeric specifying the start year
 #' @param end_year A numeric specifying the end year, if only one year is required then enter start year into
-#' end year also, for example if start year = 2015, end year = 2015 also.
 #' @param iso_code A character, specifying the iso code for country to download data from
-#' @param const_UNadj_2020 A character, "Y" if constrained UN adjusted population data for 2020 is required
+#' @param UN_adjst A character 'Y' if want 2020 UN adjusted dataset returned, if not leave blank.
+#' @param constrained A character 'Y' if want constrained dataset returned, if not leave blank.
+#' @param bespoke A character 'Y' if want bespoke dataset returned, if not leave blank. Version also should be specified.
+#' @param version A character such as v2.0 or v2.1 which correlates to the iso_code provided for bespoke datasets.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
 #' @param grid_size A numeric, the grid size to be used in meters
@@ -486,26 +487,24 @@ geolink_landcover <- function(time_unit = "annual",
 #'\donttest{
 #'
 #'
-#'use_python("") make sure python environment is specified
 #'
-#'df <- geolink_population(time_unit,
-#'                         start_year=2018,
-#'                         end_year = 2019,
-#'                         iso_code = "NGA",
+#'df <- geolink_population(iso_code = "NGA",
+#'                         UN_adjst = "N",
+#'                         constrained = "Y",
 #'                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                         grid_size = 1000,
-#'                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
-#'                                              extract_fun = "mean"))
+#'                         extract_fun = "mean")
 #'
 #'
-geolink_population <- function(time_unit = "annual",
-                               start_year,
-                               end_year,
+
+geolink_population <- function(start_year = NULL,
+                               end_year = NULL,
                                iso_code,
-                               const_UNadj_2020,
-                               bespoke,
-                               version,
-                               shp_dt,
+                               UN_adjst = NULL,
+                               constrained = NULL,
+                               bespoke = NULL,
+                               version = NULL,
+                               shp_dt = NULL,
                                shp_fn = NULL,
                                grid_size = 1000,
                                survey_dt,
@@ -514,48 +513,67 @@ geolink_population <- function(time_unit = "annual",
                                survey_lon = NULL,
                                buffer_size = NULL,
                                extract_fun = "mean",
-                               survey_crs = 4326){
-  temp_dir <- tempdir()
-
-  years <- seq(start_year, end_year)
-
-  result_list <- paste0("ppp_", years)
-
-  dl <- reticulate::import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
-
-  data <- dl(iso_code, temp_dir, result_list)
-
-  if (const_UNadj_2020 == "Y") {
-    url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/",
-                  iso_code)
+                               survey_crs = 4326) {
 
 
-    tryCatch({
-      download.file(url, temp_dir, basename(url))
-    }, error = function(e) {
+  unlink(tempdir(), recursive = TRUE)
 
-      url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code)
-      download.file(url, temp_dir, basename(url))
-    })
+  if (!is.null(start_year) && !is.null(end_year)) {
+    years <- seq(start_year, end_year)
+    result_list <- paste0("ppp_", years)
   }
 
-  if (bespoke == "Y") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
-                  "/population/", version, "_population_",
-                  gsub("\\.", "_", version), "_mastergrid.tif")
-    download.file(url, temp_dir, basename(url))
+  if (!is.null(constrained) && constrained == "Y") {
+    url1 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code, "/")
+    url2 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code, "/")
 
+    # Try url1 first, then url2 if url1 fails
+    file_urls <- try_download(url1)
+    if (is.null(file_urls)) {
+      file_urls <- try_download(url2)
+    }
+
+    # If we have a list of file URLs, proceed to download
+    if (!is.null(file_urls)) {
+      download_files(file_urls, UN_adjst)
+    } else {
+      warning("No files found at both URLs.")
+    }
+  } else {
+    if (!is.null(bespoke) && bespoke == "Y") {
+      url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
+                    "/population/v", version, "/", iso_code, "_population_v",
+                    gsub("\\.", "_", version), "_mastergrid.tif")
+      download.file(url, file.path(tempdir(), basename(url)))
+    } else {
+      for (year in years) {
+        url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020/", year, "/", iso_code, "/")
+
+        file_urls <- try_download(url)
+
+        # If we have a list of file URLs, proceed to download
+        if (!is.null(file_urls)) {
+          download_files(file_urls, UN_adjst)
+        } else {
+          warning(paste("No files found for year", year, "at URL", url))
+        }
+      }
+    }
   }
 
-  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
 
   raster_objs <- lapply(tif_files, terra::rast)
 
-  raster_list = lapply(raster_objs, raster)
+  raster_list <- lapply(raster_objs, raster)
 
-  name_count <- lubridate::year(start_year) - lubridate::year(end_year) + 1
+  if (!is.null(start_year) && !is.null(end_year)) {
+    year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  } else {
+    year_sequence <- year(start_date)
+  }
 
-  name_set <- paste0("population_", "annual_", 1:name_count)
+  name_set <- paste0("population_", year_sequence)
 
   print("Population Raster Downloaded")
 
@@ -575,7 +593,10 @@ geolink_population <- function(time_unit = "annual",
   print("Process Complete!!!")
 
   return(dt)
+
+
 }
+
 
 
 #' Download points of interest from OSM data using open street maps API.
@@ -656,7 +677,6 @@ geolink_get_poi <- function(osm_feature_category,
 
 #' Download high resolution electrification access data from HREA
 #'
-#' @param time_unit A character, either "month" or "annual" monthly or annual rainfall aggregates are to be estimated
 #' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
@@ -682,8 +702,7 @@ geolink_get_poi <- function(osm_feature_category,
 #' df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
 
-geolink_electaccess <- function(time_unit = "annual",
-                                start_date = NULL,
+geolink_electaccess <- function(start_date = NULL,
                                 end_date = NULL,
                                 shp_dt = NULL,
                                 shp_fn = NULL,
