@@ -3,7 +3,7 @@ pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
 geolink_elevation <- function(shp_dt,
                              shp_fn = NULL,
                              grid_size = 1000,
-                             survey_dt = NULL,
+                             survey_dt,
                              survey_fn = NULL,
                              survey_lat = NULL,
                              survey_lon = NULL,
@@ -27,9 +27,21 @@ geolink_elevation <- function(shp_dt,
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- elevation_3s(lon=lon, lat=lat, path=tempdir())
+  unlink(tempdir(), recursive = TRUE)
+
+  data <- geodata::elevation_3s(lon=lon, lat=lat, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -45,8 +57,6 @@ geolink_elevation <- function(shp_dt,
       print(paste("Raster", i, "projected successfully."))
     }
   }
-
-  name_set <- paste0("elevation_")
 
   print("Elevation Raster Downloaded")
 
@@ -66,9 +76,9 @@ geolink_elevation <- function(shp_dt,
 
   print("Process Complete!!!")
 
-  return(df)}
+  return(dt)}
 
 
-df <- geolink_elevation(shp_dt = shp_dt)
+df <- geolink_elevation(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 
 

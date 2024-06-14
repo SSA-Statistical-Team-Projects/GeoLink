@@ -19,6 +19,7 @@ Imports:
     dtplyr,
     exactextractr,
     foreach,
+    geodata,
     haven,
     httr,
     jsonlite,
@@ -36,6 +37,7 @@ Imports:
     rstac,
     rvest,
     sf,
+    sp,
     stats,
     stringr,
     svDialogs,
@@ -47,4 +49,5 @@ Imports:
     XML
 Depends: 
     R (>= 2.10)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.2.3
+Config/testthat/edition: 3

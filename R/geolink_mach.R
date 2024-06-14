@@ -370,6 +370,9 @@ geolink_ntl <- function(time_unit = "annual",
 #'
 #'}
 #'
+#' @import rstac terra raster osmdata sp sf httr geodata
+#'
+#'
 geolink_landcover <- function(time_unit = "annual",
                               start_date,
                               end_date,
@@ -405,8 +408,9 @@ geolink_landcover <- function(time_unit = "annual",
                    "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
 
   class_values <- c(No_Data = 0, Water = 1, Trees = 2, Flooded_Vegetation = 4,
-                    Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9,
-                    Clouds = 10, Rangeland = 11)
+                    Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9, Clouds = 10, Rangeland = 11)
+  #return classes and values without hardcoding them
+  #geos package
 
   proportions_list <- list()
 
@@ -445,12 +449,13 @@ geolink_landcover <- function(time_unit = "annual",
 #' resolution population count datasets for all countries of the World for each year 2000-2020.
 #'
 #'
-#' @param time_unit A character, must be annual as the dataset only provides annual data
 #' @param start_year A numeric specifying the start year
 #' @param end_year A numeric specifying the end year, if only one year is required then enter start year into
-#' end year also, for example if start year = 2015, end year = 2015 also.
 #' @param iso_code A character, specifying the iso code for country to download data from
-#' @param const_UNadj_2020 A character, "Y" if constrained UN adjusted population data for 2020 is required
+#' @param UN_adjst A character 'Y' if want 2020 UN adjusted dataset returned, if not leave blank.
+#' @param constrained A character 'Y' if want constrained dataset returned, if not leave blank.
+#' @param bespoke A character 'Y' if want bespoke dataset returned, if not leave blank. Version also should be specified.
+#' @param version A character such as v2.0 or v2.1 which correlates to the iso_code provided for bespoke datasets.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
 #' @param grid_size A numeric, the grid size to be used in meters
@@ -482,32 +487,30 @@ geolink_landcover <- function(time_unit = "annual",
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#' @import reticulate
+#''@import rstac terra raster osmdata sp sf httr geodata reticulate
 #'
 #' @examples
 #'\donttest{
 #'
 #'
-#'use_python("") make sure python environment is specified
 #'
-#'df <- geolink_population(time_unit,
-#'                         start_year=2018,
-#'                         end_year = 2019,
-#'                         iso_code = "NGA",
+#'df <- geolink_population(iso_code = "NGA",
+#'                         UN_adjst = "N",
+#'                         constrained = "Y",
 #'                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                         grid_size = 1000,
-#'                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
-#'                                              extract_fun = "mean"))
-#'}
+#'                         extract_fun = "mean")
 #'
-geolink_population <- function(time_unit = "annual",
-                               start_year,
-                               end_year,
+#'
+
+geolink_population <- function(start_year = NULL,
+                               end_year = NULL,
                                iso_code,
-                               const_UNadj_2020,
-                               bespoke,
-                               version,
-                               shp_dt,
+                               UN_adjst = NULL,
+                               constrained = NULL,
+                               bespoke = NULL,
+                               version = NULL,
+                               shp_dt = NULL,
                                shp_fn = NULL,
                                grid_size = 1000,
                                survey_dt,
@@ -516,48 +519,67 @@ geolink_population <- function(time_unit = "annual",
                                survey_lon = NULL,
                                buffer_size = NULL,
                                extract_fun = "mean",
-                               survey_crs = 4326){
-  temp_dir <- tempdir()
-
-  years <- seq(start_year, end_year)
-
-  result_list <- paste0("ppp_", years)
-
-  dl <- import("wpgpDownload.utils.convenience_functions", convert = TRUE)$download_country_covariates
-
-  data <- dl(iso_code, temp_dir, result_list)
-
-  if (const_UNadj_2020 == "Y") {
-    url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/",
-                  iso_code)
+                               survey_crs = 4326) {
 
 
-    tryCatch({
-      download.file(url, temp_dir, basename(url))
-    }, error = function(e) {
+  unlink(tempdir(), recursive = TRUE)
 
-      url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code)
-      download.file(url, temp_dir, basename(url))
-    })
+  if (!is.null(start_year) && !is.null(end_year)) {
+    years <- seq(start_year, end_year)
+    result_list <- paste0("ppp_", years)
   }
 
-  if (bespoke == "Y") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
-                  "/population/", version, "_population_",
-                  gsub("\\.", "_", version), "_mastergrid.tif")
-    download.file(url, temp_dir, basename(url))
+  if (!is.null(constrained) && constrained == "Y") {
+    url1 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code, "/")
+    url2 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code, "/")
 
+    # Try url1 first, then url2 if url1 fails
+    file_urls <- try_download(url1)
+    if (is.null(file_urls)) {
+      file_urls <- try_download(url2)
+    }
+
+    # If we have a list of file URLs, proceed to download
+    if (!is.null(file_urls)) {
+      download_files(file_urls, UN_adjst)
+    } else {
+      warning("No files found at both URLs.")
+    }
+  } else {
+    if (!is.null(bespoke) && bespoke == "Y") {
+      url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
+                    "/population/v", version, "/", iso_code, "_population_v",
+                    gsub("\\.", "_", version), "_mastergrid.tif")
+      download.file(url, file.path(tempdir(), basename(url)))
+    } else {
+      for (year in years) {
+        url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020/", year, "/", iso_code, "/")
+
+        file_urls <- try_download(url)
+
+        # If we have a list of file URLs, proceed to download
+        if (!is.null(file_urls)) {
+          download_files(file_urls, UN_adjst)
+        } else {
+          warning(paste("No files found for year", year, "at URL", url))
+        }
+      }
+    }
   }
 
-  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
 
   raster_objs <- lapply(tif_files, terra::rast)
 
-  raster_list = lapply(raster_objs, raster)
+  raster_list <- lapply(raster_objs, raster)
 
-  name_count <- lubridate::year(start_year) - lubridate::year(end_year) + 1
+  if (!is.null(start_year) && !is.null(end_year)) {
+    year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  } else {
+    year_sequence <- year(start_date)
+  }
 
-  name_set <- paste0("population_", "annual_", 1:name_count)
+  name_set <- paste0("population_", year_sequence)
 
   print("Population Raster Downloaded")
 
@@ -577,7 +599,10 @@ geolink_population <- function(time_unit = "annual",
   print("Process Complete!!!")
 
   return(dt)
+
+
 }
+
 
 
 #' Download points of interest from OSM data using open street maps API.
@@ -593,7 +618,7 @@ geolink_population <- function(time_unit = "annual",
 #'
 #' Details for feature category and sub-category can be found here: https://wiki.openstreetmap.org/wiki/Map_features
 #'
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #'\donttest{
@@ -659,7 +684,6 @@ geolink_get_poi <- function(osm_feature_category,
 
 #' Download high resolution electrification access data from HREA
 #'
-#' @param time_unit A character, either "month" or "annual" monthly or annual rainfall aggregates are to be estimated
 #' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
@@ -676,7 +700,7 @@ geolink_get_poi <- function(osm_feature_category,
 #'
 #' Details for the dataset can be found here: https://hrea.isr.umich.edu/
 #'
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #'\donttest{
@@ -687,10 +711,9 @@ geolink_get_poi <- function(osm_feature_category,
 #' }
 #'
 
-geolink_electaccess <- function(time_unit = "annual",
-                                start_date = NULL,
+geolink_electaccess <- function(start_date = NULL,
                                 end_date = NULL,
-                                shp_dt,
+                                shp_dt = NULL,
                                 shp_fn = NULL,
                                 grid_size = 1000,
                                 survey_dt,
@@ -702,15 +725,19 @@ geolink_electaccess <- function(time_unit = "annual",
                                 survey_crs = 4326){
 
 
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
 
+  s_obj <- rstac::stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
-  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
   it_obj <- s_obj %>%
-    stac_search(collections = "hrea",
+
+    rstac::stac_search(collections = "hrea",
                 bbox = sf::st_bbox(shp_dt)) %>%
-    get_request() %>%
-    items_sign(sign_fn = sign_planetary_computer())
+    rstac::get_request() %>%
+    rstac::items_sign(sign_fn = rstac::sign_planetary_computer())
+
 
   url_list <- lapply(1:length(it_obj$features),
                      function(x) {
@@ -722,7 +749,9 @@ geolink_electaccess <- function(time_unit = "annual",
 
   raster_list <- lapply(raster_objs, raster)
 
-  name_set <- paste0("elect_")
+  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+
+  name_set <- paste0("lightscore_", year_sequence)
 
   print("Electrification Access Raster Downloaded")
 
@@ -761,8 +790,7 @@ geolink_electaccess <- function(time_unit = "annual",
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
-#'
+#' @import rstac terra raster osmdata sp sf httr geodata
 #' @examples
 #' \donttest{
 #'
@@ -777,7 +805,7 @@ geolink_electaccess <- function(time_unit = "annual",
 geolink_elevation <- function(shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt = NULL,
+                              survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -801,9 +829,21 @@ geolink_elevation <- function(shp_dt,
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- elevation_3s(lon=lon, lat=lat, path=tempdir())
+  unlink(tempdir(), recursive = TRUE)
+
+  data <- geodata::elevation_3s(lon=lon, lat=lat, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -819,8 +859,6 @@ geolink_elevation <- function(shp_dt,
       print(paste("Raster", i, "projected successfully."))
     }
   }
-
-  name_set <- paste0("elevation_")
 
   print("Elevation Raster Downloaded")
 
@@ -840,7 +878,7 @@ geolink_elevation <- function(shp_dt,
 
   print("Process Complete!!!")
 
-  return(df)}
+  return(dt)}
 
 #' Download high resolution building data from WorldPop
 #'
@@ -863,7 +901,7 @@ geolink_elevation <- function(shp_dt,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
@@ -878,7 +916,7 @@ geolink_elevation <- function(shp_dt,
 
 geolink_buildings <- function(version,
                               iso_code,
-                              shp_dt,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt,
@@ -913,7 +951,17 @@ geolink_buildings <- function(version,
 
 
 
-  tif_files <- list.files(temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub(".*1_([^\\.]+)\\.tif$", "\\1", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -930,7 +978,6 @@ geolink_buildings <- function(version,
     }
   }
 
-  name_set <- paste0("buildings_")
 
   print("Building Raster Downloaded")
 
@@ -978,7 +1025,7 @@ geolink_buildings <- function(version,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
@@ -1085,13 +1132,13 @@ geolink_CMIP6 <- function(var,
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt)
+#' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #' }
 #'
 
@@ -1122,9 +1169,21 @@ geolink_cropland <- function(source = "WorldCover",
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- cropland(source = source, path=tempdir())
+  unlink(tempdir(), recursive = TRUE)
+
+  data <- geodata::cropland(source = source, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -1141,11 +1200,9 @@ geolink_cropland <- function(source = "WorldCover",
     }
   }
 
-  name_set <- paste0("cropland_")
-
   print("WorldCover Raster Downloaded")
 
-  dt <- postdownload_processor(shp_dt = shp_dt,
+  df <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_list,
                                shp_fn = shp_fn,
                                grid_size = grid_size,
@@ -1185,7 +1242,7 @@ geolink_cropland <- function(source = "WorldCover",
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{
@@ -1201,7 +1258,7 @@ geolink_worldclim <- function(var,
                               shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt = NULL,
+                              survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -1224,13 +1281,27 @@ geolink_worldclim <- function(var,
     stop("Provide either shp_dt or shp_fn.")
   }
 
-  data <- worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+  unlink(tempdir(), recursive = TRUE)
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+  data <- geodata::worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+
+  name_set <- c()
+
+  for (file in tif_files) {
+    base_name <- basename(file)
+
+    extracted_string <- sub("\\.tif$", "", base_name)
+
+    name_set <- c(name_set, extracted_string)
+  }
 
   raster_objs <- lapply(tif_files, terra::rast)
 
   raster_list <- lapply(raster_objs, raster)
+
+  epsg_4326 <- CRS("+init=epsg:4326")
 
   for (i in seq_along(raster_list)) {
     projection(raster_list[[i]]) <- epsg_4326
@@ -1241,7 +1312,6 @@ geolink_worldclim <- function(var,
     }
   }
 
-  name_set <- paste0("worldclim_")
 
   print("WorldClim Raster Downloaded")
 
@@ -1263,6 +1333,7 @@ geolink_worldclim <- function(var,
 
   return(dt)}
 
+
 #' Download OpenCellID data
 #'
 #' This function downloads OpenCellID data, which provides information about cell towers and their coverage areas. It allows for further analysis of cellular network coverage in a given area.
@@ -1283,7 +1354,7 @@ geolink_worldclim <- function(var,
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET timeout
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf
+#' @import rstac terra raster osmdata sp sf httr geodata
 #'
 #' @examples
 #' \donttest{

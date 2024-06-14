@@ -1,17 +1,16 @@
 pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, rvest, httr)
 
-geolink_population <- function(time_unit = "annual",
-                               start_year = NULL,
+geolink_population <- function(start_year = NULL,
                                end_year = NULL,
                                iso_code,
                                UN_adjst = NULL,
                                constrained = NULL,
                                bespoke = NULL,
                                version = NULL,
-                               shp_dt,
+                               shp_dt = NULL,
                                shp_fn = NULL,
                                grid_size = 1000,
-                               survey_dt = NULL,
+                               survey_dt,
                                survey_fn = NULL,
                                survey_lat = NULL,
                                survey_lon = NULL,
@@ -19,11 +18,11 @@ geolink_population <- function(time_unit = "annual",
                                extract_fun = "mean",
                                survey_crs = 4326) {
 
+
   if (!is.null(start_year) && !is.null(end_year)) {
     years <- seq(start_year, end_year)
     result_list <- paste0("ppp_", years)
   }
-
 
   if (!is.null(constrained) && constrained == "Y") {
     url1 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code, "/")
@@ -71,12 +70,12 @@ geolink_population <- function(time_unit = "annual",
   raster_list <- lapply(raster_objs, raster)
 
   if (!is.null(start_year) && !is.null(end_year)) {
-    name_count <- lubridate::year(start_year) - lubridate::year(end_year) + 1
+    year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
   } else {
-    name_count <- 1
+    year_sequence <- year(start_date)
   }
 
-  name_set <- paste0("population_", "annual_", 1:name_count)
+  name_set <- paste0("population_", year_sequence)
 
   print("Population Raster Downloaded")
 
@@ -101,8 +100,7 @@ geolink_population <- function(time_unit = "annual",
 }
 
 # Example usage
-df <- geolink_population(time_unit = "annual",
-                         iso_code = "NGA",
+df <- geolink_population(iso_code = "NGA",
                          UN_adjst = "N",
                          constrained = "Y",
                          shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
