@@ -147,7 +147,6 @@ test_that("Error is thrown for invalid date range", {
                regexp = "Invalid time range, start time exceeds end time!")
 })
 
-
 test_that("Error is thrown for date format", {
   expect_error(geolink_chirps(time_unit = "month",
                               start_date = "12-2020-01",
@@ -157,41 +156,6 @@ test_that("Error is thrown for date format", {
                               extract_fun = "mean"),
                regexp = "start_date argument is not a Date, did you specify it in the form as.Date('yyyy-mm-dd')")
 })
-
-
-
-
-
-
-
-
-test_dt <- geolink_chirps(time_unit = "month",
-                          start_date = "2020-01-01",
-                          end_date = "2020-02-01",
-                          shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                          grid_size = 1000,
-                          extract_fun = "mean")
-
-
-
-geolink_chirps(time_unit = "month",
-               start_date = "2020-01-01",
-               end_date = "2020-05-01",
-               survey_dt =  st_as_sf(hhgeo_dt[1:10],
-                                     crs = 4326),
-               buffer_size = 1000,
-               extract_fun = "mean")
-
-
-
-
-geolink_chirps(time_unit = "month",
-               start_date = "12-2020-01",
-               end_date = "2020-12-01",
-               shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-               grid_size = 1000,
-               extract_fun = "mean")
-
 
 
 
