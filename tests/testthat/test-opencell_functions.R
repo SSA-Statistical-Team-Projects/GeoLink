@@ -8,4 +8,6 @@ data("shp_dt")
 #Survey
 data("hhgeo_dt")
 
-geolink_opencellid(shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
+test_dt <- geolink_opencellid(shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG025",],
+                   grid_size = 1000,
+                   extract_fun = "mean")
