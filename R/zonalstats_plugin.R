@@ -232,7 +232,7 @@ compute_zonalstats <- function(shp_dt,
 
     shp_dt <- Reduce(merge, shp_dt)
 
-    shp_dt <- merge(shp_dt, geoid_dt, by = "geoID")
+    shp_dt <- merge(shp_dt, as.data.frame(geoid_dt), by = "geoID")
 
     shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
 
