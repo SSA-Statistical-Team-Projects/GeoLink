@@ -50,38 +50,3 @@ test_that("geolink_buildings  works using a shapefile:", {
 )
 
 
-
-
-
-test_dt <- geolink_buildings(version = "v2.0",
-                  iso_code = "NGA",
-                  survey_dt =  st_as_sf(hhgeo_dt[1:50],
-                                        crs = 4326),
-                  shp_dt = NULL,
-                  buffer_size = 1000)
-
-
-
-
-test_dt <- geolink_buildings(version = "v1.1",
-                             iso_code = "NGA",
-                             survey_dt =  st_as_sf(hhgeo_dt[1:50],
-                                                   crs = 4326),
-                             shp_dt = NULL,
-                             buffer_size = 1000)
-
-
-
-shp_test <- geolink_buildings(version = "v1.1",
-                             iso_code = "NGA",
-                             shp_dt = shp_dt[shp_dt$,])
-
-
-
-surv_test<- geolink_buildings(version = "v1.1",
-                  iso_code = "NGA",
-                  survey_dt =  st_as_sf(hhgeo_dt[1:50],
-                                        crs = 4326),
-                  shp_dt = NULL,
-                  buffer_size = 1000)
-
