@@ -19,6 +19,8 @@ geolink_population <- function(start_year = NULL,
                                survey_crs = 4326) {
 
 
+  unlink(tempdir(), recursive = TRUE)
+
   if (!is.null(start_year) && !is.null(end_year)) {
     years <- seq(start_year, end_year)
     result_list <- paste0("ppp_", years)
@@ -62,6 +64,7 @@ geolink_population <- function(start_year = NULL,
     }
   }
 
+  browser()
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
 
