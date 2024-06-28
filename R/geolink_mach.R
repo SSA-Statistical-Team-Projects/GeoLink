@@ -81,14 +81,14 @@ geolink_chirps <- function(time_unit,
                            survey_crs = 4326) {
 
 
-  start_date <- as.Date(start_date)
-  end_date <- as.Date(end_date)
+  # start_date <- as.Date(start_date)
+  # end_date <- as.Date(end_date)
 
   ## download the data
   if (time_unit == "month") {
 
-    raster_objs <- get_month_chirps(start_date = as.Date(start_date),
-                                    end_date = as.Date(end_date))
+    raster_objs <- get_month_chirps(start_date = start_date,
+                                    end_date = end_date)
 
     name_count <- lubridate::interval(as.Date(start_date),
                                       as.Date(end_date)) %/% months(1) + 1

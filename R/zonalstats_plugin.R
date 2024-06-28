@@ -184,9 +184,11 @@ compute_zonalstats <- function(shp_dt,
   ### reproject shapefile to match raster CRS if they are not the same
   print("Extracting raster/vector data into shapefile")
 
-  raster_crs_proj4 <- projection(raster_objs[[1]], asText = TRUE)
+  raster_crs_proj4 <- projection(raster_list[[1]])
+  print(paste("CRS of raster objects:", raster_crs_proj4))
 
   shp_dt <- st_transform(shp_dt, crs = raster_crs_proj4)
+
 
   shp_dt <-
     mapply(FUN = function(x, n){
@@ -230,7 +232,7 @@ compute_zonalstats <- function(shp_dt,
 
     shp_dt <- Reduce(merge, shp_dt)
 
-    shp_dt <- merge(shp_dt, geoid_dt, by = "geoID")
+    shp_dt <- merge(shp_dt, as.data.frame(geoid_dt), by = "geoID")
 
     shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
 
