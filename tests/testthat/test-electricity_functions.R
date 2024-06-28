@@ -12,8 +12,7 @@ data("hhgeo_dt")
 
 test_that("Electricity output is correct:", {
 
-  suppressWarnings({ test_dt <- geolink_electaccess(time_unit = "annual",
-                                                    start_date = "2020-01-01",
+  suppressWarnings({ test_dt <- geolink_electaccess(start_date = "2020-01-01",
                                                     end_date = "2021-01-01",
                                                     shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],)
 
