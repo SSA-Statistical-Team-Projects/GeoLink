@@ -40,7 +40,7 @@ as.data.table.raster <- function(x,
 }
 
 
-#' This function will crop and then rask rasters to the extent of the shapefile
+#' This function will crop and then mask rasters to the extent of the shapefile
 #'
 #' @param raster_objs a list of rasters (typically the tiles that were read in)
 #' @param dt the shapefile `sf` object
