@@ -738,16 +738,20 @@ geolink_electaccess <- function(start_date = NULL,
 
   raster_objs <- lapply(url_list, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
+  raster_objs <- lapply(raster_objs, raster)
 
-  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  # year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  #
+  # name_set <- paste0("lightscore_", year_sequence)
 
-  name_set <- paste0("lightscore_", year_sequence)
+  #### create raster names
+  name_set <- unlist(lapply(X = raster_objs,
+                            FUN = names))
 
   print("Electrification Access Raster Downloaded")
 
   dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
+                               raster_objs = raster_objs,
                                shp_fn = shp_fn,
                                grid_size = grid_size,
                                survey_dt = survey_dt,
