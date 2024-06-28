@@ -155,7 +155,7 @@ test_that("Error is thrown for invalid date range", {
                                shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                                grid_size = 1000,
                                extract_fun = "mean"),
-                regexp = "start_date argument is not a Date, did you specify it in the form as.Date('yyyy-mm-dd')")
+                regexp = "a date argument you inputted is in the wrong format, it should be ('yyyy-mm-dd')")
  })
 
 
