@@ -12,13 +12,12 @@ data("hhgeo_dt")
 #2- Begin testings the function when using a shapefile and a raster #############
 #################
 
-test_dt <- geolink_population(time_unit= "annual",
-                   start_year=2018,
-                   end_year = 2019,
-                   iso_code = "NGA",
-                   const_UNadj_2020 = "Y",
-                   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                   grid_size = 1000)
+test_dt <- geolink_population(iso_code = "NGA",
+                              UN_adjst = "N",
+                              constrained = "Y",
+                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                              grid_size = 1000,
+                              extract_fun = "mean")
 
 
 geolink_population()
