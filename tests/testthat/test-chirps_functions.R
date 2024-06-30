@@ -135,7 +135,6 @@ test_that("Annual chirps using a survey :", {
 )
 
 
-
 ##Test Error Messages
 test_that("Error is thrown for invalid date range", {
   expect_error(geolink_chirps(time_unit = "month",
@@ -147,15 +146,17 @@ test_that("Error is thrown for invalid date range", {
                regexp = "Invalid time range, start time exceeds end time!")
 })
 
-test_that("Error is thrown for date format", {
-  expect_error(geolink_chirps(time_unit = "month",
-                              start_date = "12-2020-01",
-                              end_date = "2020-12-01",
-                              shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                              grid_size = 1000,
-                              extract_fun = "mean"),
-               regexp = "start_date argument is not a Date, did you specify it in the form as.Date('yyyy-mm-dd')")
-})
+
+
+ test_that("Error is thrown for date format", {
+   expect_error(geolink_chirps(time_unit = "month",
+                               start_date = "12-2020-01",
+                               end_date = "2020-12-01",
+                               shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+                               grid_size = 1000,
+                               extract_fun = "mean"),
+                regexp = "a date argument you inputted is in the wrong format, it should be ('yyyy-mm-dd')")
+ })
 
 
 

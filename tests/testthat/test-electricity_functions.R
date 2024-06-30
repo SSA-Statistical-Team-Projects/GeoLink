@@ -12,10 +12,9 @@ data("hhgeo_dt")
 
 test_that("Electricity output is correct:", {
 
-  suppressWarnings({ test_dt <- geolink_electaccess(time_unit = "annual",
-                                                    start_date = "2020-01-01",
+  suppressWarnings({ test_dt <- geolink_electaccess(start_date = "2020-01-01",
                                                     end_date = "2021-01-01",
-                                                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],)
+                                                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 
 
   })
@@ -35,17 +34,6 @@ test_that("Electricity output is correct:", {
 
 
 
-test_dt <- geolink_electaccess(time_unit = "annual",
-                               start_date = "2020-01-01",
-                               end_date = "2022-01-01",
-                               survey_dt= st_as_sf(hhgeo_dt[1:50],
-                                       crs = 4326),
-                               buffer_size = 1000,
-                               extract_fun = "mean")
-
-plot(shp_dt[shp_dt$ADM1_EN == "Abia",]$geometry)
-plot(test_dt$geometry)
-summary(test_dt$elect_)
 
 
 

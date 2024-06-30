@@ -39,9 +39,9 @@ chirpname_monthly <- function(start_date,
   )
 
   #### create list of query times from start time to end time
-  dt <- data.table(pull_date = seq(start_date,
-    end_date,
-    by = repo_interval
+  dt <- data.table(pull_date = seq(as.Date(start_date),
+                                   as.Date(end_date),
+                                   by = repo_interval
   ))
 
   parse_list <- c("filename_tag", "year", "month")
@@ -64,19 +64,42 @@ chirpname_monthly <- function(start_date,
 }
 
 
+ambiguous_date_check <- function(date_chr){
+
+  tryCatch({
+
+    date_check <- as.Date(date_chr, format = "%Y-%m-%d")
+
+    ## check if the parsing is successful
+    if (is.na(date_check)){
+
+      stop("Date format error")
+
+    }
+
+  }, error = function(e){
+
+    stop("a date argument you inputted is in the wrong format, it should be ('yyyy-mm-dd')")
+
+  })
+
+  return(date_chr)
+}
+
 check_valid_month <- function(start_date,
                               end_date) {
-  ### first make sure start_date and end_date are dates
-  if (lubridate::is.Date(start_date) == FALSE) {
-    stop("start_date argument is not a Date, did you specify it in the form as.Date('yyyy-mm-dd')")
+
+
+
+  ambiguous_date_check(start_date)
+  ambiguous_date_check(end_date)
+
+
+  if (start_date > end_date) {
+
+    stop("Invalid time range, start time exceeds end time!")
+
   }
-
-  if (lubridate::is.Date(end_date) == FALSE) {
-    stop("end_date argument is not a Date, did you specify it in the form as.Date('yyyy-mm-dd')")
-  }
-
-
-  if (start_date > end_date) stop("Invalid time range, start time exceeds end time!")
 
   ### put together the list of year-months to be pulled
   start_month <- lubridate::format_ISO8601(as.Date(start_date), precision = "ym")
@@ -89,6 +112,7 @@ check_valid_month <- function(start_date,
     start_time = start_month,
     end_time = end_month
   ))
+
 }
 
 

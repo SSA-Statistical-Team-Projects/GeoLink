@@ -81,14 +81,14 @@ geolink_chirps <- function(time_unit,
                            survey_crs = 4326) {
 
 
-  start_date <- as.Date(start_date)
-  end_date <- as.Date(end_date)
+  # start_date <- as.Date(start_date)
+  # end_date <- as.Date(end_date)
 
   ## download the data
   if (time_unit == "month") {
 
-    raster_objs <- get_month_chirps(start_date = as.Date(start_date),
-                                    end_date = as.Date(end_date))
+    raster_objs <- get_month_chirps(start_date = start_date,
+                                    end_date = end_date)
 
     name_count <- lubridate::interval(as.Date(start_date),
                                       as.Date(end_date)) %/% months(1) + 1
@@ -738,16 +738,20 @@ geolink_electaccess <- function(start_date = NULL,
 
   raster_objs <- lapply(url_list, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
+  raster_objs <- lapply(raster_objs, raster)
 
-  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  # year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  #
+  # name_set <- paste0("lightscore_", year_sequence)
 
-  name_set <- paste0("lightscore_", year_sequence)
+  #### create raster names
+  name_set <- unlist(lapply(X = raster_objs,
+                            FUN = names))
 
   print("Electrification Access Raster Downloaded")
 
   dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
+                               raster_objs = raster_objs,
                                shp_fn = shp_fn,
                                grid_size = grid_size,
                                survey_dt = survey_dt,

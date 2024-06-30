@@ -11,7 +11,7 @@ library(GeoLink)
 
 
 #Create test
-usethis::use_test("chirps_functions") # 1 Fail
+usethis::use_test("chirps_functions") #1 Fail Date format error
 usethis::use_test("postdownload_processor") #Working
 usethis::use_test("landcover_functions") # Test in 002
 usethis::use_test("population_functions") #Not working
@@ -19,5 +19,10 @@ usethis::use_test("electricity_functions") #Try to understand output
 usethis::use_test("opencell_functions") # Not working
 usethis::use_test("worldpop_functions") #Not working *
 
-
 test_check("GeoLink")
+
+
+covr::report()
+
+
+
