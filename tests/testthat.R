@@ -11,17 +11,27 @@ library(GeoLink)
 
 
 #Create test
-usethis::use_test("chirps_functions") #1 Fail Date format error
-usethis::use_test("postdownload_processor") #Working
-usethis::use_test("landcover_functions") # Test in 002
+
+
+#Done
+usethis::use_test("chirps_functions") #Done
+usethis::use_test("postdownload_processor") #Done
+
+#Fixing housekeeping
+usethis::use_test("electricity_functions") #Fixing
+
+#Not working or error
+usethis::use_test("ntl_functions") # Not working
 usethis::use_test("population_functions") #Not working
-usethis::use_test("electricity_functions") #Try to understand output
 usethis::use_test("opencell_functions") # Not working
-usethis::use_test("worldpop_functions") #Not working *
+usethis::use_test("elevation_functions") #Does not read rasters properly
+usethis::use_test("cropland_function") # Not working , same issue as elevation
+
+#Not working test in 002
+usethis::use_test("landcover_functions") # Test in 002
+usethis::use_test("building_functions") #Test in 002
 
 test_check("GeoLink")
-
-
 covr::report()
 
 

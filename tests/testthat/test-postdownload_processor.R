@@ -105,7 +105,7 @@ test_that("It returns the correct object structure using a survey and a raster l
   #Write expectations from the results sf object
 
   #Expect the nameset to work properly
-  expect_equal(names(result_sf)[ncol(result_sf) - 1], "nga_chirps_2")
+  expect_equal(names(result_sf)[ncol(result_sf) - 1], "nga_chirps_3")
 
   #SF object
   expect_s3_class(result_sf, "sf")
