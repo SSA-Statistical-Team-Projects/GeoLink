@@ -47,7 +47,7 @@
 #' \donttest{
 #'
 #' # Example usage
-#'    run_geolink(
+#'    df = run_geolink(
 #'      func_name = "geolink_chirps",
 #'      time_unit = "month",
 #'      start_date = "2020-01-01",
@@ -58,7 +58,7 @@
 #'      extract_fun = "mean")
 #'
 #'
-#'      run_geolink(
+#'      df = run_geolink(
 #'      func_name = "geolink_electaccess"
 #'      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
