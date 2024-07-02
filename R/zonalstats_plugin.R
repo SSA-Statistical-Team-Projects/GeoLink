@@ -189,8 +189,6 @@ compute_zonalstats <- function(shp_dt,
 
   shp_dt <- st_transform(shp_dt, crs = raster_crs_proj4)
 
-  browser()
-
   shp_dt <-
     mapply(FUN = function(x, n){
       ### first ensure raster and shapefile have the same crs

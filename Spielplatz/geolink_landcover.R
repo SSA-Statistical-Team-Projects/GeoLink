@@ -21,11 +21,12 @@ geolink_landcover <- function(time_unit = "annual",
                        return(url)
                      })
 
+
   raster_objs <- lapply(url_list, terra::rast)
 
   raster_list <- lapply(raster_objs, raster)
 
-  raster_list <- lapply(seq_along(raster_objs), function(i) {
+  raster_list <- lapply(seq_along(raster_list), function(i) {
     setNames(raster_objs[[i]], as.character(i))
   })
 
@@ -41,7 +42,7 @@ geolink_landcover <- function(time_unit = "annual",
 
   # Apply the summarizing function to each raster and combine results
   for (i in seq_along(raster_list)) {
-    print(paste("Processing raster for year:", i))
+    print(paste("Processing raster:", i))
 
     # Extract values from raster that intersect with shapefile
     extracted_values <- exact_extract(raster_list[[i]], shp_dt, coverage_area = TRUE)
@@ -69,12 +70,10 @@ geolink_landcover <- function(time_unit = "annual",
 
 
 
-
-
 df <- geolink_landcover(time_unit,
                       start_date = "2020-01-01",
                       end_date = "2020-03-01",
-                      shp_dt = shp_dt)
+                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 
 
 

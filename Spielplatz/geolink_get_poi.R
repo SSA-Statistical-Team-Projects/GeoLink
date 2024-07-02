@@ -19,7 +19,7 @@ geolink_get_poi <- function(osm_feature_category,
                           metric_crs = FALSE,
                           osm_crs = 4326)
 
-  datapull <- opq(c(bbox = bbox)) %>%
+  datapull <- opq(c(bbox = bbox, timeout = 7200)) %>%
     add_osm_feature(osm_feature_category, osm_feature_subcategory)
 
   features <- osmdata_sf(datapull)
@@ -52,5 +52,5 @@ geolink_get_poi <- function(osm_feature_category,
 
 df <- geolink_get_poi(osm_feature_category = "building",
                   osm_feature_subcategory ="farm",
-                  shp_dt = shp_dt)
+                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 

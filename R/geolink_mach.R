@@ -393,40 +393,49 @@ geolink_landcover <- function(time_unit = "annual",
                        return(url)
                      })
 
+
   raster_objs <- lapply(url_list, terra::rast)
 
   raster_list <- lapply(raster_objs, raster)
 
-  raster_list <- lapply(seq_along(raster_objs), function(i) {
+  raster_list <- lapply(seq_along(raster_list), function(i) {
     setNames(raster_objs[[i]], as.character(i))
   })
 
+  # Define class names based on the given unique values and corresponding categories
   class_names <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops", "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
 
+  # Define class names and values based on the given unique values and corresponding categories
   class_values <- c(No_Data = 0, Water = 1, Trees = 2, Flooded_Vegetation = 4,
                     Crops = 5, Built_Area = 7, Bare_Ground = 8, Snow_Ice = 9, Clouds = 10, Rangeland = 11)
-  #return classes and values without hardcoding them
-  #geos package
 
+  # Initialize a list to store proportions for each class
   proportions_list <- list()
 
+  # Apply the summarizing function to each raster and combine results
   for (i in seq_along(raster_list)) {
-    print(paste("Processing raster for year:", i))
+    print(paste("Processing raster:", i))
 
+    # Extract values from raster that intersect with shapefile
     extracted_values <- exact_extract(raster_list[[i]], shp_dt, coverage_area = TRUE)
 
+    # Summarize the extracted values into proportions for each class
     class_proportions <- lapply(class_values, function(class_val) {
       class_proportion <- sum(extracted_values$value == class_val, na.rm = TRUE) / length(extracted_values$value)
       return(class_proportion)
     })
 
+    # Append the proportions for the current raster to the list
     proportions_list[[i]] <- class_proportions
   }
 
+  # Combine the proportions for all rasters into a data frame
   proportions_df <- do.call(rbind, proportions_list)
 
+  # Set column names to class names
   colnames(proportions_df) <- names(class_values)
 
+  # Return the proportions table along with other information
   return(proportions_df)
 }
 
@@ -643,7 +652,7 @@ geolink_get_poi <- function(osm_feature_category,
                             metric_crs = FALSE,
                             osm_crs = 4326)
 
-  datapull <- opq(c(bbox = bbox)) %>%
+  datapull <- opq(c(bbox = bbox, timeout = 7200)) %>%
     add_osm_feature(osm_feature_category, osm_feature_subcategory)
 
   features <- osmdata_sf(datapull)
@@ -1351,7 +1360,114 @@ geolink_worldclim <- function(var,
 #'
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for analyzing the cell tower data.
+#' @param grid_size_meters A numeric, the grid size to be used in meters for analyzing the cell tower data. The maximum possible is 2000 meters.
+#' @param key A character, the API key created in when signing up to Opencellid profile.
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @importFrom terra rast
+#' @importFrom httr GET timeout
+#' @import rstac terra raster osmdata sp sf httr geodata data.table
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage
+#' df <- geolink_opencellid(shp_dt = shp_dt)
+#' }
+#'
+
+
+# Function to read shapefile and call OpenCellID API
+geolink_opencellid <- function(shp_dt,
+                               shp_fn = NULL,
+                               grid_size_meters = 1000,
+                               key = "pk.b6cb635812d221e898b979b1a6440b22") {
+
+  max_attempts <- 3
+
+  call_opencellid_api <- function(latmin, lonmin, latmax, lonmax, temp_file, attempt = 1) {
+    key <- key
+    url <- paste0("http://opencellid.org/cell/getInArea?key=", key, "&BBOX=",
+                  latmin, ",", lonmin, ",", latmax, ",", lonmax, "&format=csv")
+    timeout_seconds <- 7200
+    response <- GET(url, timeout(timeout_seconds))
+
+    if (status_code(response) == 200) {
+      content <- content(response, "text")
+      # Open file in append mode and write content
+      con <- file(temp_file, "a")  # "a" for append mode
+      writeLines(content, con)
+      close(con)  # Close the file connection
+      print(paste("Data downloaded successfully for BBOX:", latmin, lonmin, latmax, lonmax))
+    } else {
+      if (attempt < max_attempts) {
+        Sys.sleep(5)  # Wait for 5 seconds before retrying
+        print(paste("Retrying API call for BBOX:", latmin, lonmin, latmax, lonmax))
+        recall <- Recall(latmin, lonmin, latmax, lonmax, temp_file, attempt + 1)
+        return(recall)
+      } else {
+        print(paste("Failed to download data for BBOX:", latmin, lonmin, latmax, lonmax))
+      }
+    }
+  }
+
+  # Ensure the CRS is defined
+  if (is.na(st_crs(shp_dt))) {
+    st_crs(shp_dt) <- 4326  # Assign a default CRS (WGS 84) if none is defined
+  }
+
+  # Transform the shapefile to CRS 4326 if it is not already in that CRS
+  if (st_crs(shp_dt)$epsg != 4326) {
+    shp_dt <- st_transform(shp_dt, crs = 4326)
+  }
+
+  # Get the bounding box in the target CRS coordinates
+  bbox <- st_bbox(shp_dt)
+
+  # Convert grid size from meters to degrees (approximation)
+  grid_size_lat_degrees <- grid_size_meters / 111320  # Latitude degrees (approx.)
+
+  # Initialize temp file for saving API responses
+  temp_file <- file.path(tempdir(), "data.csv")
+  if (file.exists(temp_file)) file.remove(temp_file)  # Remove if it exists
+
+  # Loop through each grid cell and call the API
+  latmin <- bbox["ymin"]
+  while (latmin < bbox["ymax"]) {
+    lonmin <- bbox["xmin"]
+    while (lonmin < bbox["xmax"]) {
+      latmax <- latmin + grid_size_lat_degrees
+      if (latmax > bbox["ymax"]) latmax <- bbox["ymax"]
+
+      # Calculate longitude degree size based on the latitude
+      grid_size_lon_degrees <- grid_size_meters / (111320 * cos(latmin * pi / 180))
+      lonmax <- lonmin + grid_size_lon_degrees
+      if (lonmax > bbox["xmax"]) lonmax <- bbox["xmax"]
+
+      # Call the API for the current grid cell
+      call_opencellid_api(latmin, lonmin, latmax, lonmax, temp_file)
+
+      lonmin <- lonmax
+    }
+    latmin <- latmax
+  }
+
+  # Read the CSV file into a data.table
+  dt <- fread(temp_file)
+
+  return(dt)
+}
+
+#' Download Terraclimate data
+#'
+#' This function downloads Terraclimate data for a specific variable and year. It allows for further analysis of climate patterns in a given area.
+#'
+#' @param var A character, the variable of interest (e.g., "temperature", "precipitation").
+#' @param year A numeric, the year for which data is to be downloaded.
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate data.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
@@ -1364,77 +1480,118 @@ geolink_worldclim <- function(var,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom terra rast
-#' @importFrom httr GET timeout
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @importFrom httr GET http_type write_disk
+#' @import rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, httr, ncdf4, rgdal
 #'
 #' @examples
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_opencellid(shp_dt = shp_dt)
+#' df <- geolink_terraclimate(var ="tmin", year = 2017, shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #' }
 #'
 
+geolink_terraclimate <- function(var,
+                                 year,
+                                 shp_dt = NULL,
+                                 shp_fn = NULL,
+                                 grid_size = 1000,
+                                 survey_dt,
+                                 survey_fn = NULL,
+                                 survey_lat = NULL,
+                                 survey_lon = NULL,
+                                 buffer_size = NULL,
+                                 extract_fun = "mean",
+                                 survey_crs = 4326) {
 
-geolink_opencellid <- function(shp_dt,
-                               shp_fn = NULL,
-                               grid_size = 1000,
-                               survey_dt,
-                               survey_fn = NULL,
-                               survey_lat = NULL,
-                               survey_lon = NULL,
-                               buffer_size = NULL,
-                               extract_fun = "mean",
-                               survey_crs = 4326){
+  unlink(tempdir(), recursive = TRUE)
 
+  # Generate URL
+  url <- paste0("http://thredds.northwestknowledge.net:8080/thredds/fileServer/TERRACLIMATE_ALL/data/TerraClimate_", var, "_", year, ".nc")
 
-  url <- "https://datacatalogfiles.worldbank.org/ddh-published/0038043/DR0046250/opencellid_global_1km_int.tif?versionId=2023-01-18T19:13:42.1710620Z"
+  # Extract the filename from the URL
+  filename <- basename(url)
 
-  destination <- file.path(tempdir(), "opencellid_global_1km_int.tif")
+  # Create the destination path
+  destination_dir <- tempdir()
+  destination <- file.path(destination_dir, filename)
 
-  timeout_seconds <- 7200
-
-  response <- GET(url, timeout(timeout_seconds)) ##check to see if response is tiff?
-
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
-
-  raster_objs <- lapply(tif_files, terra::rast)
-
-  raster_list <- lapply(raster_objs, raster)
-
-  epsg_4326 <- "+init=EPSG:4326"
-
-  for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
-    }
+  # Ensure the temporary directory exists
+  if (!dir.exists(destination_dir)) {
+    dir.create(destination_dir, recursive = TRUE)
   }
 
-  name_set <- paste0("opencellid_")
+  # Set the timeout
+  timeout_seconds <- 240
 
-  print("Opencellid Raster Downloaded")
+  # Print the URL for debugging purposes
+  print(paste("URL:", url))
+
+  # Perform the GET request
+  response <- try(GET(url, timeout(timeout_seconds)), silent = TRUE)
+
+  # Check if the GET request was successful
+  if (inherits(response, "try-error")) {
+    print("Error performing the GET request.")
+  } else if (http_status(response)$category == "Success") {
+    # Write the content to a file if the status code is 200
+    tryCatch({
+      writeBin(content(response, "raw"), destination)
+      print("File downloaded successfully.")
+      print(paste("File saved to:", destination))
+    }, error = function(e) {
+      print(paste("Error writing the file:", e$message))
+    })
 
 
-  dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size,
-                               survey_dt = survey_dt,
-                               survey_fn = survey_fn,
-                               survey_lat = survey_lat,
-                               survey_lon = survey_lon,
-                               extract_fun = extract_fun,
-                               buffer_size = buffer_size,
-                               survey_crs = survey_crs,
-                               name_set = name_set)
+    raster_stack <- stack(destination)
 
-  print("Process Complete!!!")
+    # Check CRS and set it if necessary
+    if (is.na(crs(raster_stack))) {
+      crs(raster_stack) <- CRS("+proj=longlat +datum=WGS84 +no_defs")
+    }
 
-  return(dt)
+    raster_list <- lapply(1:nlayers(raster_stack), function(i) raster_stack[[i]])
 
+    num_layers <- nlayers(raster_stack)
+
+    print(raster_list)
+
+    months <- month.abb
+    print(months)
+
+
+    name_set <- paste0(var, "_", months)
+
+    # Set names for the raster layers
+    names(raster_list) <- name_set
+    print(paste("Names set for raster layers:", paste(names(raster_list), collapse = ", ")))
+
+
+
+    print("Terraclimate Raster Downloaded")
+
+
+
+    dt <- postdownload_processor(shp_dt = shp_dt,
+                                 raster_objs = raster_list,
+                                 shp_fn = shp_fn,
+                                 grid_size = grid_size,
+                                 survey_dt = survey_dt,
+                                 survey_fn = survey_fn,
+                                 survey_lat = survey_lat,
+                                 survey_lon = survey_lon,
+                                 extract_fun = extract_fun,
+                                 buffer_size = buffer_size,
+                                 survey_crs = survey_crs,
+                                 name_set = name_set)
+
+    print("Process Complete!!!")
+
+    return(dt)
+  } else {
+    # Print the error status
+    print(paste("Error downloading the file. Status code:", http_status(response)$status_code))
+    return(NULL)
+  }
 }
-
-
