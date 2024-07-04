@@ -13,13 +13,14 @@ data("hhgeo_dt")
 #################
 
 test_dt <- geolink_population(iso_code = "NGA",
-                              UN_adjst = "N",
+                              start_year = 2018,
+                              end_year = 2019,
+                              UN_adjst = "Y",
                               constrained = "Y",
                               shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                              grid_size = 1000,
+                              #grid_size = 1000,
                               extract_fun = "mean")
 
 
-geolink_population()
 
 

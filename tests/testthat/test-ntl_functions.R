@@ -1,19 +1,29 @@
 ###############################################################################
-###Test for mach functions: chirps and ntl
+###Test for mach functions: NTL
 
 ################################################################################
-#1- Read in the data
-################################################################################
-#Shapefile
-data("shp_dt")
-#Survey
-data("hhgeo_dt")
 ################################################################################
 #2- Begin testingss the function when using a shapefile and a raster #############
 ################################################################################
 
+
+
+
+test_dt<- geolink_ntl(time_unit = "annual",
+                               start_date = "2020-01-01",
+                              end_date = "2021-01-01",
+                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                            # version = "v21",
+                             indicator = "avg_rade9h",
+                             grid_size = 1000,
+                            # survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
+                             extract_fun = "mean")
+
+
+
+
 #Test- A.
-test_that("Monthly chirps works using a shapefile:", {
+test_that("Annual NTL works using a shapefile:", {
 
   suppressWarnings({ test_dt <- geolink_chirps(time_unit = "month",
                                                start_date = "2020-01-01",
@@ -145,8 +155,6 @@ test_that("Error is thrown for invalid date range", {
                               extract_fun = "mean"),
                regexp = "Invalid time range, start time exceeds end time!")
 })
-
-
 
 
 
