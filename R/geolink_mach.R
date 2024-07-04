@@ -837,7 +837,7 @@ geolink_elevation <- function(shp_dt,
 
   data <- geodata::elevation_3s(lon=lon, lat=lat, path=tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
   name_set <- c()
 
@@ -971,7 +971,7 @@ geolink_buildings <- function(version,
 
 
 
-  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
   name_set <- c()
 
@@ -1093,7 +1093,7 @@ geolink_CMIP6 <- function(var,
 
   data <- cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
   raster_objs <- lapply(tif_files, terra::rast)
 
@@ -1193,7 +1193,7 @@ geolink_cropland <- function(source = "WorldCover",
 
   data <- geodata::cropland(source = source, path=tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
   name_set <- c()
 
