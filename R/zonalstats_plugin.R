@@ -184,8 +184,8 @@ compute_zonalstats <- function(shp_dt,
   ### reproject shapefile to match raster CRS if they are not the same
   print("Extracting raster/vector data into shapefile")
 
-  raster_crs_proj4 <- projection(raster_objs[[1]])
-  print(paste("CRS of raster objects:", raster_crs_proj4))
+  raster_crs_proj4 <- terra::crs(raster_objs[[1]])
+  print(paste("CRS of raster objects:", st_crs(raster_objs[[1]])$input))
 
   shp_dt <- st_transform(shp_dt, crs = raster_crs_proj4)
 

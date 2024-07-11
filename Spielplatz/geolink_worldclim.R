@@ -1,7 +1,9 @@
 pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
 
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, units)
 
-geolink_worldclim <- function(var,
+geolink_worldclim <- function(country_name = "",
+                              var,
                               res,
                               shp_dt,
                               shp_fn = NULL,
@@ -14,24 +16,17 @@ geolink_worldclim <- function(var,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
+
+  if(!is.null(country_name)){
+    print(paste("Checking data for", country_name))
+  } else{
+    stop("Please input a valid country Name or ISO3 Code")
   }
 
   unlink(tempdir(), recursive = TRUE)
 
-  data <- geodata::worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+
+  data <- geodata::worldclim_country(country = country_name, version = "2.1", var = var, res = res, path = tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
@@ -45,16 +40,15 @@ geolink_worldclim <- function(var,
     name_set <- c(name_set, extracted_string)
   }
 
-  raster_objs <- lapply(tif_files, terra::rast)
+  raster_list <- lapply(tif_files, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
 
-  epsg_4326 <- CRS("+init=epsg:4326")
+  epsg_4326 <- "+init=EPSG:4326"
 
   for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
+    terra::crs(raster_list[[i]]) <- epsg_4326
+    if (is.null(terra::crs(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", st_crs(raster_list[[1]])$input))
     } else {
       print(paste("Raster", i, "projected successfully."))
     }
@@ -82,4 +76,6 @@ geolink_worldclim <- function(var,
   return(dt)}
 
 
-df <- geolink_worldclim(var='tmax', res=2.5, shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+df <- geolink_worldclim(country_name ="Nigeria", var='tmin', res=2.5,  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+

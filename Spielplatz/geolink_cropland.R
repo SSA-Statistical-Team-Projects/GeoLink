@@ -1,4 +1,4 @@
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, units)
 
 geolink_cropland <- function(source = "WorldCover",
                           shp_dt,
@@ -11,52 +11,22 @@ geolink_cropland <- function(source = "WorldCover",
                           buffer_size = NULL,
                           extract_fun = "mean",
                           survey_crs = 4326){
-
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
-  }
-
   unlink(tempdir(), recursive = TRUE)
 
-  data <- geodata::cropland(source = source, path=tempdir())
+  raster_objs <- geodata::cropland(source = source, path = tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
-
-  name_set <- c()
-
-  for (file in tif_files) {
-    base_name <- basename(file)
-
-    extracted_string <- sub("\\.tif$", "", base_name)
-
-    name_set <- c(name_set, extracted_string)
-  }
-
-  raster_objs <- lapply(tif_files, terra::rast)
-
-  raster_list <- lapply(raster_objs, raster)
+  name_set <- "cropland"
 
   epsg_4326 <- "+init=EPSG:4326"
 
-  for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
+  terra::crs(raster_objs) <- epsg_4326
+    if (is.null(crs(raster_objs))) {
+      print("Projection failed for raster")
     } else {
-      print(paste("Raster", i, "projected successfully."))
+      print(paste("Raster projected successfully."))
     }
-  }
+
+  raster_list <- as.list(raster_objs)
 
   print("WorldCover Raster Downloaded")
 
@@ -81,6 +51,12 @@ geolink_cropland <- function(source = "WorldCover",
 
 
 df <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+test_dt <- geolink_cropland( survey_dt =  st_as_sf(hhgeo_dt[1:10,],
+                                                   crs = 4326),
+                             buffer_size = 1000)
+test_dt <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
 
 
 

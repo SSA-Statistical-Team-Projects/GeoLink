@@ -394,9 +394,9 @@ geolink_landcover <- function(time_unit = "annual",
                      })
 
 
-  raster_objs <- lapply(url_list, terra::rast)
+  raster_list <- lapply(url_list, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
+
 
   raster_list <- lapply(seq_along(raster_list), function(i) {
     setNames(raster_objs[[i]], as.character(i))
@@ -780,6 +780,7 @@ geolink_electaccess <- function(start_date = NULL,
 #'
 #' This function downloads high-resolution elevation data based on the coordinates provided by either a shapefile or a file path to a shapefile. It can also incorporate survey data for further analysis. The elevation data is downloaded using the `elevation_3s` function and post-processed using the `postdownload_processor` function.
 #'
+#' @param country_name A character value, name of the country or ISO3 code.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
 #' @param grid_size A numeric, the grid size to be used in meters for analyzing the elevation data.
@@ -806,7 +807,8 @@ geolink_electaccess <- function(start_date = NULL,
 #' }
 #'
 
-geolink_elevation <- function(shp_dt,
+geolink_elevation <- function(country_name = "",
+                              shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt,
@@ -817,25 +819,15 @@ geolink_elevation <- function(shp_dt,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
+  if(!is.null(country_name)){
+    print(paste("Checking data for", country_name))
+  } else{
+    stop("Please input a valid country Name or ISO3 Code")
   }
 
   unlink(tempdir(), recursive = TRUE)
 
-  data <- geodata::elevation_3s(lon=lon, lat=lat, path=tempdir())
+  data <- geodata::elevation_30s(country = country_name, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
@@ -849,16 +841,14 @@ geolink_elevation <- function(shp_dt,
     name_set <- c(name_set, extracted_string)
   }
 
-  raster_objs <- lapply(tif_files, terra::rast)
-
-  raster_list <- lapply(raster_objs, raster)
+  raster_list <- lapply(tif_files, terra::rast)
 
   epsg_4326 <- "+init=EPSG:4326"
 
   for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
+    terra::crs(raster_list[[i]]) <- epsg_4326
+    if (is.null(terra::crs(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
     } else {
       print(paste("Raster", i, "projected successfully."))
     }
@@ -882,7 +872,9 @@ geolink_elevation <- function(shp_dt,
 
   print("Process Complete!!!")
 
-  return(dt)}
+  return(dt)
+}
+
 
 #' Download high resolution building data from WorldPop
 #'
@@ -983,16 +975,14 @@ geolink_buildings <- function(version,
     name_set <- c(name_set, extracted_string)
   }
 
-  raster_objs <- lapply(tif_files, terra::rast)
-
-  raster_list <- lapply(raster_objs, raster)
+  raster_list <- lapply(tif_files, terra::rast)
 
   epsg_4326 <- "+init=EPSG:4326"
 
   for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
+    terra::crs(raster_list[[i]]) <- epsg_4326
+    if (is.null(terra::crs(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
     } else {
       print(paste("Raster", i, "projected successfully."))
     }
@@ -1095,14 +1085,14 @@ geolink_CMIP6 <- function(var,
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
 
-  raster_objs <- lapply(tif_files, terra::rast)
+  raster_list <- lapply(tif_files, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
+  epsg_4326 <- "+init=EPSG:4326"
 
   for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
+    terra::crs(raster_list[[i]]) <- epsg_4326
+    if (is.null(terra::crs(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
     } else {
       print(paste("Raster", i, "projected successfully."))
     }
@@ -1161,7 +1151,6 @@ geolink_CMIP6 <- function(var,
 #' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #' }
 #'
-
 geolink_cropland <- function(source = "WorldCover",
                              shp_dt,
                              shp_fn = NULL,
@@ -1173,52 +1162,22 @@ geolink_cropland <- function(source = "WorldCover",
                              buffer_size = NULL,
                              extract_fun = "mean",
                              survey_crs = 4326){
-
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
-  }
-
   unlink(tempdir(), recursive = TRUE)
 
-  data <- geodata::cropland(source = source, path=tempdir())
+  raster_objs <- geodata::cropland(source = source, path = tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
-
-  name_set <- c()
-
-  for (file in tif_files) {
-    base_name <- basename(file)
-
-    extracted_string <- sub("\\.tif$", "", base_name)
-
-    name_set <- c(name_set, extracted_string)
-  }
-
-  raster_objs <- lapply(tif_files, terra::rast)
-
-  raster_list <- lapply(raster_objs, raster)
+  name_set <- "cropland"
 
   epsg_4326 <- "+init=EPSG:4326"
 
-  for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
-    }
+  terra::crs(raster_objs) <- epsg_4326
+  if (is.null(crs(raster_objs))) {
+    print("Projection failed for raster")
+  } else {
+    print(paste("Raster projected successfully."))
   }
+
+  raster_list <- as.list(raster_objs)
 
   print("WorldCover Raster Downloaded")
 
