@@ -574,15 +574,15 @@ geolink_population <- function(start_year = NULL,
 
   raster_objs <- lapply(tif_files, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
+  # raster_objs <- lapply(raster_objs, raster)
 
-  if (!is.null(start_year) && !is.null(end_year)) {
-    year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
-  } else {
-    year_sequence <- year(start_date)
-  }
+  # if (!is.null(start_year) && !is.null(end_year)) {
+  #   year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  # } else {
+  #   year_sequence <- year(start_date)
+  # }
 
-  name_set <- paste0("population_", year_sequence)
+  name_set <- paste0("population_", 1:length(raster_objs))
 
   print("Population Raster Downloaded")
 
