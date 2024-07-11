@@ -24,7 +24,7 @@ usethis::use_test("electricity_functions") #Fixing
 usethis::use_test("ntl_functions") # Not working
 usethis::use_test("population_functions") #Not working
 usethis::use_test("opencell_functions") # Not working
-usethis::use_test("elevation_functions") #Does not read rasters properly
+usethis::use_test("elevation_functions") #Does not work with survey
 usethis::use_test("cropland_function") # Not working , same issue as elevation
 
 #Not working test in 002

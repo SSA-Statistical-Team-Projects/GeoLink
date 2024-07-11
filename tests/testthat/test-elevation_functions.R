@@ -30,9 +30,6 @@ test_that("Elevation Function works using a shapefile:", {
 
 
 
-
-geolink_elevation()
-
 #Test- B
 test_that("Elevation Function works using a survey :", {
 
