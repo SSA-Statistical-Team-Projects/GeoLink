@@ -1,8 +1,6 @@
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
-
 pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, units)
 
-geolink_worldclim <- function(country_name = "",
+geolink_worldclim <- function(iso_code = "",
                               var,
                               res,
                               shp_dt,
@@ -17,18 +15,21 @@ geolink_worldclim <- function(country_name = "",
                               survey_crs = 4326){
 
 
-  if(!is.null(country_name)){
-    print(paste("Checking data for", country_name))
+  if(!is.null(iso_code)){
+    print(paste("Checking data for", iso_code))
   } else{
     stop("Please input a valid country Name or ISO3 Code")
   }
 
   unlink(tempdir(), recursive = TRUE)
 
+  destination_dir <- tempdir()
 
-  data <- geodata::worldclim_country(country = country_name, version = "2.1", var = var, res = res, path = tempdir())
+  data <- geodata::worldclim_country(country = iso_code, version = "2.1",
+                                     var = var, res = res, path = tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE,
+                          recursive = TRUE)
 
   name_set <- c()
 
@@ -45,14 +46,14 @@ geolink_worldclim <- function(country_name = "",
 
   epsg_4326 <- "+init=EPSG:4326"
 
-  for (i in seq_along(raster_list)) {
-    terra::crs(raster_list[[i]]) <- epsg_4326
-    if (is.null(terra::crs(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", st_crs(raster_list[[1]])$input))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
-    }
-  }
+  # for (i in seq_along(raster_list)) {
+  #   terra::crs(raster_list[[i]]) <- epsg_4326
+  #   if (is.null(terra::crs(raster_list[[i]]))) {
+  #     print(paste("Projection failed for raster", st_crs(raster_list[[1]])$input))
+  #   } else {
+  #     print(paste("Raster", i, "projected successfully."))
+  #   }
+  # }
 
 
   print("WorldClim Raster Downloaded")
@@ -77,5 +78,6 @@ geolink_worldclim <- function(country_name = "",
 
 
 
-df <- geolink_worldclim(country_name ="Nigeria", var='tmin', res=2.5,  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+df <- geolink_worldclim(iso_code ="NGA", var='tmin', res=2.5,
+                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 

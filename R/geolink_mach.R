@@ -780,7 +780,7 @@ geolink_electaccess <- function(start_date = NULL,
 #'
 #' This function downloads high-resolution elevation data based on the coordinates provided by either a shapefile or a file path to a shapefile. It can also incorporate survey data for further analysis. The elevation data is downloaded using the `elevation_3s` function and post-processed using the `postdownload_processor` function.
 #'
-#' @param country_name A character value, name of the country or ISO3 code.
+#' @param iso_code A character, specifying the iso code for country to download data from
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
 #' @param grid_size A numeric, the grid size to be used in meters for analyzing the elevation data.
@@ -807,7 +807,7 @@ geolink_electaccess <- function(start_date = NULL,
 #' }
 #'
 
-geolink_elevation <- function(country_name = "",
+geolink_elevation <- function(iso_code,
                               shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
@@ -819,8 +819,8 @@ geolink_elevation <- function(country_name = "",
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  if(!is.null(country_name)){
-    print(paste("Checking data for", country_name))
+  if(!is.null(iso_code)){
+    print(paste("Checking data for", iso_code))
   } else{
     stop("Please input a valid country Name or ISO3 Code")
   }
@@ -829,7 +829,8 @@ geolink_elevation <- function(country_name = "",
 
   data <- geodata::elevation_30s(country = country_name, path=tempdir())
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE,
+                          recursive = TRUE)
 
   name_set <- c()
 
@@ -1203,6 +1204,7 @@ geolink_cropland <- function(source = "WorldCover",
 #'
 #' This function downloads WorldClim climate data for a specific variable and resolution. It allows for further analysis of climate patterns in a given area.
 #'
+#' @param iso_code A character, specifying the iso code for country to download data from
 #' @param var A character, the variable of interest (e.g., "temperature", "precipitation").
 #' @param res A character, the resolution of the data (e.g., "2.5m", "5m").
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
@@ -1221,18 +1223,17 @@ geolink_cropland <- function(source = "WorldCover",
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra  sf httr geodata
 #'
 #' @examples
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_worldclim(var = "temperature", res = "2.5m", shp_dt = shp_dt)
+#' df <- geolink_worldclim(iso_code = "NGA", var = "temperature", res = "2.5m", shp_dt = shp_dt)
 #' }
 #'
-
-
-geolink_worldclim <- function(var,
+geolink_worldclim <- function(iso_code,
+                              var,
                               res,
                               shp_dt,
                               shp_fn = NULL,
@@ -1245,52 +1246,40 @@ geolink_worldclim <- function(var,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
+
+  if(!is.null(iso_code)){
+    print(paste("Checking data for", iso_code))
+  } else{
+    stop("Please input a valid country Name or ISO3 Code")
   }
 
   unlink(tempdir(), recursive = TRUE)
 
-  data <- geodata::worldclim_tile(var=var, res=res, lon=lon, lat=lat, version="2.1", path = tempdir())
+  destination_wc <- tempdir()
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  raster_file <- geodata::worldclim_country(country = iso_code, version = "2.1",
+                                     var = var, res = res, path = destination_wc)
+
+   tif_files <- list.files(destination_wc, pattern = "\\.tif$",
+                           full.names = TRUE,
+                           recursive = TRUE)
+
+   rasters_combined <- terra::rast(tif_files)
+
+   raster_list <- lapply(1:terra::nlyr(rasters_combined),
+                         function(i) rasters_combined[[i]])
+
 
   name_set <- c()
 
-  for (file in tif_files) {
-    base_name <- basename(file)
+  num_layers <- terra::nlyr(rasters_combined)
+  print(raster_list)
 
-    extracted_string <- sub("\\.tif$", "", base_name)
+  months <- month.abb
+  print(months)
 
-    name_set <- c(name_set, extracted_string)
-  }
 
-  raster_objs <- lapply(tif_files, terra::rast)
-
-  raster_list <- lapply(raster_objs, raster)
-
-  epsg_4326 <- CRS("+init=epsg:4326")
-
-  for (i in seq_along(raster_list)) {
-    projection(raster_list[[i]]) <- epsg_4326
-    if (is.null(projection(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", i))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
-    }
-  }
-
+  name_set <- paste0(iso_code,"_WC_", var, "_", months)
 
   print("WorldClim Raster Downloaded")
 
@@ -1308,10 +1297,10 @@ geolink_worldclim <- function(var,
                                name_set = name_set)
 
 
+
   print("Process Complete!!!")
 
   return(dt)}
-
 
 #' Download OpenCellID data
 #'
@@ -1503,17 +1492,19 @@ geolink_terraclimate <- function(var,
     })
 
 
-    raster_stack <- stack(destination)
+   # raster_stack <- stack(destination)
+    rasters_combined <- terra::rast(destination)
 
     # Check CRS and set it if necessary
-    if (is.na(crs(raster_stack))) {
-      crs(raster_stack) <- CRS("+proj=longlat +datum=WGS84 +no_defs")
+    if (is.na(crs(rasters_combined))) {
+      crs(rasters_combined) <- crs("+proj=longlat +datum=WGS84 +no_defs")
     }
 
-    raster_list <- lapply(1:nlayers(raster_stack), function(i) raster_stack[[i]])
+    #raster_list <- lapply(1:nlayers(raster_stack), function(i) raster_stack[[i]])
+    raster_list <- lapply(1:terra::nlyr(rasters_combined), function(i) rasters_combined[[i]])
 
-    num_layers <- nlayers(raster_stack)
-
+    #num_layers <- nlayers(raster_stack)
+    num_layers <- terra::nlyr(rasters_combined)
     print(raster_list)
 
     months <- month.abb
@@ -1525,7 +1516,6 @@ geolink_terraclimate <- function(var,
     # Set names for the raster layers
     names(raster_list) <- name_set
     print(paste("Names set for raster layers:", paste(names(raster_list), collapse = ", ")))
-
 
 
     print("Terraclimate Raster Downloaded")
