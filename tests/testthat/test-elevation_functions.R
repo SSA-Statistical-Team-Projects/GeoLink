@@ -5,7 +5,8 @@
 #Test- A.
 test_that("Elevation Function works using a shapefile:", {
 
-  suppressWarnings({ test_dt <- geolink_elevation(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+  suppressWarnings({ test_dt <- geolink_elevation(country_name = "Nigeria",
+                                                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                                   grid_size = 1000,
                                                   extract_fun = "mean")
 
@@ -15,7 +16,7 @@ test_that("Elevation Function works using a shapefile:", {
 
   #Write testing expressions below:
   #01 - expect the colnames will be created correctly
-  expect_contains(colnames(test_dt), "srtm_38_11")
+  expect_contains(colnames(test_dt), "NGA_elv_msk")
 
   #03 - Test that the mean column values is between -19.0 and 2381.0 based on teh tile
   #this specific region
@@ -33,7 +34,8 @@ test_that("Elevation Function works using a shapefile:", {
 #Test- B
 test_that("Elevation Function works using a survey :", {
 
-  suppressWarnings({ test_dt <- geolink_elevation(survey_dt =  st_as_sf(hhgeo_dt[1:10],
+  suppressWarnings({ test_dt <- geolink_elevation(country_name = "Nigeria",
+                                                  survey_dt =  st_as_sf(hhgeo_dt[1:10],
                                                                         crs = 4326),
                                                   buffer_size = 1000,
                                                   extract_fun = "mean")
@@ -42,7 +44,7 @@ test_that("Elevation Function works using a survey :", {
 
   #Write testing expressions below:
   #01 - expect the colnames  are created correctly
-  expect_contains(colnames(test_dt), "srtm_38_11")
+  expect_contains(colnames(test_dt), "NGA_elv_msk")
 
   #02 - expect the length of test_dt be the same as the survey
   expect_equal(length(test_dt$hhid), length(hhgeo_dt$hhid[1:10]))
