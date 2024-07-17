@@ -3,17 +3,15 @@
 
 ################################################################################
 ################################################################################
-#2- Begin testingss the function when using a shapefile and a raster #############
+#Begin testingss the function when using a shapefile and a raster #############
 ################################################################################
-
-
 
 
 test_dt<- geolink_ntl(time_unit = "annual",
                                start_date = "2020-01-01",
                               end_date = "2021-01-01",
                               shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                             indicator = "avg_rade9h",
+                             indicator = "",
                              grid_size = 1000,
                              extract_fun = "mean")
 
