@@ -109,7 +109,7 @@ geolink_chirps <- function(time_unit,
   print("Global Rainfall Raster Downloaded")
 
 
-  name_set <- paste0("rainfall_", time_unit, 1:name_count)
+  name_set <- paste0("rainfall_", time_unit, 1:length(raster_objs))
 
 
   ## create the name for the variables
@@ -281,7 +281,9 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Global NTL Raster Downloaded")
 
-  name_set <- paste0("radians_", time_unit, name_count)
+  name_set <- paste0("ntl_", time_unit, 1:length(raster_objs))
+
+  browser()
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
