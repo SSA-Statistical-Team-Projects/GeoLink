@@ -827,7 +827,7 @@ geolink_elevation <- function(iso_code,
 
   unlink(tempdir(), recursive = TRUE)
 
-  data <- geodata::elevation_30s(country = country_name, path=tempdir())
+  data <- geodata::elevation_30s(country = iso_code, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE,
                           recursive = TRUE)
