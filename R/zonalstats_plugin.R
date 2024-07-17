@@ -191,57 +191,6 @@ compute_zonalstats <- function(shp_dt,
 
   shp_dt <- st_transform(shp_dt, crs = raster_crs_proj4)
 
-  # shp_dt <-
-  #   mapply(FUN = function(x, n){
-  #     ### first ensure raster and shapefile have the same crs
-  #
-  #
-  #     shp_dt[[n]] <- exactextractr::exact_extract(x = x,
-  #                                                 y = shp_dt,
-  #                                                 fun = extract_fun)
-  #
-  #     return(shp_dt)
-  #
-  #   },
-  #   SIMPLIFY = FALSE,
-  #   x = raster_objs,
-  #   n = name_set)
-  #
-  # if (length(shp_dt) > 1L) {
-  #
-  #   shp_dt <- lapply(shp_dt,
-  #                    function(X){
-  #
-  #                      X$geoID <- 1:nrow(X)
-  #
-  #                      return(X)
-  #
-  #                    })
-  #
-  #   geoid_dt <- shp_dt[[1]][, c("geoID")]
-  #
-  #   shp_crs <- st_crs(shp_dt[[1]])$input
-  #
-  #   shp_dt <- lapply(shp_dt,
-  #                    function(X){
-  #
-  #                      X <- X %>% st_drop_geometry()
-  #
-  #                      return(X)
-  #
-  #                    })
-  #
-  #   shp_dt <- Reduce(merge, shp_dt)
-  #
-  #   shp_dt <- merge(shp_dt, as.data.frame(geoid_dt), by = "geoID")
-  #
-  #   shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
-  #
-  # } else if (length(shp_dt) == 1L){
-  #
-  #   shp_dt <- shp_dt[[1]]
-  #
-  # }
 
   for (i in seq_along(raster_objs)){
 
@@ -252,10 +201,6 @@ compute_zonalstats <- function(shp_dt,
 
   }
 
-
-  shp_dt <- st_as_sf(x = shp_dt,
-                     crs = st_crs(raster_objs[[1]])$input,
-                     agr = "constant")
 
   return(shp_dt)
 
