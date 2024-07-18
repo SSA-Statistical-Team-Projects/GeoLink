@@ -7,14 +7,13 @@
 ################################################################################
 
 
-test_dt<- geolink_ntl(time_unit = "annual",
-                               start_date = "2020-01-01",
-                              end_date = "2021-01-01",
-                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                             indicator = "",
-                             grid_size = 1000,
-                             extract_fun = "mean")
-
+test_dt<-geolink_ntl(time_unit = "annual",
+                     start_date = "2020-01-01",
+                     end_date = "2020-12-01",
+                     shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                     indicator = "avg_rade9h",
+                     grid_size = 1000,
+                     extract_fun = "mean")
 geolink_ntl(time_unit = "month",
             start_date = "2020-01-01",
             end_date = "2020-03-01",

@@ -11,11 +11,10 @@ geolink_ntl(
   annual_version = "v21",
   month_version = "v10",
   indicator,
-  slc_type = TRUE,
+  slc_type = "vcmslcfg",
   shp_dt,
   shp_fn = NULL,
-  grid_size,
-  use_survey = TRUE,
+  grid_size = 1000,
   survey_dt,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -53,8 +52,7 @@ are to be estimated}
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.
 a household survey with latitude and longitude values.}
 
-\item{survey_fn}{A character, file path for geocoded survey (.dta format) (for STATA users only &
-if use_survey is TRUE)}
+\item{survey_fn}{A character, file path for geocoded survey (.dta format) (for STATA users only)}
 
 \item{survey_lat}{A character, latitude variable from survey (for STATA users only &
 if use_survey is TRUE)}
@@ -65,28 +63,26 @@ if use survey is TRUE)}
 \item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
-\item{buffer_survey}{A logical, specify TRUE if interested in estimating a statistic based on distance
-from the survey location.}
+\item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
 }
 \description{
-Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period
+Download night lights luminosity at monthly/annual intervals for a specified period
 The data is downloaded in raster format and combined with shapefile and/or survey data provided
 by the user
 }
 \details{
 NTL data is sourced from the NASA's Earth Observation Group database.
-The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
-the shapefile is also provided for users that need this data further analytics that require
-equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
-permitted final output. However, a geocoded survey with rainfall estimates are the end goal
-if the user also chooses. The function will merge shapefile polygons (either gridded or
-native polygons) with the location of the survey units i.e. rainfall estimates for the
-locations of the units within the survey will be returned. The function is also set up for
-stata users and allows the user to pass file paths for the household survey `survey_fn`
-(with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
-a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
-to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
-`sf::read_sf()` function.
+The data is extracted into `shp_dt` shapefile object. An added service for tesselating/gridding
+the `shp_dt` is also provided if `grid_size` is specified for further analytics that require
+equal specified area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+permitted final output. Also, if `survey_dt` is not NULL, the user may compute luminosity within
+neighborhood of a household given a specified `buffer_size`. The function draw polygons around
+household locations of `buffer_size` with zonal statistics computed as formerly described.
+The function is also set up for stata users and allows the user to pass file paths for the
+household survey `survey_fn` (with the lat and long variable names `survey_lon` and `survey_lat`)
+as well. This is requires a .dta file which is read in with `haven::read_dta()` package.
+Likewise, the user is permitted to pass a filepath for the location of the shapefile `shp_fn`
+which is read in with the `sf::read_sf()` function.
 }
 \examples{
 
@@ -107,7 +103,7 @@ df <- geolink_ntl(time_unit = "month",
                   version = "v21",
                   indicator = "average_masked",
                   grid_size = 1000,
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
                   extract_fun = "mean")
 
 #estimate annual night time luminosity for each household within a 100 meters
@@ -119,7 +115,7 @@ df <- geolink_ntl(time_unit = "annual",
                   shp_dt = NULL,
                   version = "v21",
                   indicator = "average_masked",
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN = "Abia",], crs = 4326)
+                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
                   extract_fun = "mean",
                   buffer_size = 100)
 

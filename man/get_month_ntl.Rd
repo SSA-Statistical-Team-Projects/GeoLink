@@ -9,7 +9,7 @@ get_month_ntl(
   end_date,
   version,
   no_tile,
-  slc_type = c("vcmcfg", "vcmslcfg"),
+  slc_type,
   indicator = c("avg_rade9h", "cf_cvg", "cvg", "avg_rade9h.masked"),
   link_base = "https://eogdata.mines.edu/nighttime_light"
 )
