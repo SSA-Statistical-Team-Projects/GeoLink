@@ -283,8 +283,6 @@ geolink_ntl <- function(time_unit = "annual",
 
   name_set <- paste0("ntl_", time_unit, 1:length(raster_objs))
 
-  browser()
-
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
                                shp_fn = shp_fn,
