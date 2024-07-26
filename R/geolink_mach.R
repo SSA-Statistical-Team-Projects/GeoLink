@@ -109,7 +109,7 @@ geolink_chirps <- function(time_unit,
   print("Global Rainfall Raster Downloaded")
 
 
-  name_set <- paste0("rainfall_", time_unit, 1:name_count)
+  name_set <- paste0("rainfall_", time_unit, 1:length(raster_objs))
 
 
   ## create the name for the variables
@@ -138,7 +138,7 @@ geolink_chirps <- function(time_unit,
 
 #' Download and Merge Monthly and Annual Night Time Light data into geocoded surveys
 #'
-#' Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period
+#' Download night lights luminosity at monthly/annual intervals for a specified period
 #' The data is downloaded in raster format and combined with shapefile and/or survey data provided
 #' by the user
 #'
@@ -151,14 +151,12 @@ geolink_chirps <- function(time_unit,
 #' @param grid_size A numeric, the grid size to be used in meters
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
-#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
-#' if use_survey is TRUE)
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only)
 #' @param survey_lat A character, latitude variable from survey (for STATA users only &
 #' if use_survey is TRUE)
 #' @param survey_lon A character, longitude variable from survey (for STATA users only &
 #' if use survey is TRUE)
-#' @param buffer_survey A logical, specify TRUE if interested in estimating a statistic based on distance
-#' from the survey location.
+#' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @param month_version A character, the version of month EOG data to use. default set to "v10".
@@ -169,18 +167,17 @@ geolink_chirps <- function(time_unit,
 #'
 #'
 #' @details NTL data is sourced from the NASA's Earth Observation Group database.
-#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
-#' the shapefile is also provided for users that need this data further analytics that require
-#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
-#' permitted final output. However, a geocoded survey with rainfall estimates are the end goal
-#' if the user also chooses. The function will merge shapefile polygons (either gridded or
-#' native polygons) with the location of the survey units i.e. rainfall estimates for the
-#' locations of the units within the survey will be returned. The function is also set up for
-#' stata users and allows the user to pass file paths for the household survey `survey_fn`
-#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
-#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
-#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
-#' `sf::read_sf()` function.
+#' The data is extracted into `shp_dt` shapefile object. An added service for tesselating/gridding
+#' the `shp_dt` is also provided if `grid_size` is specified for further analytics that require
+#' equal specified area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. Also, if `survey_dt` is not NULL, the user may compute luminosity within
+#' neighborhood of a household given a specified `buffer_size`. The function draw polygons around
+#' household locations of `buffer_size` with zonal statistics computed as formerly described.
+#' The function is also set up for stata users and allows the user to pass file paths for the
+#' household survey `survey_fn` (with the lat and long variable names `survey_lon` and `survey_lat`)
+#' as well. This is requires a .dta file which is read in with `haven::read_dta()` package.
+#' Likewise, the user is permitted to pass a filepath for the location of the shapefile `shp_fn`
+#' which is read in with the `sf::read_sf()` function.
 #'
 #' @examples
 #'
@@ -235,7 +232,6 @@ geolink_ntl <- function(time_unit = "annual",
                         shp_dt,
                         shp_fn = NULL,
                         grid_size = 1000,
-                        use_survey = TRUE,
                         survey_dt,
                         survey_fn = NULL,
                         survey_lat = NULL,
@@ -281,7 +277,7 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Global NTL Raster Downloaded")
 
-  name_set <- paste0("radians_", time_unit, name_count)
+  name_set <- paste0("ntl_", time_unit, 1:length(raster_objs))
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
@@ -366,6 +362,7 @@ geolink_ntl <- function(time_unit = "annual",
 #                         extract_fun = "mean")
 #'
 #'
+#' }
 #'
 #' @import rstac terra raster osmdata sp sf httr geodata
 #'
@@ -504,7 +501,7 @@ geolink_landcover <- function(time_unit = "annual",
 #'                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                         grid_size = 1000,
 #'                         extract_fun = "mean")
-#'
+#'}
 #'
 
 geolink_population <- function(start_year = NULL,
@@ -636,11 +633,12 @@ geolink_population <- function(start_year = NULL,
 #'\donttest{
 #'
 #'
-
-#df <- geolink_get_poi(osm_feature_category = "building",
-# osm_feature_subcategory ="farm",
-# shp_dt = shp_dt)
-
+#'
+#' df <- geolink_get_poi(osm_feature_category = "building",
+#' osm_feature_subcategory ="farm",
+#' shp_dt = shp_dt)
+#'
+#'}
 #'
 
 geolink_get_poi <- function(osm_feature_category,
@@ -718,6 +716,8 @@ geolink_get_poi <- function(osm_feature_category,
 #'
 #'
 #' df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#'
+#' }
 #'
 
 geolink_electaccess <- function(start_date = NULL,
@@ -836,7 +836,7 @@ geolink_elevation <- function(iso_code,
 
   unlink(tempdir(), recursive = TRUE)
 
-  data <- geodata::elevation_30s(country = country_name, path=tempdir())
+  data <- geodata::elevation_30s(country = iso_code, path=tempdir())
 
   tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE,
                           recursive = TRUE)

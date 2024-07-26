@@ -16,6 +16,12 @@ library(GeoLink)
 #Done
 usethis::use_test("chirps_functions") #Done
 usethis::use_test("postdownload_processor") #Done
+usethis::use_test("elevation_functions")  #Done
+usethis::use_test("cropland_function")  # Done
+usethis::use_test("geolink_worldclim")  # Done
+
+
+
 
 #Fixing housekeeping
 usethis::use_test("electricity_functions") #Fixing
@@ -24,9 +30,6 @@ usethis::use_test("electricity_functions") #Fixing
 usethis::use_test("ntl_functions") # Not working
 usethis::use_test("population_functions") #Not working
 usethis::use_test("opencell_functions") # Not working
-usethis::use_test("elevation_functions") #Does not work with survey
-usethis::use_test("cropland_function") # Not working , same issue as elevation
-
 #Not working test in 002
 usethis::use_test("landcover_functions") # Test in 002
 usethis::use_test("building_functions") #Test in 002

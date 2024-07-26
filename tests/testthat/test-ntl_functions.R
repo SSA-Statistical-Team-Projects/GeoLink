@@ -3,28 +3,25 @@
 
 ################################################################################
 ################################################################################
-#2- Begin testingss the function when using a shapefile and a raster #############
+#Begin testingss the function when using a shapefile and a raster #############
 ################################################################################
 
 
-
-
-test_dt<- geolink_ntl(time_unit = "annual",
-                               start_date = "2020-01-01",
-                              end_date = "2021-01-01",
-                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                             indicator = "avg_rade9h",
-                             grid_size = 1000,
-                             extract_fun = "mean")
-
+test_dt<-geolink_ntl(time_unit = "annual",
+                     start_date = "2020-01-01",
+                     end_date = "2020-12-01",
+                     shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                     indicator = "avg_rade9h",
+                     grid_size = 1000,
+                     extract_fun = "mean")
 geolink_ntl(time_unit = "month",
-                              start_date = "2020-01-01",
-                               end_date = "2020-03-01",
-                               shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                               indicator = "avg_rade9h",
-                              grid_size = 1000,
-                               #survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-                             extract_fun = "mean")
+            start_date = "2020-01-01",
+            end_date = "2020-03-01",
+            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+            indicator = "avg_rade9h",
+            grid_size = 1000,
+            #survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
+            extract_fun = "mean")
 
 
 
