@@ -108,7 +108,6 @@ get_file_list <- function(url) {
   return(paste0(url, files))
 }
 
-
 # Function to try downloading files from a URL
 try_download <- function(url) {
   file_urls <- NULL
@@ -120,21 +119,18 @@ try_download <- function(url) {
 }
 
 # Function to download files from a list of URLs
-download_files <- function(file_urls, UN_adjst) {
-  dest_dir <- tempdir()
+download_files_worldpop <- function(file_urls, UN_adjst, file_location) {  # Added file_location argument
   for (file_url in file_urls) {
     if (!is.null(UN_adjst) && UN_adjst == "Y") {
       # Download only files containing 'UNadj'
       if (grepl("UNadj", basename(file_url))) {
-        destfile <- file.path(dest_dir, basename(file_url))
-        download.file(file_url, destfile, method = "auto")
+        destfile <- file.path(file_location, basename(file_url))  # Save to specified location
+        download.file(url = file_url, destfile = destfile, mode = "wb")
       }
     } else {
       # Download all files except those containing 'UNadj'
       if (!grepl("UNadj", basename(file_url))) {
-        destfile <- file.path(dest_dir, basename(file_url))
-        download.file(file_url, destfile, method = "auto")
+        destfile <- file.path(file_location, basename(file_url))  # Save to specified location
+        download.file(url = file_url, destfile = destfile, mode = "wb")
       }
-    }
-  }
-}
+    }}}

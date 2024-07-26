@@ -95,15 +95,15 @@ zonalstats_prepsurvey <- function(survey_dt,
 
   if (is.null(buffer_size) == FALSE) {
 
-        if (!("m" %in% st_crs(survey_dt)$units)) {
+    if (!("m" %in% st_crs(survey_dt)$units)) {
 
-          suggest_dt <- crsuggest::suggest_crs(survey_dt,
-                                               units = "m")
+      suggest_dt <- crsuggest::suggest_crs(survey_dt,
+                                           units = "m")
 
-          survey_dt <- st_transform(survey_dt,
-                                    crs = as.numeric(suggest_dt$crs_code[1]))
+      survey_dt <- st_transform(survey_dt,
+                                crs = as.numeric(suggest_dt$crs_code[1]))
 
-        }
+    }
 
 
     survey_dt <- sf::st_buffer(survey_dt,
@@ -140,18 +140,18 @@ zonalstats_prepshp <- function(shp_dt,
   if (is.null(grid_size) == FALSE){
 
 
-      if (!("m" %in% st_crs(shp_dt)$units)) {
+    if (!("m" %in% st_crs(shp_dt)$units)) {
 
-          suggest_dt <- crsuggest::suggest_crs(shp_dt,
-                                               units = "m")
+      suggest_dt <- crsuggest::suggest_crs(shp_dt,
+                                           units = "m")
 
-          shp_dt <- st_transform(shp_dt,
-                                 crs = as.numeric(suggest_dt$crs_code[1]))
+      shp_dt <- st_transform(shp_dt,
+                             crs = as.numeric(suggest_dt$crs_code[1]))
 
-        }
+    }
 
-      shp_dt <- gengrid2(shp_dt = shp_dt,
-                         grid_size = grid_size)
+    shp_dt <- gengrid2(shp_dt = shp_dt,
+                       grid_size = grid_size)
 
 
   }
@@ -187,63 +187,20 @@ compute_zonalstats <- function(shp_dt,
   raster_crs_proj4 <- terra::crs(raster_objs[[1]])
   print(paste("CRS of raster objects:", st_crs(raster_objs[[1]])$input))
 
+  raster_crs_proj4 <- st_crs(raster_objs[[1]])$input
+
   shp_dt <- st_transform(shp_dt, crs = raster_crs_proj4)
 
-  shp_dt <-
-    mapply(FUN = function(x, n){
-      ### first ensure raster and shapefile have the same crs
 
+  for (i in seq_along(raster_objs)){
 
-      shp_dt[[n]] <- exactextractr::exact_extract(x = x,
-                                                  y = shp_dt,
-                                                  fun = extract_fun)
-
-      return(shp_dt)
-
-    },
-    SIMPLIFY = FALSE,
-    x = raster_objs,
-    n = name_set)
-
-  if (length(shp_dt) > 1L) {
-
-    shp_dt <- lapply(shp_dt,
-                     function(X){
-
-                       X$geoID <- 1:nrow(X)
-
-                       return(X)
-
-                     })
-
-    geoid_dt <- shp_dt[[1]][, c("geoID")]
-
-    shp_crs <- st_crs(shp_dt[[1]])$input
-
-    shp_dt <- lapply(shp_dt,
-                     function(X){
-
-                       X <- X %>% st_drop_geometry()
-
-                       return(X)
-
-                     })
-
-    shp_dt <- Reduce(merge, shp_dt)
-
-    shp_dt <- merge(shp_dt, as.data.frame(geoid_dt), by = "geoID")
-
-    shp_dt <- st_as_sf(shp_dt, crs = shp_crs, agr = "constant")
-
-  } else if (length(shp_dt) == 1L){
-
-    shp_dt <- shp_dt[[1]]
+    shp_dt[[name_set[i]]] <-
+      exactextractr::exact_extract(x = raster_objs[[i]],
+                                   y = shp_dt,
+                                   fun = extract_fun)
 
   }
 
-  shp_dt <- st_as_sf(x = shp_dt,
-                     crs = st_crs(raster_objs[[1]])$input,
-                     agr = "constant")
 
   return(shp_dt)
 
@@ -356,10 +313,3 @@ postdownload_processor <- function(raster_objs,
   return(shp_dt)
 
 }
-
-
-
-
-
-
-

@@ -475,6 +475,7 @@ geolink_landcover <- function(time_unit = "annual",
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @param survey_crs A numeric, the default is 4326
+#' @param file_location A path to the folder where the downloaded data should be stored.
 #'
 #' @details Population data is sourced from WorldPop.
 #' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
@@ -522,10 +523,12 @@ geolink_population <- function(start_year = NULL,
                                survey_lon = NULL,
                                buffer_size = NULL,
                                extract_fun = "mean",
-                               survey_crs = 4326) {
+                               survey_crs = 4326,
+                               file_location = tempdir()) {
 
-
-  unlink(tempdir(), recursive = TRUE)
+  if (!dir.exists(file_location)) {
+    dir.create(file_location, recursive = TRUE)
+  }
 
   if (!is.null(start_year) && !is.null(end_year)) {
     years <- seq(start_year, end_year)
@@ -536,15 +539,13 @@ geolink_population <- function(start_year = NULL,
     url1 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code, "/")
     url2 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code, "/")
 
-    # Try url1 first, then url2 if url1 fails
     file_urls <- try_download(url1)
     if (is.null(file_urls)) {
       file_urls <- try_download(url2)
     }
 
-    # If we have a list of file URLs, proceed to download
     if (!is.null(file_urls)) {
-      download_files(file_urls, UN_adjst)
+      download_files_worldpop(file_urls, UN_adjst, file_location)
     } else {
       warning("No files found at both URLs.")
     }
@@ -553,16 +554,15 @@ geolink_population <- function(start_year = NULL,
       url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
                     "/population/v", version, "/", iso_code, "_population_v",
                     gsub("\\.", "_", version), "_mastergrid.tif")
-      download.file(url, file.path(tempdir(), basename(url)))
+      download.file(url, file.path(file_location, basename(url)))
     } else {
       for (year in years) {
         url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020/", year, "/", iso_code, "/")
 
         file_urls <- try_download(url)
 
-        # If we have a list of file URLs, proceed to download
         if (!is.null(file_urls)) {
-          download_files(file_urls, UN_adjst)
+          download_files_worldpop(file_urls, UN_adjst, file_location)
         } else {
           warning(paste("No files found for year", year, "at URL", url))
         }
@@ -570,19 +570,30 @@ geolink_population <- function(start_year = NULL,
     }
   }
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE)
+  tif_files <- list.files(file_location, pattern = "\\.tif$", full.names = TRUE)
 
-  raster_objs <- lapply(tif_files, terra::rast)
+  raster_objs <- lapply(tif_files, function(x) {
+    tryCatch({
+      terra::rast(x)
+    }, error = function(e) {
+      warning(paste("Failed to read:", x, "with error:", e))
+      return(NULL)
+    })
+  })
 
-  # raster_objs <- lapply(raster_objs, raster)
+  raster_objs <- raster_objs[!sapply(raster_objs, is.null)]
 
-  # if (!is.null(start_year) && !is.null(end_year)) {
-  #   year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
-  # } else {
-  #   year_sequence <- year(start_date)
-  # }
+  if (length(raster_objs) == 0) {
+    stop("No valid raster files found.")
+  }
 
-  name_set <- paste0("population_", 1:length(raster_objs))
+  if (!is.null(start_year) && !is.null(end_year)) {
+    year_sequence <- seq(start_year, end_year)
+  } else {
+    year_sequence <- start_year
+  }
+
+  name_set <- paste0("population_", year_sequence)
 
   print("Population Raster Downloaded")
 
@@ -602,8 +613,6 @@ geolink_population <- function(start_year = NULL,
   print("Process Complete!!!")
 
   return(dt)
-
-
 }
 
 
@@ -914,7 +923,7 @@ geolink_buildings <- function(version,
                               shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt,
+                              survey_dt = NULL,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,

@@ -29,15 +29,18 @@ geolink_electaccess <- function(
     get_request() %>%
     items_sign(sign_fn = sign_planetary_computer())
 
-  url_list <- lapply(1:length(it_obj$features),
-                     function(x) {
-                       url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$lightscore$href)
-                       return(url)
-                     })
+  url_list <- lapply(1:length(it_obj$features), function(x) {
+    urls <- list(
+      lightscore = paste0("/vsicurl/", it_obj$features[[x]]$assets$lightscore$href),
+      light_composite = paste0("/vsicurl/", it_obj$features[[x]]$assets$`light-composite`$href),
+      night_proportion = paste0("/vsicurl/", it_obj$features[[x]]$assets$`night-proportion`$href),
+      estimated_brightness = paste0("/vsicurl/", it_obj$features[[x]]$assets$`estimated-brightness`$href)
+    )
+    return(urls)
+  })
 
   raster_objs <- lapply(url_list, terra::rast)
 
-  raster_list <- lapply(raster_objs, raster)
 
   year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
 
@@ -46,7 +49,7 @@ geolink_electaccess <- function(
   print("Electrification Access Raster Downloaded")
 
   dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
+                               raster_objs = raster_objs,
                                shp_fn = shp_fn,
                                grid_size = grid_size,
                                survey_dt = survey_dt,
