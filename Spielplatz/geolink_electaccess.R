@@ -1,4 +1,4 @@
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata)
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, exactextractr)
 
 
 geolink_electaccess <- function(

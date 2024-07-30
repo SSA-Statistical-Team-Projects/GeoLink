@@ -364,7 +364,7 @@ geolink_ntl <- function(time_unit = "annual",
 #'
 #' }
 #'
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra raster osmdata sp sf httr geodata exactextractr
 #'
 #'
 geolink_landcover <- function(time_unit = "annual",

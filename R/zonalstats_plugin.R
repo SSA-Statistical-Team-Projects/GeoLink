@@ -187,8 +187,6 @@ compute_zonalstats <- function(shp_dt,
   raster_crs_proj4 <- terra::crs(raster_objs[[1]])
   print(paste("CRS of raster objects:", st_crs(raster_objs[[1]])$input))
 
-  raster_crs_proj4 <- st_crs(raster_objs[[1]])$input
-
   shp_dt <- st_transform(shp_dt, crs = raster_crs_proj4)
 
 
