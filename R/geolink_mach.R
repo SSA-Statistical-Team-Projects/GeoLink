@@ -277,7 +277,7 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Global NTL Raster Downloaded")
 
-  name_set <- paste0("ntl_", time_unit, 1:length(raster_objs))
+  name_set <- paste0("ntl_", time_unit, 1:length(raster_objs), indicator)
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
