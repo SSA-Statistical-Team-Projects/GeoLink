@@ -6,39 +6,16 @@
 #Begin testingss the function when using a shapefile and a raster #############
 ################################################################################
 
-
-test_dt<-geolink_ntl(time_unit = "annual",
-                     start_date = "2020-01-01",
-                     end_date = "2020-12-01",
-                     shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                     indicator = "avg_rade9h",
-                     grid_size = 1000,
-                     extract_fun = "mean")
-geolink_ntl(time_unit = "month",
-            start_date = "2020-01-01",
-            end_date = "2020-03-01",
-            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-            indicator = "avg_rade9h",
-            grid_size = 1000,
-            #survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-            extract_fun = "mean")
-
-
-
-
-
-
-
-
 #Test- A.
-test_that("Annual NTL works using a shapefile:", {
+test_that("Monthly ntl works using a shapefile:", {
 
-  suppressWarnings({ test_dt <- geolink_chirps(time_unit = "month",
-                                               start_date = "2020-01-01",
-                                               end_date = "2020-02-01",
-                                               shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                                               grid_size = 1000,
-                                               extract_fun = "mean")
+  suppressWarnings({ test_dt <- geolink_ntl(time_unit = "month",
+                                              start_date = "2020-01-01",
+                                              end_date = "2020-03-01",
+                                              shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+                                              indicator = "avg_rade9h",
+                                              grid_size = 1000,
+                                              extract_fun = "mean")
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -46,7 +23,7 @@ test_that("Annual NTL works using a shapefile:", {
 
   #Write testing expressions below:
   #01 - expect the colnames will be created correctly
-  expect_contains(colnames(test_dt), c("rainfall_month1","rainfall_month2" ))
+  expect_contains(colnames(test_dt), "ntl_month1" )
 
   #02- Test that the object was properly tessellated
   expect_equal(length(unique(test_dt$poly_id)),
@@ -58,29 +35,30 @@ test_that("Annual NTL works using a shapefile:", {
 
   #03 - Test that the mean column values is between 0 and 1444.34
 
-  expect_true(all(test_dt$rainfall_month1 >= 0 & test_dt$rainfall_month1 <= 1444.34),
-              info = "Values of rainfall_month1 should be between 0 and 1444.34")
+  expect_true(all(test_dt$ntl_month3 >= -1.5 & test_dt$ntl_month3 <= 162790.6 ),
+              info = "Values of ntl_month3 should be between -1.5 and 162790.6")
 
 }
 )
 
 
 #Test- B
-test_that("Monthly chirps using a survey :", {
+test_that("Monthly ntl using a survey :", {
 
-  suppressWarnings({ test_dt <- geolink_chirps(time_unit = "month",
-                                               start_date = "2020-01-01",
-                                               end_date = "2020-05-01",
-                                               survey_dt =  st_as_sf(hhgeo_dt[1:10],
-                                                                     crs = 4326),
-                                               buffer_size = 1000,
-                                               extract_fun = "mean")
+  suppressWarnings({ test_dt <-  geolink_ntl(time_unit = "month",
+                                             start_date = "2020-01-01",
+                                             end_date = "2020-03-01",
+                                             survey_dt =  st_as_sf(hhgeo_dt[1:10],
+                                                                   crs = 4326),
+                                             indicator = c("avg_rade9h"),
+                                             buffer_size = 1000,
+                                             extract_fun = "mean")
 
   })
 
   #Write testing expressions below:
   #01 - expect the colnames  are created correctly
-  expect_contains(colnames(test_dt), c("rainfall_month1","rainfall_month2" ))
+  expect_contains(colnames(test_dt), c("ntl_month1","ntl_month2", "ntl_month3"))
 
   #02 - expect the length of test_dt be the same as the survey
   expect_equal(length(test_dt$hhid), length(hhgeo_dt$hhid[1:10]))
@@ -88,9 +66,9 @@ test_that("Monthly chirps using a survey :", {
   #Expect the radios of the buffer to be a 1000 m
   expect_equal(as.numeric(round(sqrt(st_area(test_dt[1,]) / pi))), 1000)
 
-  #03 - Test that the mean column values is between 0 and 1444.34
-  expect_true(all(test_dt$rainfall_month1 >= 0 & test_dt$rainfall_month1 <= 1444.34),
-              info = "Values of rainfall_month1 should be between 0 and 1444.34")
+  #03 - Test that the mean column values is between -1.5 and  162790.6
+  expect_true(all(test_dt$ntl_month3 >= -1.5 & test_dt$ntl_month3 <= 162790.6),
+              info = "Values of rainfall_month1 should be between -1.5 and  162790.6")
 
 }
 )
@@ -98,14 +76,15 @@ test_that("Monthly chirps using a survey :", {
 
 ###
 #Test- C
-test_that("Annual chirps using a shapefile:", {
+test_that("Annual NTL using a shapefile:", {
 
-  suppressWarnings({ test_dt <- geolink_chirps(time_unit = "annual",
-                                               start_date = "2020-01-01",
-                                               end_date = "2020-12-31",
-                                               shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                                               grid_size = 1000,
-                                               extract_fun = "mean")
+  suppressWarnings({ test_dt <- geolink_ntl(time_unit = "annual",
+                                            start_date = "2020-01-01",
+                                            end_date = "2020-12-01",
+                                            shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+                                            indicator = "average_masked",
+                                            grid_size = 1000,
+                                            extract_fun = "mean")
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -113,31 +92,32 @@ test_that("Annual chirps using a shapefile:", {
 
   #Write testing expressions below:
   #01 - expect the colnames ro be created correctly
-  expect_contains(colnames(test_dt), "rainfall_annual1" )
+  expect_contains(colnames(test_dt), "ntl_annual1" )
 
 
-  #03 - Test that the mean column values is between 0 and 1444.34
-  expect_true(all(test_dt$rainfall_month1 >= 0 & test_dt$rainfall_month1 <= 1444.34),
-              info = "Values of rainfall_month1 should be between 0 and 1444.34")
+  expect_true(all(test_dt$ntl_annual1 >= -1.5 & test_dt$ntl_annual1 <= 92084.44 ),
+              info = "Values of ntl_annual1 should be between -1.5 and 92084.44")
 })
 
 
 #Test- B
-test_that("Annual chirps using a survey :", {
+test_that("Annual ntl using a survey :", {
 
-  suppressWarnings({ test_dt <- geolink_chirps(time_unit = "annual",
-                                               start_date = "2020-01-01",
-                                               end_date = "2020-12-31",
-                                               survey_dt =  st_as_sf(hhgeo_dt[1:10],
-                                                                     crs = 4326),
-                                               buffer_size = 1000,
-                                               extract_fun = "mean")
+  suppressWarnings({ test_dt <- geolink_ntl(time_unit = "annual",
+                                            start_date = "2020-01-01",
+                                            end_date = "2021-12-01",
+                                            survey_dt =  st_as_sf(hhgeo_dt[1:10],
+                                                                  crs = 4326),
+                                            buffer_size = 1000,
+                                            indicator = c("average_masked","cf_cvg"),
+                                            extract_fun = "mean")
+
 
   })
 
   #Write testing expressions below:
   #01 - expect the colnames  are created correctly
-  expect_contains(colnames(test_dt), "rainfall_annual1")
+  expect_contains(colnames(test_dt), "ntl_annual1")
 
   #02 - expect the length of test_dt be the same as the survey
   expect_equal(length(test_dt$hhid), length(hhgeo_dt$hhid[1:10]))
@@ -147,22 +127,13 @@ test_that("Annual chirps using a survey :", {
 
 
   #03 - Test that the mean column values is between 0 and 1444.34
-  expect_true(all(test_dt$rainfall_month1 >= 0 & test_dt$rainfall_month1 <= 1444.34),
-              info = "Values of rainfall_month1 should be between 0 and 1444.34")
+  expect_true(all(test_dt$ntl_annual1 >= -1.5 & test_dt$ntl_annual1 <= 92084.44 ),
+              info = "Values of ntl_annual1 should be between -1.5 and 92084.44")
 }
 )
 
 
-##Test Error Messages
-test_that("Error is thrown for invalid date range", {
-  expect_error(geolink_chirps(time_unit = "month",
-                              start_date = "2024-01-01",
-                              end_date = "2020-02-01",
-                              shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                              grid_size = 1000,
-                              extract_fun = "mean"),
-               regexp = "Invalid time range, start time exceeds end time!")
-})
+
 
 
 
