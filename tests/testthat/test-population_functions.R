@@ -11,7 +11,7 @@ test_dt <- geolink_population(iso_code = "NGA",
                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                              grid_size = 1000,
                              extract_fun = "mean",
-                             file_location = "C:/Users/wb570371/OneDrive - WBG/Documents/temp")
+                             file_location = "/Users/nikos/Documents/temp")
 
 
 
