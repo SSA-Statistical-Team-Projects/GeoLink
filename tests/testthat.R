@@ -19,6 +19,7 @@ usethis::use_test("postdownload_processor") #Done
 usethis::use_test("elevation_functions")  #Done
 usethis::use_test("cropland_function")  # Done
 usethis::use_test("geolink_worldclim")  # Done
+usethis::use_test("ntl_functions") # Done
 
 
 
@@ -27,7 +28,7 @@ usethis::use_test("geolink_worldclim")  # Done
 usethis::use_test("electricity_functions") #Fixing
 
 #Not working or error
-usethis::use_test("ntl_functions") # Not working
+
 usethis::use_test("population_functions") #Not working
 usethis::use_test("opencell_functions") # Not working
 #Not working test in 002
