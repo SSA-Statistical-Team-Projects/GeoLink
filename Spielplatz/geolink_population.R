@@ -25,7 +25,6 @@ geolink_population <- function(start_year = NULL,
 
   if (!is.null(start_year) && !is.null(end_year)) {
     years <- seq(start_year, end_year)
-    result_list <- paste0("ppp_", years)
   }
 
   if (!is.null(constrained) && constrained == "Y") {
@@ -49,15 +48,17 @@ geolink_population <- function(start_year = NULL,
                     gsub("\\.", "_", version), "_mastergrid.tif")
       download.file(url, file.path(file_location, basename(url)))
     } else {
-      for (year in years) {
-        url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020/", year, "/", iso_code, "/")
+      if (!is.null(start_year) && !is.null(end_year)) {
+        for (year in years) {
+          url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020/", year, "/", iso_code, "/")
 
-        file_urls <- try_download(url)
+          file_urls <- try_download(url)
 
-        if (!is.null(file_urls)) {
-          download_files_worldpop(file_urls, UN_adjst, file_location)
-        } else {
-          warning(paste("No files found for year", year, "at URL", url))
+          if (!is.null(file_urls)) {
+            download_files_worldpop(file_urls, UN_adjst, file_location)
+          } else {
+            warning(paste("No files found for year", year, "at URL", url))
+          }
         }
       }
     }
@@ -80,13 +81,14 @@ geolink_population <- function(start_year = NULL,
     stop("No valid raster files found.")
   }
 
-  if (!is.null(start_year) && !is.null(end_year)) {
-    year_sequence <- seq(start_year, end_year)
+  # Define the name_set at the end
+  if (!is.null(bespoke) && bespoke == "Y") {
+    name_set <- paste0("population_", version)
+  } else if (!is.null(start_year) && !is.null(end_year)) {
+    name_set <- paste0("population_", years)
   } else {
-    year_sequence <- start_year
+    name_set <- "population_2020"
   }
-
-  name_set <- paste0("population_", year_sequence)
 
   print("Population Raster Downloaded")
 
