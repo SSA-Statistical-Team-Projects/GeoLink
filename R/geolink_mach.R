@@ -704,6 +704,8 @@ geolink_get_poi <- function(osm_feature_category,
 #' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE)
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#' @param elect_indicator A character, one/more of the 4 HREA indicators: "lightscore", "light-composite",
+#' "night-proportion", "estimated-brightness"
 #'
 #' @details
 #'
@@ -731,7 +733,8 @@ geolink_electaccess <- function(start_date = NULL,
                                 survey_lon = NULL,
                                 buffer_size = NULL,
                                 extract_fun = "mean",
-                                survey_crs = 4326){
+                                survey_crs = 4326,
+                                elect_indicator = "lightscore"){
 
 
   start_date <- as.Date(start_date)
@@ -741,7 +744,6 @@ geolink_electaccess <- function(start_date = NULL,
 
 
   it_obj <- s_obj %>%
-
     rstac::stac_search(collections = "hrea",
                 bbox = sf::st_bbox(shp_dt)) %>%
     rstac::get_request() %>%
@@ -750,7 +752,7 @@ geolink_electaccess <- function(start_date = NULL,
 
   url_list <- lapply(1:length(it_obj$features),
                      function(x) {
-                       url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$lightscore$href)
+                       url <- paste0("/vsicurl/", it_obj$features[[x]]$assets[[elect_indicator]]$href)
                        return(url)
                      })
 
