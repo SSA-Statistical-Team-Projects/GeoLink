@@ -1,0 +1,53 @@
+Package: GeoLink
+Type: Package
+Title: An R package for downloading, extracting and combining geospatial/remotely 
+  sensed data with geocoded unit level data 
+Version: 0.1.0
+Author: c(person("Ifeanyi", "Edochie", role = c("aut", "cre"), email = "iedochie@worldbank.org"))
+Maintainer: The package maintainer <yourself@somewhere.net>
+Description: The R package 'GeoLink' supports the download of high resolution 
+  geospatial/remote sensing data, zonal statistics computation, shapefile tesselation as well as 
+  spatial joining of geospatial data with unit level georeferenced data (such as household surveys).
+License: What license is it under?
+Encoding: UTF-8
+LazyData: true
+Imports: 
+    crsuggest,
+    data.table,
+    doParallel,
+    dtplyr,
+    exactextractr,
+    foreach,
+    geodata,
+    geosphere,
+    haven,
+    httr,
+    jsonlite,
+    lubridate,
+    lwgeom,
+    osmdata,
+    parallel,
+    parallelMap,
+    R.utils,
+    raster,
+    RCurl,
+    reticulate,
+    rlang,
+    roxygen2,
+    rstac,
+    rvest,
+    sf,
+    sp,
+    stats,
+    stringr,
+    svDialogs,
+    terra,
+    testthat,
+    tidyterra,
+    tools,
+    units,
+    XML
+Depends: 
+    R (>= 2.10)
+RoxygenNote: 7.2.3
+Config/testthat/edition: 3

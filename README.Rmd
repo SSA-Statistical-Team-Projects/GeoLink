@@ -1,0 +1,133 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+
+pacman::p_load(GeoLink, sf)
+
+```
+
+# GeoLink
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
+The goal of GeoLink is to support the download of high resolution geospatial/remote sensing data, zonal statistics computation, shapefile tesselation as well as spatial joining of geospatial data with unit level georeferenced data (such as household surveys).
+
+## Installation
+
+You can install the development version of GeoLink from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("SSA-Statistical-Team-Projects/GeoLink")
+```
+
+## Usage
+
+There are several use cases intended for the package. The process begins with downloading geospatial data (typically raster format data) and: 
+
+- Estimating geospatial indicator value within a certain area of the unit level data. For instance, estimating the level of economic activity around each household location within a household survey by using the night time lights extraction.  
+
+```{r, message = FALSE}
+
+## estimate night time luminosity (NTL) within a 100m of each household location in the year 2020
+
+geolink_ntl(start_date = "2020-01-01",
+            end_date = "2020-12-31",
+            annual_version = "v21",
+            indicator = "average_masked",
+            survey_dt = st_as_sf(hhgeo_dt[ADM1_EN == "Abia",],
+                                 crs = 4326),
+            buffer_size = 100,
+            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+
+
+```
+
+
+- Estimating a spatial indicator within the grid tesselation that a household is location wtihin. This is often useful for those interested in poverty mapping or other model building exercises that require equal area grids (option available within the function as `grid_size` argument) for an entire area
+```{r, message = FALSE}
+
+## estimate night time luminosity (NTL) for household location based on the tesselation of a shapefile i.e. for the grid in which the household is located in the year 2020
+
+
+geolink_ntl(start_date = "2020-01-01",
+            end_date = "2020-12-31",
+            annual_version = "v21",
+            indicator = "average_masked",
+            survey_dt = st_as_sf(hhgeo_dt[ADM1_EN == "Abia",],
+                                 crs = 4326),
+            grid_size = 1000,
+            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+
+
+```
+
+
+- Simply linking the zonal statistics to a shapefile (tesselated or simply at native resolution)
+```{r, message = FALSE}
+
+## estimate night time luminosity (NTL) for a tesselated shapefile
+
+geolink_ntl(start_date = "2020-01-01",
+            end_date = "2020-12-31",
+            annual_version = "v21",
+            indicator = "average_masked",
+            grid_size = 1000,
+            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+
+
+## estimate NTL for the shapefile
+
+geolink_ntl(start_date = "2020-01-01",
+            end_date = "2020-12-31",
+            annual_version = "v21",
+            indicator = "average_masked",
+            grid_size = NULL,
+            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
