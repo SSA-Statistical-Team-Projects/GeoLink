@@ -27,7 +27,6 @@ geolink_population <- function(start_year = NULL,
     years <- seq(start_year, end_year)
   }
 
-<<<<<<< HEAD
   # Check for existing .tif files
   tif_files <- list.files(file_location, pattern = "\\.tif$", full.names = TRUE)
 
@@ -48,7 +47,6 @@ geolink_population <- function(start_year = NULL,
         warning("No files found at both URLs.")
       }
     } else {
-<<<<<<<< HEAD:Spielplatz/geolink_population_new.R
       if (!is.null(bespoke) && bespoke == "Y") {
         url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
                       "/population/v", version, "/", iso_code, "_population_v",
@@ -66,8 +64,6 @@ geolink_population <- function(start_year = NULL,
             } else {
               warning(paste("No files found for year", year, "at URL", url))
             }
-========
-=======
   if (!is.null(constrained) && constrained == "Y") {
     url1 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code, "/")
     url2 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code, "/")
@@ -80,7 +76,6 @@ geolink_population <- function(start_year = NULL,
     if (!is.null(file_urls)) {
       download_files_worldpop(file_urls, UN_adjst, file_location)
     } else {
->>>>>>> fbd24b07c3adbd83300cc5ecab07d1c7033465ef
       warning("No files found at both URLs.")
     }
   } else {
@@ -100,15 +95,10 @@ geolink_population <- function(start_year = NULL,
             download_files_worldpop(file_urls, UN_adjst, file_location)
           } else {
             warning(paste("No files found for year", year, "at URL", url))
-<<<<<<< HEAD
->>>>>>>> fbd24b07c3adbd83300cc5ecab07d1c7033465ef:Spielplatz/geolink_population.R
-=======
->>>>>>> fbd24b07c3adbd83300cc5ecab07d1c7033465ef
           }
         }
       }
     }
-<<<<<<< HEAD
 
     # Update tif_files after download
     tif_files <- list.files(file_location, pattern = "\\.tif$", full.names = TRUE)
@@ -116,12 +106,10 @@ geolink_population <- function(start_year = NULL,
     print("Using existing .tif files in file_location.")
   }
 
-=======
   }
 
   tif_files <- list.files(file_location, pattern = "\\.tif$", full.names = TRUE)
 
->>>>>>> fbd24b07c3adbd83300cc5ecab07d1c7033465ef
   raster_objs <- lapply(tif_files, function(x) {
     tryCatch({
       terra::rast(x)
@@ -146,15 +134,9 @@ geolink_population <- function(start_year = NULL,
     name_set <- "population_2020"
   }
 
-<<<<<<< HEAD
-<<<<<<<< HEAD:Spielplatz/geolink_population_new.R
   print("Population Raster Processed")
-========
   print("Population Raster Downloaded")
->>>>>>>> fbd24b07c3adbd83300cc5ecab07d1c7033465ef:Spielplatz/geolink_population.R
-=======
-  print("Population Raster Downloaded")
->>>>>>> fbd24b07c3adbd83300cc5ecab07d1c7033465ef
+
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
@@ -172,7 +154,7 @@ geolink_population <- function(start_year = NULL,
   print("Process Complete!!!")
 
   return(dt)
-}
+}}}}}
 
 # Example usage
 df <- geolink_population(iso_code = "NGA",

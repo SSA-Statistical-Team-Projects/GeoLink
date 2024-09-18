@@ -960,7 +960,7 @@ geolink_elevation <- function(iso_code,
 #' \donttest{
 #'
 #' # Example usage with version 1.1
-#' df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt)
+#' df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
 #'
 #' }
 #'
@@ -970,7 +970,7 @@ geolink_buildings <- function(version,
                               shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt = NULL,
+                              survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -1020,7 +1020,7 @@ geolink_buildings <- function(version,
 
 
 
-  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
 
   name_set <- c()
 
@@ -1032,14 +1032,16 @@ geolink_buildings <- function(version,
     name_set <- c(name_set, extracted_string)
   }
 
-  raster_list <- lapply(tif_files, terra::rast)
+  raster_objs <- lapply(tif_files, terra::rast)
+
+  raster_list <- lapply(raster_objs, raster)
 
   epsg_4326 <- "+init=EPSG:4326"
 
   for (i in seq_along(raster_list)) {
-    terra::crs(raster_list[[i]]) <- epsg_4326
-    if (is.null(terra::crs(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
+    projection(raster_list[[i]]) <- epsg_4326
+    if (is.null(projection(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", i))
     } else {
       print(paste("Raster", i, "projected successfully."))
     }
@@ -1066,7 +1068,6 @@ geolink_buildings <- function(version,
 
   return(dt)
 }
-
 
 #' Download CMIP6 climate model data
 #'
