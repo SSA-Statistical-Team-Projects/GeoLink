@@ -105,9 +105,7 @@ geolink_buildings <- function(version,
   return(dt)
 }
 
-test_dt <- geolink_buildings(version = "v1.1",
-                             iso_code = "NGA",
-                             shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
 
+test_dt <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
 
 
