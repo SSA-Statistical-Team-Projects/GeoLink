@@ -548,7 +548,7 @@ geolink_population <- function(start_year = NULL,
                                constrained = NULL,
                                bespoke = NULL,
                                version = NULL,
-                               shp_dt = NULL,
+                               shp_dt,
                                shp_fn = NULL,
                                grid_size = 1000,
                                survey_dt,
@@ -569,7 +569,35 @@ geolink_population <- function(start_year = NULL,
   }
 
   # Check for existing .tif files
-  tif_files <- list.files(file_location, pattern = "\\.tif$", full.names = TRUE)
+   year_pattern <- paste(years, collapse = "|")
+   tif_files <- list.files(file_location,
+                           pattern = ".tif$",
+                          full.names = TRUE)
+   if (constrained == "Y" && UN_adjst == "Y" ){
+
+     tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                              grepl("ppp", tif_files, ignore.case = TRUE) &
+                              grepl("UNadj_constrained", tif_files, ignore.case = TRUE) &
+                              grepl(year_pattern, tif_files)]
+   } else if (constrained == "N" && UN_adjst == "Y"){
+
+     tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                              grepl("ppp", tif_files, ignore.case = TRUE) &
+                              grepl("constrained", tif_files, ignore.case = TRUE) &
+                              grepl(year_pattern, tif_files)]
+   }else if (constrained == "Y" && UN_adjst == "N"){
+
+     tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                              grepl("ppp", tif_files, ignore.case = TRUE) &
+                              grepl("UNadj", tif_files, ignore.case = TRUE) &
+                              grepl(year_pattern, tif_files)]
+   }else {
+     tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                              grepl("ppp", tif_files, ignore.case = TRUE) &
+                              grepl(year_pattern, tif_files)]
+   }
+
+
 
   # If .tif files are already present, skip downloading
   if (length(tif_files) == 0) {
@@ -581,6 +609,11 @@ geolink_population <- function(start_year = NULL,
       if (is.null(file_urls)) {
         file_urls <- try_download(url2)
       }
+
+      file_urls <- file_urls[grepl(iso_code, file_urls, ignore.case = TRUE) &
+                               grepl("ppp", file_urls, ignore.case = TRUE) &
+                               grepl(year_pattern, file_urls)]
+
 
       if (!is.null(file_urls)) {
         download_files_worldpop(file_urls, UN_adjst, file_location)
@@ -611,7 +644,34 @@ geolink_population <- function(start_year = NULL,
     }
 
     # Update tif_files after download
-    tif_files <- list.files(file_location, pattern = "\\.tif$", full.names = TRUE)
+    year_pattern <- paste(years, collapse = "|")
+    tif_files <- list.files(file_location,
+                            pattern = ".tif$",
+                            full.names = TRUE)
+    if (constrained == "Y" && UN_adjst == "Y" ){
+
+      tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                               grepl("ppp", tif_files, ignore.case = TRUE) &
+                               grepl("UNadj_constrained", tif_files, ignore.case = TRUE) &
+                               grepl(year_pattern, tif_files)]
+    } else if (constrained == "N" && UN_adjst == "Y"){
+
+      tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                               grepl("ppp", tif_files, ignore.case = TRUE) &
+                               grepl("constrained", tif_files, ignore.case = TRUE) &
+                               grepl(year_pattern, tif_files)]
+    }else if (constrained == "Y" && UN_adjst == "N"){
+
+      tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                               grepl("ppp", tif_files, ignore.case = TRUE) &
+                               grepl("UNadj", tif_files, ignore.case = TRUE) &
+                               grepl(year_pattern, tif_files)]
+    }else {
+      tif_files <- tif_files[grepl(iso_code, tif_files, ignore.case = TRUE) &
+                               grepl("ppp", tif_files, ignore.case = TRUE) &
+                               grepl(year_pattern, tif_files)]
+    }
+
   } else {
     print("Using existing .tif files in file_location.")
   }
@@ -967,7 +1027,7 @@ geolink_elevation <- function(iso_code,
 
 geolink_buildings <- function(version,
                               iso_code,
-                              shp_dt = NULL,
+                              shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt,
@@ -976,7 +1036,8 @@ geolink_buildings <- function(version,
                               survey_lon = NULL,
                               buffer_size = NULL,
                               extract_fun = "mean",
-                              survey_crs = 4326){
+                              survey_crs = 4326,
+                              indicators = "ALL"){
 
   temp_dir <- tempdir()
 
@@ -1022,6 +1083,12 @@ geolink_buildings <- function(version,
 
   tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
 
+
+  if (!all(indicators== "ALL")) {
+    indicators <- paste(indicators, collapse = "|")
+    tif_files <- tif_files[grepl(indicators, basename(tif_files))]
+  }
+
   name_set <- c()
 
   for (file in tif_files) {
@@ -1031,6 +1098,7 @@ geolink_buildings <- function(version,
 
     name_set <- c(name_set, extracted_string)
   }
+
 
   raster_objs <- lapply(tif_files, terra::rast)
 
