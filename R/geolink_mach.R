@@ -19,7 +19,9 @@
 #' if use_survey is TRUE)
 #' @param survey_lon A character, longitude variable from survey (for STATA users only &
 #' if use survey is TRUE)
+#' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' @param survey_crs A numeric, the default is 4326
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #'
 #' @details Rainfall data is sourced from the Climate Hazards Group InfraRed Precipitation
@@ -156,6 +158,7 @@ geolink_chirps <- function(time_unit,
 #' if use_survey is TRUE)
 #' @param survey_lon A character, longitude variable from survey (for STATA users only &
 #' if use survey is TRUE)
+#' @param survey_crs A numeric, the default is 4326
 #' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
@@ -192,31 +195,24 @@ geolink_chirps <- function(time_unit,
 #' #grid tesselation of shapefile at 1000m
 #'
 #' df <- geolink_ntl(time_unit = "month",
-#'                   start_date = "2020-01-01",
-#'                   end_date = "2020-03-01",
-#'                   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-#'                   version = "v21",
-#'                   indicator = "average_masked",
-#'                   grid_size = 1000,
-#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-#'                   extract_fun = "mean")
+#'                  start_date = "2020-01-01",
+#'                  end_date = "2020-03-01",
+#'                  shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+#'                  indicator = "avg_rade9h",
+#'                  grid_size = 1000,
+#'                  extract_fun = "mean")
 #'
 #' #estimate annual night time luminosity for each household within a 100 meters
 #' #of it's location
 #'
 #' df <- geolink_ntl(time_unit = "annual",
 #'                   start_date = "2020-01-01",
-#'                   end_date = "2020-03-01",
-#'                   shp_dt = NULL,
-#'                   version = "v21",
+#'                   end_date = "2020-12-01",
+#'                   shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
 #'                   indicator = "average_masked",
-#'                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-#'                   extract_fun = "mean",
-#'                   buffer_size = 100)
-#'
-#'
-#'
-#'
+#'                   grid_size = 1000,
+#'                   extract_fun = "mean")
+
 #' }
 #
 #' @export
@@ -311,21 +307,6 @@ geolink_ntl <- function(time_unit = "annual",
 #' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
-#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param grid_size A numeric, the grid size to be used in meters
-#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
-#' a household survey with latitude and longitude values.
-#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
-#' if use_survey is TRUE)
-#' @param survey_lat A character, latitude variable from survey (for STATA users only &
-#' if use_survey is TRUE)
-#' @param survey_lon A character, longitude variable from survey (for STATA users only &
-#' if use survey is TRUE)
-#' @param buffer_survey A logical, specify TRUE if interested in estimating a statistic based on distance
-#' from the survey location.
-#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
-#' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
-#' @param survey_crs A numeric, the default is 4326
 #'
 #' @details LULC data is sourced from Microsoft Planetary Computer.
 #' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
@@ -352,20 +333,14 @@ geolink_ntl <- function(time_unit = "annual",
 #'
 #' #pull annual land use land cover and combine with household survey based on
 #' #grid tesselation of shapefile at 1000m
-#'
-#'df <- geolink_landcover(time_unit,
-#                         start_date = "2020-01-01",
-#                         end_date = "2021-01-01",
-#                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-#                         grid_size = 1000,
-#                         survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
-#                         extract_fun = "mean")
-#'
+#'df <- geolink_landcover(start_date = "2020-01-01",
+#'                        end_date = "2020-03-01",
+#'                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
 #' }
 #'
-#' @import  rstac reticulate terra raster osmdata sp sf geodata httr ncdf4 rgdal exactextractr parallel
-#'
+#' @import  rstac reticulate terra raster osmdata sf geodata httr ncdf4 exactextractr parallel
+#' @export
 #'
 #'
 #'
@@ -525,20 +500,24 @@ geolink_landcover <- function(time_unit = "annual",
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#''@import rstac reticulate terra raster osmdata sp sf  geodata rvest httr
+#''@import rstac reticulate terra raster osmdata sf  geodata rvest httr
 #'
 #' @examples
 #'\donttest{
 #'
 #'
 #'
-#'df <- geolink_population(iso_code = "NGA",
+#'df <- geolink_population(start_year = 2018,
+#'                         end_year = 2019,
+#'                         iso_code = "NGA",
 #'                         UN_adjst = "N",
-#'                         constrained = "Y",
+#'                         constrained = "N",
 #'                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                         grid_size = 1000,
-#'                         extract_fun = "mean")
+#'                         extract_fun = "mean",
+#'                         file_location = "/Users/nikos/Documents/temp/nga_pop")
 #'}
+#'@export
 #'
 
 geolink_population <- function(start_year = NULL,
@@ -734,7 +713,7 @@ geolink_population <- function(start_year = NULL,
 #'
 #' Details for feature category and sub-category can be found here: https://wiki.openstreetmap.org/wiki/Map_features
 #'
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra raster osmdata sf httr geodata
 #'
 #' @examples
 #'\donttest{
@@ -742,11 +721,11 @@ geolink_population <- function(start_year = NULL,
 #'
 #'
 #' df <- geolink_get_poi(osm_feature_category = "building",
-#' osm_feature_subcategory ="farm",
-#' shp_dt = shp_dt)
+#'                       osm_feature_subcategory = "farm",
+#'                       shp_dt = shp_dt)
 #'
 #'}
-#'
+#'@export
 
 geolink_get_poi <- function(osm_feature_category,
                             osm_feature_subcategory,
@@ -810,13 +789,15 @@ geolink_get_poi <- function(osm_feature_category,
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE)
 #' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE)
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
+#' @param survey_crs A numeric, the default is 4326
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #'
 #' @details
 #'
 #' Details for the dataset can be found here: https://hrea.isr.umich.edu/
 #'
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra raster osmdata sf httr geodata
 #'
 #' @examples
 #'\donttest{
@@ -825,6 +806,7 @@ geolink_get_poi <- function(osm_feature_category,
 #' df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
 #' }
+#' @export
 #'
 
 geolink_electaccess <- function(start_date = NULL,
@@ -911,16 +893,18 @@ geolink_electaccess <- function(start_date = NULL,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra raster osmdata sf httr geodata
 #' @examples
 #' \donttest{
 #'
 #' # Example usage with shapefile
-#' df <- geolink_elevation(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#' df <- geolink_elevation(iso_code = "NGA",
+#'                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#'                         grid_size = 1000,
+#'                         extract_fun = "mean")
 #'
-#' # Example usage with file path
-#' df <- geolink_elevation(shp_fn = "path/to/shapefile.shp")
 #' }
+#' @export
 #'
 
 geolink_elevation <- function(iso_code,
@@ -1010,19 +994,24 @@ geolink_elevation <- function(iso_code,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
-#'
+#' @param indicators A character/list, select one or more of the following in the list:
+#'  c("count","cv_length", "density" ,"mean_area",
+#'   "mean_length","total_area", "total_length", "urban"). Default set to "ALL".
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra raster osmdata sf httr geodata
 #'
 #' @examples
 #' \donttest{
 #'
 #' # Example usage with version 1.1
-#' df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
+#' df <- geolink_buildings(version = "v1.1",
+#'                         iso_code = "NGA",
+#'                         shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
 #'
 #' }
+#' @export
 #'
 
 geolink_buildings <- function(version,
@@ -1137,116 +1126,6 @@ geolink_buildings <- function(version,
   return(dt)
 }
 
-#' Download CMIP6 climate model data
-#'
-#' This function downloads CMIP6 (Coupled Model Intercomparison Project Phase 6) climate model data for a specific variable, resolution, model, Shared Socioeconomic Pathway (SSP), and time period. It allows for further analysis of the data in conjunction with geographic data.
-#'
-#' @param var A character, the variable of interest (e.g., "temperature", "precipitation").
-#' @param res A character, the resolution of the data (e.g., "2.5m", "5m").
-#' @param model A character, the climate model name (e.g., "ACCESS-ESM1-5", "CanESM5").
-#' @param ssp A character, the Shared Socioeconomic Pathway (SSP) scenario (e.g., "ssp126", "ssp585").
-#' @param time A character, the time period of interest (e.g., "historical", "2020-2049").
-#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
-#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate model data.
-#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
-#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
-#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
-#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
-#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
-#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
-#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
-#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
-#'
-#' @return A processed data frame or object based on the input parameters and downloaded data.
-#'
-#' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata sp sf httr geodata
-#'
-#' @examples
-#' \donttest{
-#'
-#' # Example usage
-#' df <- geolink_CMIP6(var = "temperature", res = "2.5m", model = "ACCESS-ESM1-5", ssp = "ssp126", time = "2020-2049", shp_dt = shp_dt)
-#'
-#' bio10 <- geolink_CMIP6(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],"CNRM-CM6-1", "585", "2061-2080", var="bioc", res=10)
-#' }
-#'
-
-
-geolink_CMIP6 <- function(var,
-                          res,
-                          model,
-                          ssp,
-                          time,
-                          shp_dt,
-                          shp_fn = NULL,
-                          grid_size = 1000,
-                          survey_dt = NULL,
-                          survey_fn = NULL,
-                          survey_lat = NULL,
-                          survey_lon = NULL,
-                          buffer_size = NULL,
-                          extract_fun = "mean",
-                          survey_crs = 4326){
-
-
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
-  }
-
-
-  data <- cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
-
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
-
-  raster_list <- lapply(tif_files, terra::rast)
-
-  epsg_4326 <- "+init=EPSG:4326"
-
-  for (i in seq_along(raster_list)) {
-    terra::crs(raster_list[[i]]) <- epsg_4326
-    if (is.null(terra::crs(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
-    }
-  }
-
-  name_set <- paste0("elevation_")
-
-
-  print("CMIP6  Raster Downloaded")
-
-  dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size,
-                               survey_dt = survey_dt,
-                               survey_fn = survey_fn,
-                               survey_lat = survey_lat,
-                               survey_lon = survey_lon,
-                               extract_fun = extract_fun,
-                               buffer_size = buffer_size,
-                               survey_crs = survey_crs,
-                               name_set = name_set)
-
-
-  print("Process Complete!!!")
-
-  return(df)}
-
 #' Download cropland data
 #'
 #' This function downloads cropland data from a specified source, such as WorldCover. It allows for further analysis of cropland distribution in a given area.
@@ -1268,14 +1147,16 @@ geolink_CMIP6 <- function(var,
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra raster osmdata sf httr geodata
 #'
 #' @examples
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#' df <- geolink_cropland(source = "WorldCover",
+#'                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #' }
+#' @export
 #'
 geolink_cropland <- function(source = "WorldCover",
                              shp_dt,
@@ -1354,9 +1235,14 @@ geolink_cropland <- function(source = "WorldCover",
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_worldclim(iso_code = "NGA", var = "temperature", res = "2.5m", shp_dt = shp_dt)
+#' df <-geolink_worldclim(iso_code ="NGA",
+#'                        var = 'tmax',
+#'                        res= 2.5,
+#'                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#'                        grid_size = 1000,
+#'                        extract_fun = "mean")
 #' }
-#'
+#' @export
 geolink_worldclim <- function(iso_code,
                               var,
                               res,
@@ -1427,101 +1313,6 @@ geolink_worldclim <- function(iso_code,
 
   return(dt)}
 
-#' Download OpenCellID data
-#'
-#' This function downloads OpenCellID data, which provides information about cell towers and their coverage areas. It allows for further analysis of cellular network coverage in a given area.
-#'
-#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
-#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size_meters A numeric, the grid size to be used in meters for analyzing the cell tower data. The maximum possible is 2000 meters.
-#' @param key A character, the API key created in when signing up to Opencellid profile.
-#'
-#' @return A processed data frame or object based on the input parameters and downloaded data.
-#'
-#' @importFrom terra rast
-#' @importFrom httr GET timeout
-#' @import rstac terra raster osmdata sp sf httr geodata data.table geosphere
-#'
-#' @examples
-#' \donttest{
-#'
-#' # Example usage
-#' results <- geolink_opencellid(cell_tower_file = "C:/Users/username/Downloads/621.csv.gz",
-#'                              shapefile_input = shp_dt)
-#' }
-#'
-
-
-# Combined function to calculate tower stats and return the nearest lat/lon for a polygon
-geolink_opencellid <- function(cell_tower_file, shapefile_input) {
-
-  # Load the OpenCellID data
-  cell_towers <- read_opencellid_data(cell_tower_file)
-
-  # Check if shapefile_input is a file path (character) or an in-memory sf object
-  if (is.character(shapefile_input)) {
-    # Load shapefile if it's a file path
-    if (!file.exists(shapefile_input)) {
-      stop("Shapefile not found at the specified path")
-    }
-    polygons <- st_read(shapefile_input)
-  } else if (inherits(shapefile_input, "sf")) {
-    # Use the sf object directly
-    polygons <- shapefile_input
-  } else {
-    stop("Invalid shapefile input: must be a file path or an sf object.")
-  }
-
-  # Ensure CRS matches between towers and polygons
-  cell_towers_sf <- st_as_sf(cell_towers, coords = c("lon", "lat"), crs = 4326)
-  cell_towers_sf <- st_transform(cell_towers_sf, st_crs(polygons))
-
-  # Create a list to store results
-  results <- list()
-
-  # Loop through each polygon to calculate stats
-  for (i in 1:nrow(polygons)) {
-    polygon <- polygons[i, ]
-
-    # Towers within the polygon
-    towers_in_polygon <- st_within(cell_towers_sf, polygon, sparse = FALSE)
-    num_towers <- sum(towers_in_polygon)
-
-    # Calculate centroid of the polygon
-    centroid <- st_centroid(polygon)
-
-    # Calculate nearest tower distance
-    if (num_towers > 0) {
-      towers_sf <- cell_towers_sf[towers_in_polygon, ]
-      distances <- st_distance(centroid, towers_sf, by_element = FALSE)
-      nearest_idx <- which.min(distances)
-      nearest_distance <- min(distances)
-
-      nearest_lon <- st_coordinates(towers_sf)[nearest_idx, "X"]
-      nearest_lat <- st_coordinates(towers_sf)[nearest_idx, "Y"]
-    } else {
-      nearest_distance <- NA
-      nearest_lon <- NA
-      nearest_lat <- NA
-    }
-
-    # Store results
-    results[[i]] <- data.frame(
-      polygon_id = i,
-      num_towers = num_towers,
-      nearest_distance = nearest_distance,
-      nearest_lon = nearest_lon,
-      nearest_lat = nearest_lat
-    )
-  }
-
-  # Combine all results into a data frame
-  results_df <- do.call(rbind, results)
-
-  return(results_df)
-}
-
-
 #' Download Terraclimate data
 #'
 #' This function downloads Terraclimate data for a specific variable and year. It allows for further analysis of climate patterns in a given area.
@@ -1544,14 +1335,17 @@ geolink_opencellid <- function(cell_tower_file, shapefile_input) {
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET http_type write_disk
-#' @import rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, httr, ncdf4, rgdal
+#' @import rstac reticulate terra raster osmdata sf geodata httr ncdf4
 #'
 #' @examples
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_terraclimate(var ="tmin", year = 2017, shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#' df <- geolink_terraclimate(var ="tmin",
+#'                            year = 2017,
+#'                            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #' }
+#' @export
 #'
 
 geolink_terraclimate <- function(var,

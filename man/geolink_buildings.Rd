@@ -7,7 +7,7 @@
 geolink_buildings(
   version,
   iso_code,
-  shp_dt = NULL,
+  shp_dt,
   shp_fn = NULL,
   grid_size = 1000,
   survey_dt,
@@ -16,7 +16,8 @@ geolink_buildings(
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326
+  survey_crs = 4326,
+  indicators = "ALL"
 )
 }
 \arguments{
@@ -44,6 +45,10 @@ geolink_buildings(
 Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).}
 
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
+
+\item{indicators}{A character/list, select one or more of the following in the list:
+c("count","cv_length", "density" ,"mean_area",
+ "mean_length","total_area", "total_length", "urban"). Default set to "ALL".}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.
@@ -55,8 +60,9 @@ This function downloads high-resolution building data from WorldPop based on the
 \donttest{
 
 # Example usage with version 1.1
-df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt)
+df <- geolink_buildings(version = "v1.1",
+                        iso_code = "NGA",
+                        shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
 
 }
-
 }

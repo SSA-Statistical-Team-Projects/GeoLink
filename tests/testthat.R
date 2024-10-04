@@ -9,31 +9,16 @@
 library(testthat)
 library(GeoLink)
 
-
-#Create test
+test_check("GeoLink")
 
 
 #Done
-usethis::use_test("chirps_functions") #Done
-usethis::use_test("postdownload_processor") #Done
-usethis::use_test("elevation_functions")  #Done
-usethis::use_test("cropland_function")  # Done
-usethis::use_test("geolink_worldclim")  # Done
-usethis::use_test("ntl_functions") # Done
-usethis::use_test("population_functions") # Done
-usethis::use_test("building_functions") # Done
-
-
-#Fixing housekeeping
-usethis::use_test("electricity_functions") #Fixing
-#Not working or error
-usethis::use_test("opencell_functions") # Not working
-#Not working test in 002
-usethis::use_test("landcover_functions") # Test in 002
-
-
-test_check("GeoLink")
-covr::report()
-
-
+#usethis::use_test("chirps_functions") #Done
+#usethis::use_test("postdownload_processor") #Done
+#usethis::use_test("elevation_functions")  #Done
+#usethis::use_test("cropland_function")  # Done
+#usethis::use_test("geolink_worldclim")  # Done
+#usethis::use_test("ntl_functions") # Done
+#usethis::use_test("population_functions") # Done
+#usethis::use_test("building_functions") # Done
 

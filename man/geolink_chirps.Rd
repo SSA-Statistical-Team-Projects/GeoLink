@@ -46,7 +46,11 @@ if use_survey is TRUE)}
 \item{survey_lon}{A character, longitude variable from survey (for STATA users only &
 if use survey is TRUE)}
 
-\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
+\item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
+
+\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.}
+
+\item{survey_crs}{A numeric, the default is 4326
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 }
 \description{

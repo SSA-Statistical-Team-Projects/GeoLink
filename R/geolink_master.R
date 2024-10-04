@@ -59,7 +59,7 @@
 #'
 #'
 #'      df = run_geolink(
-#'      func_name = "geolink_electaccess"
+#'      func_name = "geolink_electaccess",
 #'      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
 #'

@@ -15,7 +15,17 @@
 }
 \arguments{
 \item{x}{an object of class `raster`.}
+
+\item{row.names}{(optional) Names for the rows.}
+
+\item{optional}{(optional) Logical. If `TRUE`, setting row names in the output is optional.}
+
+\item{xy}{(optional) Logical. If `TRUE`, include coordinates of raster cells in the output.}
+
+\item{inmem}{(optional) Logical. If `TRUE`, process the raster in memory. Default is determined by `raster::canProcessInMemory()`.}
+
+\item{...}{Additional arguments (none)}
 }
 \description{
-This function acts just like the `raster::as.data.frame()` object
+Convert a raster to data.table object
 }

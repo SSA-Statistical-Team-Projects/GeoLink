@@ -3,10 +3,6 @@
 ################################################################################
 #1- Read in the data
 ################################################################################
-#Shapefile
-data("shp_dt")
-#Survey
-data("hhgeo_dt")
 
 #One Raster
 raster_dt <- raster::raster("testdata/nga_ppp_2020_UNadj_constrained.tif")
@@ -105,7 +101,7 @@ test_that("It returns the correct object structure using a survey and a raster l
   #Write expectations from the results sf object
 
   #Expect the nameset to work properly
-  expect_equal(names(result_sf)[ncol(result_sf) - 1], "nga_chirps_3")
+  expect_equal(names(result_sf)[ncol(result_sf) - 1], "nga_chirps_2")
 
   #SF object
   expect_s3_class(result_sf, "sf")

@@ -58,7 +58,11 @@ This function downloads WorldClim climate data for a specific variable and resol
 \donttest{
 
 # Example usage
-df <- geolink_worldclim(iso_code = "NGA", var = "temperature", res = "2.5m", shp_dt = shp_dt)
+df <-geolink_worldclim(iso_code ="NGA",
+                       var = 'tmax',
+                       res= 2.5,
+                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                       grid_size = 1000,
+                       extract_fun = "mean")
 }
-
 }

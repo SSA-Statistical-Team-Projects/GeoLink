@@ -14,7 +14,9 @@ LazyData: true
 Imports: 
     crsuggest,
     data.table,
+    dbscan,
     doParallel,
+    dplyr,
     dtplyr,
     exactextractr,
     foreach,
@@ -25,6 +27,7 @@ Imports:
     jsonlite,
     lubridate,
     lwgeom,
+    ncdf4,
     osmdata,
     parallel,
     parallelMap,
@@ -37,7 +40,6 @@ Imports:
     rstac,
     rvest,
     sf,
-    sp,
     stats,
     stringr,
     svDialogs,
@@ -49,5 +51,5 @@ Imports:
     XML
 Depends: 
     R (>= 2.10)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.2
 Config/testthat/edition: 3

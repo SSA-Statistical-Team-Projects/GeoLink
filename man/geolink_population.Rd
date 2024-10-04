@@ -12,7 +12,7 @@ geolink_population(
   constrained = NULL,
   bespoke = NULL,
   version = NULL,
-  shp_dt = NULL,
+  shp_dt,
   shp_fn = NULL,
   grid_size = 1000,
   survey_dt,
@@ -21,7 +21,8 @@ geolink_population(
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326
+  survey_crs = 4326,
+  file_location = tempdir()
 )
 }
 \arguments{
@@ -62,6 +63,8 @@ Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
 \item{survey_crs}{A numeric, the default is 4326}
 
+\item{file_location}{A path to the folder where the downloaded data should be stored.}
+
 \item{buffer_survey}{A logical, specify TRUE if interested in estimating a statistic based on distance
 from the survey location.}
 }
@@ -89,19 +92,21 @@ a .dta file which is read in with `haven::read_dta()` package. Likewise, the use
 to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 `sf::read_sf()` function.
 
-'@import rstac terra raster osmdata sp sf httr geodata reticulate
+'@import rstac reticulate terra raster osmdata sf  geodata rvest httr
 }
 \examples{
 \donttest{
 
 
 
-df <- geolink_population(iso_code = "NGA",
+df <- geolink_population(start_year = 2018,
+                        end_year = 2019,
+                        iso_code = "NGA",
                         UN_adjst = "N",
-                        constrained = "Y",
+                        constrained = "N",
                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                         grid_size = 1000,
-                        extract_fun = "mean")
+                        extract_fun = "mean",
+                        file_location = "/Users/nikos/Documents/temp/nga_pop")
 }
-
 }

@@ -52,7 +52,7 @@ This function downloads cropland data from a specified source, such as WorldCove
 \donttest{
 
 # Example usage
-df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+df <- geolink_cropland(source = "WorldCover",
+                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 }
-
 }
