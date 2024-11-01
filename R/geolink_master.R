@@ -9,7 +9,7 @@
 #' @param end_date A Date object or a character string in the format "yyyy-mm-dd" specifying the end date.
 #' @param shp_dt An 'sf' or 'data.frame' object containing polygons or multipolygons.
 #' @param shp_fn A character string specifying the file path for the shapefile (.shp) (optional).
-#' @param grid_size A numeric value indicating the grid size to be used in meters.
+#' @param grid_size A numeric value indicating the grid size to be used in meters. Defaults to NULL. 
 #' @param survey_dt An 'sf' or 'data.frame' object representing a geocoded household survey.
 #' @param survey_fn A character string specifying the file path for the geocoded survey (.dta format) (optional).
 #' @param survey_lat A character string specifying the latitude variable from the survey (optional).
@@ -53,7 +53,7 @@
 #'      start_date = "2020-01-01",
 #'      end_date = "2020-03-01",
 #'      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001", ],
-#'      grid_size = 1000,
+#'      grid_size = NULL,
 #'      survey_dt = hhgeo_dt,
 #'      extract_fun = "mean")
 #'

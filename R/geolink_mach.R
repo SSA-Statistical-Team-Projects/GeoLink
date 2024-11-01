@@ -10,7 +10,7 @@
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param grid_size A numeric, the grid size to be used in meters
+#' @param grid_size A numeric, the grid size to be used in meters. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
@@ -73,7 +73,7 @@ geolink_chirps <- function(time_unit,
                            end_date,
                            shp_dt,
                            shp_fn = NULL,
-                           grid_size = 1000,
+                           grid_size = NULL,
                            survey_dt,
                            survey_fn = NULL,
                            survey_lat = NULL,
@@ -150,7 +150,7 @@ geolink_chirps <- function(time_unit,
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param grid_size A numeric, the grid size to be used in meters
+#' @param grid_size A numeric, the grid size to be used in meters. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only)
@@ -227,7 +227,7 @@ geolink_ntl <- function(time_unit = "annual",
                         slc_type = "vcmslcfg",
                         shp_dt,
                         shp_fn = NULL,
-                        grid_size = 1000,
+                        grid_size = NULL,
                         survey_dt,
                         survey_fn = NULL,
                         survey_lat = NULL,
@@ -470,7 +470,7 @@ geolink_landcover <- function(time_unit = "annual",
 #' @param version A character such as v2.0 or v2.1 which correlates to the iso_code provided for bespoke datasets.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param grid_size A numeric, the grid size to be used in meters
+#' @param grid_size A numeric, the grid size to be used in meters. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only &
@@ -529,7 +529,7 @@ geolink_population <- function(start_year = NULL,
                                version = NULL,
                                shp_dt,
                                shp_fn = NULL,
-                               grid_size = 1000,
+                               grid_size = NULL,
                                survey_dt,
                                survey_fn = NULL,
                                survey_lat = NULL,
@@ -783,7 +783,7 @@ geolink_get_poi <- function(osm_feature_category,
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param grid_size A numeric, the grid size to be used in meters
+#' @param grid_size A numeric, the grid size to be used in meters. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e. a household survey with latitude and longitude values.
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE)
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE)
@@ -813,7 +813,7 @@ geolink_electaccess <- function(start_date = NULL,
                                 end_date = NULL,
                                 shp_dt = NULL,
                                 shp_fn = NULL,
-                                grid_size = 1000,
+                                grid_size = NULL,
                                 survey_dt,
                                 survey_fn = NULL,
                                 survey_lat = NULL,
@@ -910,7 +910,7 @@ geolink_electaccess <- function(start_date = NULL,
 geolink_elevation <- function(iso_code,
                               shp_dt,
                               shp_fn = NULL,
-                              grid_size = 1000,
+                              grid_size = NULL,
                               survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
@@ -985,7 +985,7 @@ geolink_elevation <- function(iso_code,
 #' @param iso_code A character, the ISO country code for the country of interest.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for analyzing the building data.
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the building data. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
@@ -1018,7 +1018,7 @@ geolink_buildings <- function(version,
                               iso_code,
                               shp_dt,
                               shp_fn = NULL,
-                              grid_size = 1000,
+                              grid_size = NULL,
                               survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
@@ -1133,7 +1133,7 @@ geolink_buildings <- function(version,
 #' @param source A character, the source of cropland data. Default is "WorldCover".
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for analyzing the cropland data.
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the cropland data. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
@@ -1161,7 +1161,7 @@ geolink_buildings <- function(version,
 geolink_cropland <- function(source = "WorldCover",
                              shp_dt,
                              shp_fn = NULL,
-                             grid_size = 1000,
+                             grid_size = NULL,
                              survey_dt,
                              survey_fn = NULL,
                              survey_lat = NULL,
@@ -1215,7 +1215,7 @@ geolink_cropland <- function(source = "WorldCover",
 #' @param res A character, the resolution of the data (e.g., "2.5m", "5m").
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate data.
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate data. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
@@ -1248,7 +1248,7 @@ geolink_worldclim <- function(iso_code,
                               res,
                               shp_dt,
                               shp_fn = NULL,
-                              grid_size = 1000,
+                              grid_size = NULL,
                               survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
@@ -1321,7 +1321,7 @@ geolink_worldclim <- function(iso_code,
 #' @param year A numeric, the year for which data is to be downloaded.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate data.
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate data. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
@@ -1352,7 +1352,7 @@ geolink_terraclimate <- function(var,
                                  year,
                                  shp_dt = NULL,
                                  shp_fn = NULL,
-                                 grid_size = 1000,
+                                 grid_size = NULL,
                                  survey_dt,
                                  survey_fn = NULL,
                                  survey_lat = NULL,
@@ -1470,7 +1470,7 @@ geolink_terraclimate <- function(var,
 #' @param indicator A character, the indicator of interest. Default is "NDVI". Other options are "EVI".
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for pulling the vegetation data.
+#' @param grid_size A numeric, the grid size to be used in meters for pulling the vegetation data. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
@@ -1503,7 +1503,7 @@ geolink_vegindex <- function(time_unit = "monthly",
                              indicator = "NDVI",
                              shp_dt,
                              shp_fn = NULL,
-                             grid_size = 1000,
+                             grid_size = NULL,
                              survey_dt,
                              survey_fn = NULL,
                              survey_lat = NULL,
@@ -1643,7 +1643,7 @@ geolink_vegindex <- function(time_unit = "monthly",
 #' @param indicator A character, the indicator of interest. Indicator must be one of aer-ai, ch4, co, hcho, no2, o3, or so2.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for pulling the vegetation data.
+#' @param grid_size A numeric, the grid size to be used in meters for pulling the vegetation data. Defaults to NULL.
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
 #' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
@@ -1675,7 +1675,7 @@ geolink_pollution <- function(time_unit = "monthly",
                               indicator,
                               shp_dt,
                               shp_fn = NULL,
-                              grid_size = 1000,
+                              grid_size = NULL,
                               survey_dt,
                               survey_fn = NULL,
                               survey_lat = NULL,
