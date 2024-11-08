@@ -80,6 +80,9 @@ geolink_chirps <- function(time_unit,
                            extract_fun = "mean",
                            survey_crs = 4326) {
 
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
+
 
   # start_date <- as.Date(start_date)
   # end_date <- as.Date(end_date)
@@ -240,6 +243,9 @@ geolink_ntl <- function(time_unit = "annual",
                         buffer_size = NULL,
                         survey_crs = 4326){
 
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
+
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
@@ -374,6 +380,8 @@ geolink_landcover <- function(time_unit = "annual",
                               start_date,
                               end_date,
                               shp_dt) {
+
+  shp_dt <- ensure_crs_4326(shp_dt)
 
 
   start_date <- as.Date(start_date)
@@ -560,6 +568,9 @@ geolink_population <- function(start_year = NULL,
                                survey_crs = 4326,
                                file_location = tempdir()) {
 
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
+
   if (!dir.exists(file_location)) {
     dir.create(file_location, recursive = TRUE)
   }
@@ -695,6 +706,8 @@ geolink_get_poi <- function(osm_feature_category,
                             buffer = NULL,
                             stata = FALSE){
 
+  shp_dt <- ensure_crs_4326(shp_dt)
+
   if (!is.null(shp_dsn)) {
     shp_dt <- st_read(shp_dsn)
   }
@@ -779,6 +792,9 @@ geolink_electaccess <- function(start_date = NULL,
                                 buffer_size = NULL,
                                 extract_fun = "mean",
                                 survey_crs = 4326){
+
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
 
 
   start_date <- as.Date(start_date)
@@ -874,6 +890,9 @@ geolink_elevation <- function(iso_code,
                               buffer_size = NULL,
                               extract_fun = "mean",
                               survey_crs = 4326){
+
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
 
   if(!is.null(iso_code)){
     print(paste("Checking data for", iso_code))
@@ -977,6 +996,9 @@ geolink_buildings <- function(version,
                               buffer_size = NULL,
                               extract_fun = "mean",
                               survey_crs = 4326){
+
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
 
   temp_dir <- tempdir()
 
@@ -1122,6 +1144,9 @@ geolink_CMIP6 <- function(var,
                           extract_fun = "mean",
                           survey_crs = 4326){
 
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
+
 
   if (!is.null(shp_dt)) {
     coords <- st_coordinates(shp_dt)
@@ -1220,6 +1245,10 @@ geolink_cropland <- function(source = "WorldCover",
                              buffer_size = NULL,
                              extract_fun = "mean",
                              survey_crs = 4326){
+
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
+
   unlink(tempdir(), recursive = TRUE)
 
   raster_objs <- geodata::cropland(source = source, path = tempdir())
@@ -1302,6 +1331,9 @@ geolink_worldclim <- function(iso_code,
                               buffer_size = NULL,
                               extract_fun = "mean",
                               survey_crs = 4326){
+
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
 
 
   if(!is.null(iso_code)){
@@ -1386,6 +1418,8 @@ geolink_worldclim <- function(iso_code,
 
 # Combined function to calculate tower stats and return the nearest lat/lon for a polygon
 geolink_opencellid <- function(cell_tower_file, shapefile_input) {
+
+  shp_dt <- ensure_crs_4326(shp_dt)
 
   # Load the OpenCellID data
   cell_towers <- read_opencellid_data(cell_tower_file)
@@ -1498,6 +1532,9 @@ geolink_terraclimate <- function(var,
                                  buffer_size = NULL,
                                  extract_fun = "mean",
                                  survey_crs = 4326) {
+
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
 
   unlink(tempdir(), recursive = TRUE)
 
