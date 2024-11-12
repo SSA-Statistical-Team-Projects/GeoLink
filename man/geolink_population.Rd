@@ -14,7 +14,7 @@ geolink_population(
   version = NULL,
   shp_dt,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -44,7 +44,7 @@ geolink_population(
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only)}
 
-\item{grid_size}{A numeric, the grid size to be used in meters}
+\item{grid_size}{A numeric, the grid size to be used in meters. Defaults to NULL.}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.
 a household survey with latitude and longitude values.}
