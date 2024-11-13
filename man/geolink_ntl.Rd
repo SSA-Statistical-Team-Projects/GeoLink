@@ -14,7 +14,7 @@ geolink_ntl(
   slc_type = "vcmslcfg",
   shp_dt,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -47,7 +47,7 @@ are to be estimated}
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only)}
 
-\item{grid_size}{A numeric, the grid size to be used in meters}
+\item{grid_size}{A numeric, the grid size to be used in meters. Defaults to NULL.}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.
 a household survey with latitude and longitude values.}
@@ -64,6 +64,8 @@ if use survey is TRUE)}
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
 \item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
+
+\item{survey_crs}{A numeric, the default is 4326}
 }
 \description{
 Download night lights luminosity at monthly/annual intervals for a specified period
@@ -97,30 +99,22 @@ data("shp_dt")
 #grid tesselation of shapefile at 1000m
 
 df <- geolink_ntl(time_unit = "month",
-                  start_date = "2020-01-01",
-                  end_date = "2020-03-01",
-                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                  version = "v21",
-                  indicator = "average_masked",
-                  grid_size = 1000,
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-                  extract_fun = "mean")
+                 start_date = "2020-01-01",
+                 end_date = "2020-03-01",
+                 shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+                 indicator = "avg_rade9h",
+                 grid_size = 1000,
+                 extract_fun = "mean")
 
 #estimate annual night time luminosity for each household within a 100 meters
 #of it's location
 
 df <- geolink_ntl(time_unit = "annual",
                   start_date = "2020-01-01",
-                  end_date = "2020-03-01",
-                  shp_dt = NULL,
-                  version = "v21",
+                  end_date = "2020-12-01",
+                  shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                   indicator = "average_masked",
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-                  extract_fun = "mean",
-                  buffer_size = 100)
-
-
-
-
+                  grid_size = 1000,
+                  extract_fun = "mean")
 }
 }

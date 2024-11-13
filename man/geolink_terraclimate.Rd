@@ -9,7 +9,7 @@ geolink_terraclimate(
   year,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -28,7 +28,7 @@ geolink_terraclimate(
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only).}
 
-\item{grid_size}{A numeric, the grid size to be used in meters for analyzing the climate data.}
+\item{grid_size}{A numeric, the grid size to be used in meters for analyzing the climate data. Defaults to NULL.}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).}
 
@@ -55,7 +55,8 @@ This function downloads Terraclimate data for a specific variable and year. It a
 \donttest{
 
 # Example usage
-df <- geolink_terraclimate(var ="tmin", year = 2017, shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+df <- geolink_terraclimate(var ="tmin",
+                           year = 2017,
+                           shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 }
-
 }

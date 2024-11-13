@@ -56,7 +56,7 @@ run_geolink(
 
 \item{shp_fn}{A character string specifying the file path for the shapefile (.shp) (optional).}
 
-\item{grid_size}{A numeric value indicating the grid size to be used in meters.}
+\item{grid_size}{A numeric value indicating the grid size to be used in meters. Defaults to NULL.}
 
 \item{survey_dt}{An 'sf' or 'data.frame' object representing a geocoded household survey.}
 
@@ -131,13 +131,13 @@ It dynamically passes all other arguments to the selected function.
      start_date = "2020-01-01",
      end_date = "2020-03-01",
      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001", ],
-     grid_size = 1000,
+     grid_size = NULL,
      survey_dt = hhgeo_dt,
      extract_fun = "mean")
 
 
      df = run_geolink(
-     func_name = "geolink_electaccess"
+     func_name = "geolink_electaccess",
      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 
 

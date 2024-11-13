@@ -6,9 +6,14 @@
 
 #' Convert a raster to data.table object
 #'
-#' This function acts just like the `raster::as.data.frame()` object
+#' @param x An object of class `Raster*`, typically from the `raster` package.
+#' @param row.names (optional) Names for the rows.
+#' @param optional (optional) Logical. If `TRUE`, setting row names in the output is optional.
+#' @param xy (optional) Logical. If `TRUE`, include coordinates of raster cells in the output.
+#' @param inmem (optional) Logical. If `TRUE`, process the raster in memory. Default is determined by `raster::canProcessInMemory()`.
+#'
 #' @param x an object of class `raster`.
-#' @inheritParams raster::as.data.frame()
+#' @inheritParams raster::as.data.frame
 #'
 #' @export
 
