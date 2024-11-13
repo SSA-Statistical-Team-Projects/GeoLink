@@ -155,3 +155,16 @@ read_opencellid_data <- function(file_path) {
 
   return(cell_towers)
 }
+
+ensure_crs_4326 <- function(gdf) {
+  if (is.null(sf::st_crs(gdf))) {
+    message("CRS is missing. Setting to EPSG:4326.")
+    gdf <- sf::st_set_crs(gdf, 4326)
+  } else if (sf::st_crs(gdf)$epsg != 4326) {
+    message(paste("Reprojecting from", sf::st_crs(gdf)$epsg, "to EPSG:4326."))
+    gdf <- sf::st_transform(gdf, 4326)
+  } else {
+    message("CRS is already EPSG:4326.")
+  }
+  return(gdf)
+}
