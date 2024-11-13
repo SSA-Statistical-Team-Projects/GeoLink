@@ -9,7 +9,8 @@ test_that("Buildings works using a shapefile:", {
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
                                                   shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                                                  indicators = "ALL")
+                                                  indicators = "ALL",
+                                                  grid_size = 1000)
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -53,7 +54,8 @@ test_that("Population works using a survey :", {
                                                                         crs = 4326),
                                                   indicators = "ALL",
                                                    buffer_size = 1000,
-                                                   extract_fun = "mean")
+                                                   extract_fun = "mean",
+                                                  grid_size = 1000)
 
   })
 
@@ -92,7 +94,8 @@ test_that("Buildings works with one indicator:", {
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
                                                   shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                                                  indicators = "urban")
+                                                  indicators = "urban",
+                                                  grid_size = 1000)
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -125,7 +128,8 @@ test_that("Buildings works with two indicator:", {
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
                                                   shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                                                  indicators = c("urban", "count"))
+                                                  indicators = c("urban", "count"),
+                                                  grid_size = 1000)
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
