@@ -38,9 +38,8 @@ Details for feature category and sub-category can be found here: https://wiki.op
 
 
 df <- geolink_get_poi(osm_feature_category = "building",
-osm_feature_subcategory ="farm",
-shp_dt = shp_dt)
+                      osm_feature_subcategory = "farm",
+                      shp_dt = shp_dt)
 
 }
-
 }

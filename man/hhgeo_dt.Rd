@@ -3,21 +3,15 @@
 \docType{data}
 \name{hhgeo_dt}
 \alias{hhgeo_dt}
-\title{Nigeria GHS 2018/19 data}
+\title{Nigeria GHS 2018/19 Data}
 \format{
-## `hhgeo_dt`
-
-An `data.table`, `data.frame` with 5116 rows and 42 variables:
-
+A `data.table` and `data.frame` object with 5116 rows and 42 variables:
 \describe{
- \item{hhid}{Household ID}
- \item{dist_road2}{Distance to Nearest Road}
- \item{dist_popcenter2}{Distance to population center}
- ... see <https://microdata.worldbank.org/index.php/catalog/3557/related-materials>
- for the complete set of variables
- \item{geometry}{POINT location of each household}
-
-
+  \item{hhid}{Household ID}
+  \item{dist_road2}{Distance to the nearest road}
+  \item{dist_popcenter2}{Distance to the nearest population center}
+  \item{geometry}{POINT location of each household}
+  \item{...}{For a complete list of variables, see <https://microdata.worldbank.org/index.php/catalog/3557/related-materials>}
 }
 }
 \source{
@@ -27,7 +21,6 @@ An `data.table`, `data.frame` with 5116 rows and 42 variables:
 hhgeo_dt
 }
 \description{
-The full household geovars dataset from Nigerian General Household Survey 2018/19
-dataset.
+The full household geovars dataset from the Nigerian General Household Survey 2018/19.
 }
 \keyword{datasets}
