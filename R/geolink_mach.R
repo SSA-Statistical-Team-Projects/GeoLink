@@ -381,8 +381,6 @@ geolink_landcover <- function(time_unit = "annual",
                               end_date,
                               shp_dt) {
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -396,26 +394,81 @@ geolink_landcover <- function(time_unit = "annual",
     get_request() %>%
     items_sign(sign_fn = sign_planetary_computer())
 
+
+  # Filter out features with bbox containing 180 or -180
+  filter_features <- function(feature) {
+    bbox <- feature$bbox
+
+    # Check if bbox contains 180 or -180
+    if (any(bbox %in% c(180, -180))) {
+      return(FALSE)
+    }
+    return(TRUE)
+  }
+
+  # Apply feature filtering
+  it_obj$features <- it_obj$features[sapply(it_obj$features, filter_features)]
+
+
   url_list <- lapply(1:length(it_obj$features),
                      function(x) {
                        url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$data$href)
                        return(url)
                      })
 
-  # Load rasters without projecting initially
-  raster_objs <- lapply(url_list, terra::rast)
 
-  # Name rasters
-  raster_list <- lapply(seq_along(raster_objs), function(i) {
-    setNames(raster_objs[[i]], as.character(i))
+  # Verify each URL is valid and accessible
+  lapply(url_list, function(url) {
+    tryCatch({
+      rast(url)
+    }, error = function(e) {
+      cat("Error with URL:", url, "\n")
+      cat("Error message:", e$message, "\n")
+      return(NULL)
+    })
   })
 
-  # Ensure shapefile CRS matches raster CRS for consistency
-  raster_crs <- terra::crs(raster_objs[[1]])
-  shp_dt_transformed <- st_transform(shp_dt, crs = raster_crs)
+  # Alternative loading method
+  raster_objs <- list()
+  for(url in url_list) {
+    tryCatch({
+      raster_objs[[url]] <- terra::rast(url)
+    }, error = function(e) {
+      warning(paste("Could not load raster from", url, ":", e$message))
+    })
+  }
 
-  # Filter raster objects using the filter_tiles function
-  raster_objs <- filter_tiles_landcover(raster_list, dt = shp_dt_transformed)
+
+  # Name rasters with their corresponding date ranges
+  raster_list <- lapply(seq_along(raster_objs), function(i) {
+    # Extract start and end dates from the corresponding feature
+    start_date <- it_obj$features[[i]]$properties$start_datetime
+    end_date <- it_obj$features[[i]]$properties$end_datetime
+
+    # Format the dates to only keep the date part (YYYY-MM-DD)
+    start_date_formatted <- substr(start_date, 1, 10)  # Extracting "YYYY-MM-DD"
+    end_date_formatted <- substr(end_date, 1, 10)      # Extracting "YYYY-MM-DD"
+
+    # Create name using date range
+    raster_name <- paste(start_date_formatted, "/", end_date_formatted, sep = "")
+
+    setNames(raster_objs[[i]], raster_name)
+  })
+
+
+  # Transform the shapefile to the raster's CRS
+  projected_shapefile <- st_transform(shapefile, crs = st_crs(crs(raster_objs[[1]])))
+
+  # Create cropped rasters for each raster object
+  cropped_rasters <- lapply(raster_objs, function(raster_obj) {
+    # Crop the raster to the extent of the shapefile
+    cropped_raster <- crop(raster_obj, ext(projected_shapefile))
+
+    # Optional: mask the raster if you want to clip to shapefile boundary
+    # cropped_raster <- mask(cropped_raster, projected_shapefile)
+
+    return(cropped_raster)
+  })
 
 
   # Extract file values
@@ -438,11 +491,11 @@ geolink_landcover <- function(time_unit = "annual",
   proportions_list <- list()
 
   # Apply the summarizing function to each filtered raster and combine results
-  for (i in seq_along(raster_objs)) {
+  for (i in seq_along(cropped_rasters)) {
     print(paste("Processing raster:", i))
 
     # Extract values from raster that intersect with transformed shapefile
-    extracted_values <- exact_extract(raster_objs[[i]], shp_dt_transformed, coverage_area = TRUE)
+    extracted_values <- exact_extract(cropped_rasters[[i]], projected_shapefile, coverage_area = TRUE)
 
     # Debug: Check the extracted values structure
     if (length(extracted_values) == 0) {
@@ -1234,57 +1287,84 @@ geolink_CMIP6 <- function(var,
 #' df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #' }
 #'
-geolink_cropland <- function(source = "WorldCover",
-                             shp_dt,
-                             shp_fn = NULL,
-                             grid_size = 1000,
-                             survey_dt,
-                             survey_fn = NULL,
-                             survey_lat = NULL,
-                             survey_lon = NULL,
-                             buffer_size = NULL,
-                             extract_fun = "mean",
-                             survey_crs = 4326){
 
+geolink_cropland <- function(
+    source = "WorldCover",
+    shp_dt,
+    shp_fn = NULL,
+    grid_size = 1000,
+    survey_dt,
+    survey_fn = NULL,
+    survey_lat = NULL,
+    survey_lon = NULL,
+    buffer_size = NULL,
+    extract_fun = "mean",
+    survey_crs = 4326
+) {
+  # Ensure consistent CRS
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
 
+  # Clear temporary directory
   unlink(tempdir(), recursive = TRUE)
 
-  raster_objs <- geodata::cropland(source = source, path = tempdir())
+  # Get bounding box of shapefile
+  bbox <- sf::st_bbox(shp_dt)
 
-  name_set <- "cropland"
+  # Download cropland data with bbox
+  raster_objs <- tryCatch({
+    # Add bbox parameter to limit download
+    geodata::cropland(
+      source = source,
+      path = tempdir(),
+      ext = c(bbox["xmin"], bbox["xmax"], bbox["ymin"], bbox["ymax"])
+    )
+  }, error = function(e) {
+    warning("Failed to download cropland data: ", e$message)
+    return(NULL)
+  })
 
-  epsg_4326 <- "+init=EPSG:4326"
-
-  terra::crs(raster_objs) <- epsg_4326
-  if (is.null(crs(raster_objs))) {
-    print("Projection failed for raster")
-  } else {
-    print(paste("Raster projected successfully."))
+  # Check if raster download was successful
+  if (is.null(raster_objs)) {
+    stop("Could not download cropland raster data")
   }
 
+  # Set CRS
+  epsg_4326 <- "+init=EPSG:4326"
+  terra::crs(raster_objs) <- epsg_4326
+
+  # Verify CRS
+  if (is.null(terra::crs(raster_objs))) {
+    print("Projection failed for raster")
+  } else {
+    print("Raster projected successfully.")
+  }
+
+  # Convert to list
   raster_list <- as.list(raster_objs)
 
   print("WorldCover Raster Downloaded")
 
-  df <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size,
-                               survey_dt = survey_dt,
-                               survey_fn = survey_fn,
-                               survey_lat = survey_lat,
-                               survey_lon = survey_lon,
-                               extract_fun = extract_fun,
-                               buffer_size = buffer_size,
-                               survey_crs = survey_crs,
-                               name_set = name_set)
-
+  # Process downloaded data
+  df <- postdownload_processor(
+    shp_dt = shp_dt,
+    raster_objs = raster_list,
+    shp_fn = shp_fn,
+    grid_size = grid_size,
+    survey_dt = survey_dt,
+    survey_fn = survey_fn,
+    survey_lat = survey_lat,
+    survey_lon = survey_lon,
+    extract_fun = extract_fun,
+    buffer_size = buffer_size,
+    survey_crs = survey_crs,
+    name_set = "cropland"
+  )
 
   print("Process Complete!!!")
 
-  return(df)}
+  return(df)
+}
 
 #' Download WorldClim climate data
 #'
@@ -1589,10 +1669,8 @@ geolink_terraclimate <- function(var,
 
     #num_layers <- nlayers(raster_stack)
     num_layers <- terra::nlyr(rasters_combined)
-    print(raster_list)
 
     months <- month.abb
-    print(months)
 
 
     name_set <- paste0(var, "_", months)

@@ -1,4 +1,4 @@
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, httr, ncdf4, rgdal, exactextractr, parallel)
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, httr, ncdf4, rgdal, exactextractr, parallel, future, furrr)
 
 
 geolink_landcover <- function(time_unit = "annual",
@@ -19,26 +19,81 @@ geolink_landcover <- function(time_unit = "annual",
     get_request() %>%
     items_sign(sign_fn = sign_planetary_computer())
 
+
+  # Filter out features with bbox containing 180 or -180
+  filter_features <- function(feature) {
+    bbox <- feature$bbox
+
+    # Check if bbox contains 180 or -180
+    if (any(bbox %in% c(180, -180))) {
+      return(FALSE)
+    }
+    return(TRUE)
+  }
+
+  # Apply feature filtering
+  it_obj$features <- it_obj$features[sapply(it_obj$features, filter_features)]
+
+
   url_list <- lapply(1:length(it_obj$features),
                      function(x) {
                        url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$data$href)
                        return(url)
                      })
 
-  # Load rasters without projecting initially
-  raster_objs <- lapply(url_list, terra::rast)
 
-  # Name rasters
-  raster_list <- lapply(seq_along(raster_objs), function(i) {
-    setNames(raster_objs[[i]], as.character(i))
+  # Verify each URL is valid and accessible
+  lapply(url_list, function(url) {
+    tryCatch({
+      rast(url)
+    }, error = function(e) {
+      cat("Error with URL:", url, "\n")
+      cat("Error message:", e$message, "\n")
+      return(NULL)
+    })
   })
 
-  # Ensure shapefile CRS matches raster CRS for consistency
-  raster_crs <- terra::crs(raster_objs[[1]])
-  shp_dt_transformed <- st_transform(shp_dt, crs = raster_crs)
+  # Alternative loading method
+  raster_objs <- list()
+  for(url in url_list) {
+    tryCatch({
+      raster_objs[[url]] <- terra::rast(url)
+    }, error = function(e) {
+      warning(paste("Could not load raster from", url, ":", e$message))
+    })
+  }
 
-  # Filter raster objects using the filter_tiles function
-  raster_objs <- filter_tiles_landcover(raster_list, dt = shp_dt_transformed)
+
+  # Name rasters with their corresponding date ranges
+  raster_list <- lapply(seq_along(raster_objs), function(i) {
+    # Extract start and end dates from the corresponding feature
+    start_date <- it_obj$features[[i]]$properties$start_datetime
+    end_date <- it_obj$features[[i]]$properties$end_datetime
+
+    # Format the dates to only keep the date part (YYYY-MM-DD)
+    start_date_formatted <- substr(start_date, 1, 10)  # Extracting "YYYY-MM-DD"
+    end_date_formatted <- substr(end_date, 1, 10)      # Extracting "YYYY-MM-DD"
+
+    # Create name using date range
+    raster_name <- paste(start_date_formatted, "/", end_date_formatted, sep = "")
+
+    setNames(raster_objs[[i]], raster_name)
+  })
+
+
+  # Transform the shapefile to the raster's CRS
+  projected_shapefile <- st_transform(shapefile, crs = st_crs(crs(raster_objs[[1]])))
+
+  # Create cropped rasters for each raster object
+  cropped_rasters <- lapply(raster_objs, function(raster_obj) {
+    # Crop the raster to the extent of the shapefile
+    cropped_raster <- crop(raster_obj, ext(projected_shapefile))
+
+    # Optional: mask the raster if you want to clip to shapefile boundary
+    # cropped_raster <- mask(cropped_raster, projected_shapefile)
+
+    return(cropped_raster)
+  })
 
 
   # Extract file values
@@ -61,11 +116,11 @@ geolink_landcover <- function(time_unit = "annual",
   proportions_list <- list()
 
   # Apply the summarizing function to each filtered raster and combine results
-  for (i in seq_along(raster_objs)) {
+  for (i in seq_along(cropped_rasters)) {
     print(paste("Processing raster:", i))
 
     # Extract values from raster that intersect with transformed shapefile
-    extracted_values <- exact_extract(raster_objs[[i]], shp_dt_transformed, coverage_area = TRUE)
+    extracted_values <- exact_extract(cropped_rasters[[i]], projected_shapefile, coverage_area = TRUE)
 
     # Debug: Check the extracted values structure
     if (length(extracted_values) == 0) {
@@ -109,4 +164,4 @@ geolink_landcover <- function(time_unit = "annual",
 # Example usage (assuming shp_dt is correctly loaded as an sf object with a column named ADM1_EN)
 df <- geolink_landcover(start_date = "2020-01-01",
                         end_date = "2020-03-01",
-                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+                        shp_dt = shapefile)
