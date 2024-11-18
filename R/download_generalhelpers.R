@@ -157,14 +157,49 @@ read_opencellid_data <- function(file_path) {
 }
 
 ensure_crs_4326 <- function(gdf) {
-  if (is.null(sf::st_crs(gdf))) {
-    message("CRS is missing. Setting to EPSG:4326.")
-    gdf <- sf::st_set_crs(gdf, 4326)
-  } else if (sf::st_crs(gdf)$epsg != 4326) {
-    message(paste("Reprojecting from", sf::st_crs(gdf)$epsg, "to EPSG:4326."))
-    gdf <- sf::st_transform(gdf, 4326)
-  } else {
-    message("CRS is already EPSG:4326.")
+  # Check if input is NULL or NA
+  if (is.null(gdf) || length(gdf) == 0) {
+    warning("Input geodataframe is NULL or empty. Returning NULL.")
+    return(NULL)
   }
+
+  # Check if input is a valid sf or sfc object
+  if (!inherits(gdf, c("sf", "sfc"))) {
+    # Attempt to convert to sf if possible
+    tryCatch({
+      gdf <- sf::st_as_sf(gdf)
+    }, error = function(e) {
+      stop("Input must be an sf or sfc object and cannot be converted.")
+    })
+  }
+
+  # Check current CRS
+  current_crs <- sf::st_crs(gdf)
+
+  # If CRS is completely missing
+  if (is.na(current_crs)) {
+    message("CRS is missing. Setting to EPSG:4326.")
+    return(sf::st_set_crs(gdf, 4326))
+  }
+
+  # If CRS is not 4326
+  if (is.na(current_crs$epsg) || current_crs$epsg != 4326) {
+    # Handle cases with unknown or different CRS
+    message(paste("Reprojecting from",
+                  ifelse(is.na(current_crs$epsg),
+                         "unknown CRS",
+                         as.character(current_crs$epsg)),
+                  "to EPSG:4326."))
+
+    # Safely attempt transformation
+    tryCatch({
+      return(sf::st_transform(gdf, 4326))
+    }, error = function(e) {
+      stop("Unable to transform CRS. Check your spatial data.")
+    })
+  }
+
+  # If already in 4326
+  message("CRS is already EPSG:4326.")
   return(gdf)
 }
