@@ -1201,18 +1201,18 @@ geolink_buildings <- function(version,
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_CMIP6(var = "temperature", res = "2.5m", model = "ACCESS-ESM1-5", ssp = "ssp126", time = "2020-2049", shp_dt = shp_dt)
+#' df <- geolink_CMIP6(start_date = "2019-01-01", end_date = "2019-12-31",
+#'                       scenario = "ssp245", desired_models = "UKESM1-0-LL",
+#'                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
-#' bio10 <- geolink_CMIP6(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],"CNRM-CM6-1", "585", "2061-2080", var="bioc", res=10)
+#'
 #' }
 #'
 
-
-geolink_CMIP6 <- function(var,
-                          res,
-                          model,
-                          ssp,
-                          time,
+geolink_CMIP6 <- function(start_date,
+                          end_date,
+                          scenario,
+                          desired_models,
                           shp_dt,
                           shp_fn = NULL,
                           grid_size = 1000,
@@ -1222,67 +1222,135 @@ geolink_CMIP6 <- function(var,
                           survey_lon = NULL,
                           buffer_size = NULL,
                           extract_fun = "mean",
-                          survey_crs = 4326){
+                          survey_crs = 4326) {
 
+  # Ensure shapefile and survey are in the correct CRS
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
 
+  # Set date range
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
 
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
-  }
+  # Create STAC connection
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
+  # Retrieve URLs for the specified scenario
+  it_obj <- s_obj %>%
+    stac_search(
+      collections = "nasa-nex-gddp-cmip6",
+      bbox = sf::st_bbox(shp_dt),
+      datetime = paste(start_date, end_date, sep = "/")
+    ) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
 
-  data <- cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
+  # Filter features based on the scenario and desired models
+  filtered_features <- Filter(function(feature) {
+    feature$properties$`cmip6:scenario` == scenario &&
+      feature$properties$`cmip6:model` %in% desired_models
+  }, it_obj$features)
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  # Extract URLs for each feature
+  urls <- lapply(seq_along(filtered_features), function(x) {
+    list(
+      scenario = scenario,
+      pr = filtered_features[[x]]$assets$pr$href,
+      tas = filtered_features[[x]]$assets$tas$href,
+      hurs = filtered_features[[x]]$assets$hurs$href,
+      huss = filtered_features[[x]]$assets$huss$href,
+      rlds = filtered_features[[x]]$assets$rlds$href,
+      rsds = filtered_features[[x]]$assets$rsds$href,
+      tasmax = filtered_features[[x]]$assets$tasmax$href,
+      tasmin = filtered_features[[x]]$assets$tasmin$href,
+      sfcWind = filtered_features[[x]]$assets$sfcWind$href
+    )
+  })
 
-  raster_list <- lapply(tif_files, terra::rast)
+  # Function to process rasters and calculate yearly averages
+  process_rasters_and_aggregate <- function(urls, filtered_features) {
+    temp_dir <- tempdir()  # Temporary directory
+    variables <- c("pr", "tas", "hurs", "huss", "rlds", "rsds", "tasmax", "tasmin", "sfcWind")
+    raster_list <- list()  # Initialize raster storage
 
-  epsg_4326 <- "+init=EPSG:4326"
+    pb <- progress_bar$new(
+      total = length(urls) * length(variables),
+      format = "  Downloading and Processing [:bar] :percent (:current/:total)"
+    )
 
-  for (i in seq_along(raster_list)) {
-    terra::crs(raster_list[[i]]) <- epsg_4326
-    if (is.null(terra::crs(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
+    for (i in seq_along(urls)) {
+      model <- filtered_features[[i]]$properties$`cmip6:model`
+      year <- filtered_features[[i]]$properties$`cmip6:year`
+      scenario <- urls[[i]]$scenario
+
+      current_rasters <- list()
+
+      for (var in variables) {
+        pb$tick()
+
+        url <- urls[[i]][[var]]
+        if (is.null(url)) next
+
+        temp_file <- file.path(temp_dir, paste0(model, "_", var, "_", year, ".nc"))
+        tryCatch({
+          GET(url, write_disk(temp_file, overwrite = TRUE))
+          raster <- rast(temp_file)
+
+          if (nlyr(raster) == 360) {
+            time_indices <- as.numeric(format(time(raster), "%Y"))
+            yearly_raster <- tapp(raster, index = time_indices, fun = "mean", na.rm = TRUE)
+            current_rasters[[var]] <- yearly_raster
+          }
+        }, error = function(e) {
+          warning(paste("Error processing", var, "for model", model, "year", year, ":", e$message))
+        })
+      }
+
+      if (length(current_rasters) > 0) {
+        label <- paste0(model, "_", year, "_", scenario)
+        raster_list[[label]] <- current_rasters
+      }
     }
+
+    return(raster_list)
   }
 
-  name_set <- paste0("elevation_")
+  # Process the raster data
+  raster_list <- process_rasters_and_aggregate(urls, filtered_features)
+  raster_objs <- unlist(raster_list, recursive = FALSE)
+
+  # Generate name_set for variables and years
+  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+
+  name_set <- unlist(lapply(year_sequence, function(year) {
+    paste0(c("pr_", "tas_", "hurs_", "huss_", "rlds_", "rsds_", "tasmax_", "tasmin_", "sfcWind_"), year)
+  }))
+
+  # Create the final dataframe using postdownload_processor
+  dt <- postdownload_processor(
+    shp_dt = shp_dt,
+    raster_objs = raster_objs,
+    shp_fn = shp_fn,
+    grid_size = grid_size,
+    survey_dt = survey_dt,
+    survey_fn = survey_fn,
+    survey_lat = survey_lat,
+    survey_lon = survey_lon,
+    extract_fun = extract_fun,
+    buffer_size = buffer_size,
+    survey_crs = survey_crs,
+    name_set = name_set
+  )
+
+  # Save the dataframe in the global environment
+  assign("geolink_CMIP6_output", dt, envir = .GlobalEnv)
+
+  print("Process Complete! DataFrame saved as 'geolink_CMIP6_output' in the environment.")
+
+  return(dt)
+}
 
 
-  print("CMIP6  Raster Downloaded")
-
-  dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size,
-                               survey_dt = survey_dt,
-                               survey_fn = survey_fn,
-                               survey_lat = survey_lat,
-                               survey_lon = survey_lon,
-                               extract_fun = extract_fun,
-                               buffer_size = buffer_size,
-                               survey_crs = survey_crs,
-                               name_set = name_set)
-
-
-  print("Process Complete!!!")
-
-  return(df)}
 
 #' Download cropland data
 #'
