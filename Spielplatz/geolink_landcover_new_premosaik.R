@@ -1,5 +1,3 @@
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, httr, ncdf4, rgdal, exactextractr, parallel, future, furrr)
-
 
 geolink_landcover <- function(time_unit = "annual",
                               start_date,
@@ -80,9 +78,19 @@ geolink_landcover <- function(time_unit = "annual",
     setNames(raster_objs[[i]], raster_name)
   })
 
+  # Ensure `shp_dt` is a SpatVector
+  if (inherits(shp_dt, "sf")) {
+    shp_dt <- vect(shp_dt)  # Convert sf to SpatVector
+  } else if (is.character(shp_dt)) {
+    shp_dt <- vect(shp_dt)  # Load from file path
+  } else if (!inherits(shp_dt, "SpatVector")) {
+    stop("`shp_dt` must be a SpatVector, sf object, or file path.")
+  }
 
-  # Transform the shapefile to the raster's CRS
-  projected_shapefile <- st_transform(shapefile, crs = st_crs(crs(raster_objs[[1]])))
+  # Transform shapefile CRS to raster CRS
+  raster_crs <- crs(raster_objs[[1]])
+  projected_shapefile <- project(shp_dt, raster_crs)
+
 
   # Create cropped rasters for each raster object
   cropped_rasters <- lapply(raster_objs, function(raster_obj) {
@@ -111,6 +119,8 @@ geolink_landcover <- function(time_unit = "annual",
 
   # Create a named vector for class values with class names as names
   class_values_named <- setNames(class_values, class_names)
+
+  projected_shapefile <- sf::st_as_sf(projected_shapefile)
 
   # Initialize a list to store proportions for each class
   proportions_list <- list()
@@ -160,8 +170,3 @@ geolink_landcover <- function(time_unit = "annual",
   # Return the proportions table along with other information
   return(proportions_df)
 }
-
-# Example usage (assuming shp_dt is correctly loaded as an sf object with a column named ADM1_EN)
-df <- geolink_landcover(start_date = "2020-01-01",
-                        end_date = "2020-03-01",
-                        shp_dt = region_shp)

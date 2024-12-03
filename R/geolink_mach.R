@@ -72,7 +72,7 @@ geolink_chirps <- function(time_unit,
                            shp_dt,
                            shp_fn = NULL,
                            grid_size = 1000,
-                           survey_dt,
+                           survey_dt = NULL,
                            survey_fn = NULL,
                            survey_lat = NULL,
                            survey_lon = NULL,
@@ -235,7 +235,7 @@ geolink_ntl <- function(time_unit = "annual",
                         shp_dt,
                         shp_fn = NULL,
                         grid_size = 1000,
-                        survey_dt,
+                        survey_dt = NULL,
                         survey_fn = NULL,
                         survey_lat = NULL,
                         survey_lon = NULL,
@@ -382,157 +382,140 @@ geolink_landcover <- function(time_unit = "annual",
                               shp_dt) {
 
 
+  # Convert dates
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
+  # STAC search
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
   it_obj <- s_obj %>%
-    stac_search(collections = "io-lulc-annual-v02",
-                bbox = sf::st_bbox(shp_dt),
-                datetime = paste(start_date, end_date, sep = "/")) %>%
+    stac_search(
+      collections = "io-lulc-annual-v02",
+      bbox = sf::st_bbox(shp_dt),
+      datetime = paste(start_date, end_date, sep = "/")
+    ) %>%
     get_request() %>%
     items_sign(sign_fn = sign_planetary_computer())
 
-
-  # Filter out features with bbox containing 180 or -180
+  # Filter out features with problematic bounding boxes
   filter_features <- function(feature) {
     bbox <- feature$bbox
-
-    # Check if bbox contains 180 or -180
-    if (any(bbox %in% c(180, -180))) {
-      return(FALSE)
-    }
-    return(TRUE)
+    !any(bbox %in% c(180, -180))
   }
-
-  # Apply feature filtering
   it_obj$features <- it_obj$features[sapply(it_obj$features, filter_features)]
 
-
-  url_list <- lapply(1:length(it_obj$features),
-                     function(x) {
-                       url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$data$href)
-                       return(url)
-                     })
-
-
-  # Verify each URL is valid and accessible
-  lapply(url_list, function(url) {
-    tryCatch({
-      rast(url)
-    }, error = function(e) {
-      cat("Error with URL:", url, "\n")
-      cat("Error message:", e$message, "\n")
-      return(NULL)
-    })
-  })
-
-  # Alternative loading method
-  raster_objs <- list()
-  for(url in url_list) {
-    tryCatch({
-      raster_objs[[url]] <- terra::rast(url)
-    }, error = function(e) {
-      warning(paste("Could not load raster from", url, ":", e$message))
-    })
+  # Check if any features are found
+  if (length(it_obj$features) == 0) {
+    stop("No suitable raster features found for the given date range and shapefile.")
   }
 
+  # Temporary directory for downloads
+  temp_dir <- tempdir()
 
-  # Name rasters with their corresponding date ranges
-  raster_list <- lapply(seq_along(raster_objs), function(i) {
-    # Extract start and end dates from the corresponding feature
-    start_date <- it_obj$features[[i]]$properties$start_datetime
-    end_date <- it_obj$features[[i]]$properties$end_datetime
+  # Download and organize rasters
+  raster_year_map <- list()
 
-    # Format the dates to only keep the date part (YYYY-MM-DD)
-    start_date_formatted <- substr(start_date, 1, 10)  # Extracting "YYYY-MM-DD"
-    end_date_formatted <- substr(end_date, 1, 10)      # Extracting "YYYY-MM-DD"
-
-    # Create name using date range
-    raster_name <- paste(start_date_formatted, "/", end_date_formatted, sep = "")
-
-    setNames(raster_objs[[i]], raster_name)
-  })
-
-
-  # Transform the shapefile to the raster's CRS
-  projected_shapefile <- st_transform(shapefile, crs = st_crs(crs(raster_objs[[1]])))
-
-  # Create cropped rasters for each raster object
-  cropped_rasters <- lapply(raster_objs, function(raster_obj) {
-    # Crop the raster to the extent of the shapefile
-    cropped_raster <- crop(raster_obj, ext(projected_shapefile))
-
-    # Optional: mask the raster if you want to clip to shapefile boundary
-    # cropped_raster <- mask(cropped_raster, projected_shapefile)
-
-    return(cropped_raster)
-  })
-
-
-  # Extract file values
-  file_values <- it_obj$features[[1]]$assets$data$`file:values`
-
-  # Initialize vectors for class names and class values
-  class_names <- c()
-  class_values <- c()
-
-  # Iterate over the list to populate class names and values
-  for (item in file_values) {
-    class_values <- c(class_values, item$values)
-    class_names <- c(class_names, item$summary)
-  }
-
-  # Create a named vector for class values with class names as names
-  class_values_named <- setNames(class_values, class_names)
-
-  # Initialize a list to store proportions for each class
-  proportions_list <- list()
-
-  # Apply the summarizing function to each filtered raster and combine results
-  for (i in seq_along(cropped_rasters)) {
-    print(paste("Processing raster:", i))
-
-    # Extract values from raster that intersect with transformed shapefile
-    extracted_values <- exact_extract(cropped_rasters[[i]], projected_shapefile, coverage_area = TRUE)
-
-    # Debug: Check the extracted values structure
-    if (length(extracted_values) == 0) {
-      warning("No values extracted for raster ", i)
-      proportions_list[[i]] <- rep(0, length(class_values))
+  for (i in seq_along(it_obj$features)) {
+    if (is.null(it_obj$features[[i]]$assets$data$href)) {
       next
     }
 
-    # Calculate total coverage area for normalization
+    year <- format(as.Date(it_obj$features[[i]]$properties$start_datetime), "%Y")
+    url <- it_obj$features[[i]]$assets$data$href
+    raster_path <- file.path(temp_dir, paste0(year, "_", i, "_raster.tif"))
+
+    tryCatch({
+      download.file(url, raster_path, mode = "wb")
+
+      if (!year %in% names(raster_year_map)) {
+        raster_year_map[[year]] <- list()
+      }
+      raster_year_map[[year]] <- c(raster_year_map[[year]], raster_path)
+    }, error = function(e) {
+      warning(paste("Could not download raster for year", year, ":", e$message))
+    })
+  }
+
+  # Integrated mosaic_rasters function
+  mosaic_rasters <- function(raster_paths, output_crs = "EPSG:4326", mosaic_fun = "mean") {
+    if (length(raster_paths) < 1) {
+      stop("Provide at least one raster path for mosaicking.")
+    }
+
+    # Read all rasters and align them
+    raster_list <- lapply(raster_paths, function(path) {
+      r <- terra::rast(path)
+      return(r)
+    })
+
+    # Ensure consistent CRS
+    raster_list <- lapply(raster_list, function(r) {
+      terra::project(r, output_crs)
+    })
+
+    # Align rasters to a common resolution and extent
+    if (length(raster_list) == 1) {
+      return(raster_list[[1]])
+    }
+
+    aligned_rasters <- terra::mosaic(raster_list[[1]], raster_list[[2]], fun = mosaic_fun)
+
+    if (length(raster_list) > 2) {
+      for (i in 3:length(raster_list)) {
+        tryCatch({
+          aligned_rasters <- terra::mosaic(aligned_rasters, raster_list[[i]], fun = mosaic_fun)
+        }, error = function(e) {
+          warning(paste("Could not mosaic raster:", raster_paths[[i]], "Attempting merge"))
+          aligned_rasters <- terra::merge(aligned_rasters, raster_list[[i]])
+        })
+      }
+    }
+
+    return(aligned_rasters)
+  }
+
+  # Mosaic rasters for each year
+  mosaicked_rasters <- lapply(names(raster_year_map), function(year) {
+    cat("Mosaicking rasters for year:", year, "\n")
+    mosaic_rasters(raster_year_map[[year]])
+  })
+  names(mosaicked_rasters) <- names(raster_year_map)
+
+  # Transform shapefile
+  projected_shapefile <- sf::st_transform(shp_dt, crs = sf::st_crs("EPSG:4326"))
+
+  # Crop rasters
+  cropped_rasters <- lapply(mosaicked_rasters, function(raster_obj) {
+    terra::crop(raster_obj, terra::ext(projected_shapefile))
+  })
+
+  # Extract land cover proportions
+  file_values <- it_obj$features[[1]]$assets$data$`file:values`
+  class_values <- unlist(lapply(file_values, `[[`, "values"))
+  class_names <- unlist(lapply(file_values, `[[`, "summary"))
+
+  proportions_list <- lapply(cropped_rasters, function(raster) {
+    extracted_values <- exactextractr::exact_extract(raster, projected_shapefile, coverage_area = TRUE)
     total_area <- sum(sapply(extracted_values, function(ev) sum(ev$coverage_area, na.rm = TRUE)))
 
-    if (total_area == 0) {
-      warning("Total area is zero for raster ", i)
-      proportions_list[[i]] <- rep(0, length(class_values))
-      next
-    }
+    if (total_area == 0) return(NULL)
 
-    # Summarize the extracted values into proportions for each class
     class_proportions <- sapply(class_values, function(class_val) {
       class_area <- sum(sapply(extracted_values, function(ev) {
         sum(ev$coverage_area[ev$value == class_val], na.rm = TRUE)
       }))
-      class_proportion <- (class_area / total_area)*100
-      return(class_proportion)
+      (class_area / total_area) * 100
     })
 
-    # Append the proportions for the current raster to the list
-    proportions_list[[i]] <- class_proportions
-  }
+    class_proportions
+  })
 
-  # Combine the proportions for all rasters into a data frame
+  # Remove NULL entries and create dataframe
+  proportions_list <- proportions_list[!sapply(proportions_list, is.null)]
   proportions_df <- do.call(rbind, proportions_list)
-
-  # Set column names to class names
   colnames(proportions_df) <- class_names
 
-  # Return the proportions table along with other information
   return(proportions_df)
 }
 
@@ -612,7 +595,7 @@ geolink_population <- function(start_year = NULL,
                                shp_dt = NULL,
                                shp_fn = NULL,
                                grid_size = 1000,
-                               survey_dt,
+                               survey_dt = NULL,
                                survey_fn = NULL,
                                survey_lat = NULL,
                                survey_lon = NULL,
@@ -828,78 +811,105 @@ geolink_get_poi <- function(osm_feature_category,
 #'\donttest{
 #'
 #'
-#' df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#' df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",], start_date = "2018-12-31", end_date = "2019-12-31")
 #'
 #' }
 #'
 
-geolink_electaccess <- function(start_date = NULL,
-                                end_date = NULL,
-                                shp_dt = NULL,
-                                shp_fn = NULL,
-                                grid_size = 1000,
-                                survey_dt,
-                                survey_fn = NULL,
-                                survey_lat = NULL,
-                                survey_lon = NULL,
-                                buffer_size = NULL,
-                                extract_fun = "mean",
-                                survey_crs = 4326){
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
-
+geolink_electaccess <- function(
+    start_date = NULL,
+    end_date = NULL,
+    shp_dt = NULL,
+    shp_fn = NULL,
+    grid_size = 1000,
+    survey_dt = NULL,
+    survey_fn = NULL,
+    survey_lat = NULL,
+    survey_lon = NULL,
+    buffer_size = NULL,
+    extract_fun = "mean",
+    survey_crs = 4326
+) {
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
-  s_obj <- rstac::stac("https://planetarycomputer.microsoft.com/api/stac/v1")
-
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
   it_obj <- s_obj %>%
+    stac_search(
+      collections = "hrea",
+      bbox = sf::st_bbox(shp_dt),
+      datetime = paste(start_date, end_date, sep = "/")
+    ) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
 
-    rstac::stac_search(collections = "hrea",
-                bbox = sf::st_bbox(shp_dt)) %>%
-    rstac::get_request() %>%
-    rstac::items_sign(sign_fn = rstac::sign_planetary_computer())
+  # Modify url_list extraction
+  url_list <- lapply(1:length(it_obj$features), function(x) {
+    urls <- list(
+      lightscore = paste0("/vsicurl/", it_obj$features[[x]]$assets$lightscore$href),
+      light_composite = paste0("/vsicurl/", it_obj$features[[x]]$assets$`light-composite`$href),
+      night_proportion = paste0("/vsicurl/", it_obj$features[[x]]$assets$`night-proportion`$href),
+      estimated_brightness = paste0("/vsicurl/", it_obj$features[[x]]$assets$`estimated-brightness`$href)
+    )
+    return(urls)
+  })
+
+  raster_objs <- lapply(url_list, function(urls) {
+    # Convert each URL to a SpatRaster
+    lapply(urls, function(url) {
+      tryCatch({
+        terra::rast(url)
+      }, error = function(e) {
+        warning(paste("Could not convert URL to SpatRaster:", url, "Error:", e$message))
+        return(NULL)
+      })
+    })
+  })
+
+  # Flatten the list of lists to a single list of 8 SpatRasters
+  raster_objs <- unlist(raster_objs, recursive = FALSE)
 
 
-  url_list <- lapply(1:length(it_obj$features),
-                     function(x) {
-                       url <- paste0("/vsicurl/", it_obj$features[[x]]$assets$lightscore$href)
-                       return(url)
-                     })
+  # Create name_set with all 4 indicators for each year
+  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
 
-  raster_objs <- lapply(url_list, terra::rast)
+  # Generate name_set with all indicators
+  name_set <- unlist(lapply(year_sequence, function(year) {
+    c(
+      paste0("lightscore_", year),
+      paste0("light_composite_", year),
+      paste0("night_proportion_", year),
+      paste0("estimated_brightness_", year)
+    )
+  }))
 
-  raster_objs <- lapply(raster_objs, raster)
 
-  # year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
-  #
-  # name_set <- paste0("lightscore_", year_sequence)
-
-  #### create raster names
-  name_set <- unlist(lapply(X = raster_objs,
-                            FUN = names))
 
   print("Electrification Access Raster Downloaded")
 
-  dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_objs,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size,
-                               survey_dt = survey_dt,
-                               survey_fn = survey_fn,
-                               survey_lat = survey_lat,
-                               survey_lon = survey_lon,
-                               extract_fun = extract_fun,
-                               buffer_size = buffer_size,
-                               survey_crs = survey_crs,
-                               name_set = name_set)
+  dt <- postdownload_processor(
+    shp_dt = shp_dt,
+    raster_objs = raster_objs,
+    shp_fn = shp_fn,
+    grid_size = grid_size,
+    survey_dt = survey_dt,
+    survey_fn = survey_fn,
+    survey_lat = survey_lat,
+    survey_lon = survey_lon,
+    extract_fun = extract_fun,
+    buffer_size = buffer_size,
+    survey_crs = survey_crs,
+    name_set = name_set
+  )
 
   print("Process Complete!!!")
 
-  return(dt)}
+  return(dt)
+}
+
 
 #' Download high resolution elevation data based on shapefile coordinates
 #'
@@ -936,7 +946,7 @@ geolink_elevation <- function(iso_code,
                               shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt,
+                              survey_dt = NULL,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -1042,7 +1052,7 @@ geolink_buildings <- function(version,
                               shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt,
+                              survey_dt = NULL,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -1174,18 +1184,18 @@ geolink_buildings <- function(version,
 #' \donttest{
 #'
 #' # Example usage
-#' df <- geolink_CMIP6(var = "temperature", res = "2.5m", model = "ACCESS-ESM1-5", ssp = "ssp126", time = "2020-2049", shp_dt = shp_dt)
+#' df <- geolink_CMIP6(start_date = "2019-01-01", end_date = "2019-12-31",
+#'                       scenario = "ssp245", desired_models = "UKESM1-0-LL",
+#'                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
-#' bio10 <- geolink_CMIP6(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],"CNRM-CM6-1", "585", "2061-2080", var="bioc", res=10)
+#'
 #' }
 #'
 
-
-geolink_CMIP6 <- function(var,
-                          res,
-                          model,
-                          ssp,
-                          time,
+geolink_CMIP6 <- function(start_date,
+                          end_date,
+                          scenario,
+                          desired_models,
                           shp_dt,
                           shp_fn = NULL,
                           grid_size = 1000,
@@ -1195,67 +1205,135 @@ geolink_CMIP6 <- function(var,
                           survey_lon = NULL,
                           buffer_size = NULL,
                           extract_fun = "mean",
-                          survey_crs = 4326){
+                          survey_crs = 4326) {
 
+  # Ensure shapefile and survey are in the correct CRS
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
 
+  # Set date range
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
 
-  if (!is.null(shp_dt)) {
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-    coords <- st_coordinates(shp_dt)
-    midpoint <- ceiling(nrow(coords) / 2)
-    lon <- coords[midpoint, "X"]
-    lat <- coords[midpoint, "Y"]
-  } else {
-    stop("Provide either shp_dt or shp_fn.")
-  }
+  # Create STAC connection
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
+  # Retrieve URLs for the specified scenario
+  it_obj <- s_obj %>%
+    stac_search(
+      collections = "nasa-nex-gddp-cmip6",
+      bbox = sf::st_bbox(shp_dt),
+      datetime = paste(start_date, end_date, sep = "/")
+    ) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
 
-  data <- cmip6_tile(var=var, res=res, lon=lon, lat=lat, model = model, ssp = ssp, time = time, path = tempdir())
+  # Filter features based on the scenario and desired models
+  filtered_features <- Filter(function(feature) {
+    feature$properties$`cmip6:scenario` == scenario &&
+      feature$properties$`cmip6:model` %in% desired_models
+  }, it_obj$features)
 
-  tif_files <- list.files(tempdir(), pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  # Extract URLs for each feature
+  urls <- lapply(seq_along(filtered_features), function(x) {
+    list(
+      scenario = scenario,
+      pr = filtered_features[[x]]$assets$pr$href,
+      tas = filtered_features[[x]]$assets$tas$href,
+      hurs = filtered_features[[x]]$assets$hurs$href,
+      huss = filtered_features[[x]]$assets$huss$href,
+      rlds = filtered_features[[x]]$assets$rlds$href,
+      rsds = filtered_features[[x]]$assets$rsds$href,
+      tasmax = filtered_features[[x]]$assets$tasmax$href,
+      tasmin = filtered_features[[x]]$assets$tasmin$href,
+      sfcWind = filtered_features[[x]]$assets$sfcWind$href
+    )
+  })
 
-  raster_list <- lapply(tif_files, terra::rast)
+  # Function to process rasters and calculate yearly averages
+  process_rasters_and_aggregate <- function(urls, filtered_features) {
+    temp_dir <- tempdir()  # Temporary directory
+    variables <- c("pr", "tas", "hurs", "huss", "rlds", "rsds", "tasmax", "tasmin", "sfcWind")
+    raster_list <- list()  # Initialize raster storage
 
-  epsg_4326 <- "+init=EPSG:4326"
+    pb <- progress_bar$new(
+      total = length(urls) * length(variables),
+      format = "  Downloading and Processing [:bar] :percent (:current/:total)"
+    )
 
-  for (i in seq_along(raster_list)) {
-    terra::crs(raster_list[[i]]) <- epsg_4326
-    if (is.null(terra::crs(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
+    for (i in seq_along(urls)) {
+      model <- filtered_features[[i]]$properties$`cmip6:model`
+      year <- filtered_features[[i]]$properties$`cmip6:year`
+      scenario <- urls[[i]]$scenario
+
+      current_rasters <- list()
+
+      for (var in variables) {
+        pb$tick()
+
+        url <- urls[[i]][[var]]
+        if (is.null(url)) next
+
+        temp_file <- file.path(temp_dir, paste0(model, "_", var, "_", year, ".nc"))
+        tryCatch({
+          GET(url, write_disk(temp_file, overwrite = TRUE))
+          raster <- rast(temp_file)
+
+          if (nlyr(raster) == 360) {
+            time_indices <- as.numeric(format(time(raster), "%Y"))
+            yearly_raster <- tapp(raster, index = time_indices, fun = "mean", na.rm = TRUE)
+            current_rasters[[var]] <- yearly_raster
+          }
+        }, error = function(e) {
+          warning(paste("Error processing", var, "for model", model, "year", year, ":", e$message))
+        })
+      }
+
+      if (length(current_rasters) > 0) {
+        label <- paste0(model, "_", year, "_", scenario)
+        raster_list[[label]] <- current_rasters
+      }
     }
+
+    return(raster_list)
   }
 
-  name_set <- paste0("elevation_")
+  # Process the raster data
+  raster_list <- process_rasters_and_aggregate(urls, filtered_features)
+  raster_objs <- unlist(raster_list, recursive = FALSE)
+
+  # Generate name_set for variables and years
+  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+
+  name_set <- unlist(lapply(year_sequence, function(year) {
+    paste0(c("pr_", "tas_", "hurs_", "huss_", "rlds_", "rsds_", "tasmax_", "tasmin_", "sfcWind_"), year)
+  }))
+
+  # Create the final dataframe using postdownload_processor
+  dt <- postdownload_processor(
+    shp_dt = shp_dt,
+    raster_objs = raster_objs,
+    shp_fn = shp_fn,
+    grid_size = grid_size,
+    survey_dt = survey_dt,
+    survey_fn = survey_fn,
+    survey_lat = survey_lat,
+    survey_lon = survey_lon,
+    extract_fun = extract_fun,
+    buffer_size = buffer_size,
+    survey_crs = survey_crs,
+    name_set = name_set
+  )
+
+  # Save the dataframe in the global environment
+  assign("geolink_CMIP6_output", dt, envir = .GlobalEnv)
+
+  print("Process Complete! DataFrame saved as 'geolink_CMIP6_output' in the environment.")
+
+  return(dt)
+}
 
 
-  print("CMIP6  Raster Downloaded")
-
-  dt <- postdownload_processor(shp_dt = shp_dt,
-                               raster_objs = raster_list,
-                               shp_fn = shp_fn,
-                               grid_size = grid_size,
-                               survey_dt = survey_dt,
-                               survey_fn = survey_fn,
-                               survey_lat = survey_lat,
-                               survey_lon = survey_lon,
-                               extract_fun = extract_fun,
-                               buffer_size = buffer_size,
-                               survey_crs = survey_crs,
-                               name_set = name_set)
-
-
-  print("Process Complete!!!")
-
-  return(df)}
 
 #' Download cropland data
 #'
@@ -1293,7 +1371,7 @@ geolink_cropland <- function(
     shp_dt,
     shp_fn = NULL,
     grid_size = 1000,
-    survey_dt,
+    survey_dt = NULL,
     survey_fn = NULL,
     survey_lat = NULL,
     survey_lon = NULL,
@@ -1404,7 +1482,7 @@ geolink_worldclim <- function(iso_code,
                               shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
-                              survey_dt,
+                              survey_dt = NULL,
                               survey_fn = NULL,
                               survey_lat = NULL,
                               survey_lon = NULL,
@@ -1605,7 +1683,7 @@ geolink_terraclimate <- function(var,
                                  shp_dt = NULL,
                                  shp_fn = NULL,
                                  grid_size = 1000,
-                                 survey_dt,
+                                 survey_dt = NULL,
                                  survey_fn = NULL,
                                  survey_lat = NULL,
                                  survey_lon = NULL,

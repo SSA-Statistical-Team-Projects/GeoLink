@@ -217,6 +217,7 @@ compute_zonalstats <- function(shp_dt, raster_objs, extract_fun, name_set) {
   # Transform shapefile to raster CRS
   tryCatch({
     shp_dt <- sf::st_transform(shp_dt, crs = raster_crs_proj4)
+
   }, error = function(e) {
     stop("Could not transform shapefile CRS: ", e$message)
   })
