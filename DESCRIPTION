@@ -35,6 +35,7 @@ Imports:
     parallel,
     parallelMap,
     progressr,
+    progress,
     R.utils,
     raster,
     RCurl,
