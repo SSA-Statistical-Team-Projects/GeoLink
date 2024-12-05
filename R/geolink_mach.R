@@ -1178,7 +1178,7 @@ geolink_buildings <- function(version,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac terra raster osmdata sp sf httr geodata progress
 #'
 #' @examples
 #' \donttest{
