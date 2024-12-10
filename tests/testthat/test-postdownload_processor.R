@@ -52,7 +52,7 @@ test_that("It returns the correct object structure using a shapefile and a raste
 #Test - B
 test_that("It returns the correct object structure using a survey and a raster", {
 
-  result_sf <-postdownload_processor(raster_objs = list(raster_dt),
+  result_sf <- postdownload_processor(raster_objs = list(raster_dt),
                                      extract_fun = "mean",
                                      st_as_sf(hhgeo_dt[1:10],
                                               crs = 4326),

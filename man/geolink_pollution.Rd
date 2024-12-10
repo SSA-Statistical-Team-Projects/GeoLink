@@ -34,7 +34,7 @@ geolink_pollution(
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only).}
 
-\item{grid_size}{A numeric, the grid size to be used in meters for pulling the vegetation data. Defaults to NULL.}
+\item{grid_size}{A numeric, the grid size to be used in meters for pulling the vegetation data.}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).}
 

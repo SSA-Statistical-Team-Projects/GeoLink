@@ -46,7 +46,7 @@ test_that("Buildings works using a shapefile:", {
 
 
 #Test- B
-test_that("Population works using a survey :", {
+test_that("Buildings works using a survey :", {
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -54,8 +54,7 @@ test_that("Population works using a survey :", {
                                                                         crs = 4326),
                                                   indicators = "ALL",
                                                    buffer_size = 1000,
-                                                   extract_fun = "mean",
-                                                  grid_size = 1000)
+                                                   extract_fun = "mean" )
 
   })
 

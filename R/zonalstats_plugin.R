@@ -259,14 +259,16 @@ postdownload_processor <- function(raster_objs,
                                    buffer_size = NULL,
                                    survey_crs = 4326,
                                    name_set,
-                                   shp_dt,
+                                   shp_dt = NULL,
                                    shp_fn = NULL,
                                    grid_size = 1000) {
 
   # Create the required survey and shapefile frames
   if (!is.null(shp_fn)) {
     shp_dt <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size)
-  } else if (!missing(shp_dt)) {
+  }
+
+  if (!is.null(shp_dt)) {
     shp_dt <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size)
   }
 
@@ -311,9 +313,10 @@ postdownload_processor <- function(raster_objs,
 
     # Only attempt st_as_sf if survey_dt is not NULL
     tryCatch({
-      shp_dt <- st_as_sf(shp_dt, crs = st_crs(raster_objs[[1]])$input)
+      #shp_dt <- st_as_sf(shp_dt, crs = st_crs(raster_objs[[1]])$input)
       survey_dt <- st_as_sf(survey_dt, crs = st_crs(raster_objs[[1]])$input)
-      survey_dt <- st_join(survey_dt, shp_dt)
+     # shp_dt <- st_join(survey_dt, shp_dt)
+
       return(survey_dt)
     }, error = function(e) {
       warning("Error processing survey data: ", e$message)

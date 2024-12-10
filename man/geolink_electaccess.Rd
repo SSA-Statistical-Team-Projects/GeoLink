@@ -10,7 +10,7 @@ geolink_electaccess(
   shp_dt = NULL,
   shp_fn = NULL,
   grid_size = NULL,
-  survey_dt,
+  survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
@@ -28,7 +28,7 @@ geolink_electaccess(
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only)}
 
-\item{grid_size}{A numeric, the grid size to be used in meters. Defaults to NULL.}
+\item{grid_size}{A numeric, the grid size to be used in meters}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e. a household survey with latitude and longitude values.}
 
@@ -38,11 +38,7 @@ geolink_electaccess(
 
 \item{survey_lon}{A character, longitude variable from survey (for STATA users only & if use survey is TRUE)}
 
-\item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
-
-\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.}
-
-\item{survey_crs}{A numeric, the default is 4326
+\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 }
 \description{
@@ -55,7 +51,8 @@ Details for the dataset can be found here: https://hrea.isr.umich.edu/
 \donttest{
 
 
-df <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",], start_date = "2018-12-31", end_date = "2019-12-31")
 
 }
+
 }

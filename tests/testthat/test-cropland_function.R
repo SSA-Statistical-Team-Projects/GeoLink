@@ -54,8 +54,6 @@ test_that("Cropland Function works using a survey :", {
   expect_true(all(test_dt$cropland[!is.na(test_dt$cropland)] >= 0 &
                     test_dt$cropland[!is.na(test_dt$cropland)] <= 1 ),
               info = "Values of cropland should be between 0 and 1")
-
-
 }
 )
 
