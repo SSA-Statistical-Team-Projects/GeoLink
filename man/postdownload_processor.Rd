@@ -6,7 +6,7 @@
 \usage{
 postdownload_processor(
   raster_objs,
-  survey_dt,
+  survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
@@ -14,7 +14,7 @@ postdownload_processor(
   buffer_size = NULL,
   survey_crs = 4326,
   name_set,
-  shp_dt,
+  shp_dt = NULL,
   shp_fn = NULL,
   grid_size = 1000
 )

@@ -22,3 +22,9 @@ test_check("GeoLink")
 #usethis::use_test("population_functions") # Done
 #usethis::use_test("building_functions") # Done
 
+
+
+usethis::use_test("geolink_CMIP6") # Done
+usethis::use_test("geolink_landcover") # Done
+
+

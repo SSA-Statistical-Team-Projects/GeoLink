@@ -7,10 +7,10 @@
 geolink_buildings(
   version,
   iso_code,
-  shp_dt,
+  shp_dt = NULL,
   shp_fn = NULL,
   grid_size = NULL,
-  survey_dt,
+  survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
@@ -29,7 +29,7 @@ geolink_buildings(
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only).}
 
-\item{grid_size}{A numeric, the grid size to be used in meters for analyzing the building data. Defaults to NULL.}
+\item{grid_size}{A numeric, the grid size to be used in meters for analyzing the building data.}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).}
 
@@ -45,10 +45,6 @@ geolink_buildings(
 Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).}
 
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
-
-\item{indicators}{A character/list, select one or more of the following in the list:
-c("count","cv_length", "density" ,"mean_area",
- "mean_length","total_area", "total_length", "urban"). Default set to "ALL".}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.
@@ -60,9 +56,8 @@ This function downloads high-resolution building data from WorldPop based on the
 \donttest{
 
 # Example usage with version 1.1
-df <- geolink_buildings(version = "v1.1",
-                        iso_code = "NGA",
-                        shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
+df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
 
 }
+
 }

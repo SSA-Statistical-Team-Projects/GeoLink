@@ -12,10 +12,10 @@ geolink_population(
   constrained = NULL,
   bespoke = NULL,
   version = NULL,
-  shp_dt,
+  shp_dt = NULL,
   shp_fn = NULL,
   grid_size = NULL,
-  survey_dt,
+  survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
@@ -44,7 +44,7 @@ geolink_population(
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only)}
 
-\item{grid_size}{A numeric, the grid size to be used in meters. Defaults to NULL.}
+\item{grid_size}{A numeric, the grid size to be used in meters}
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.
 a household survey with latitude and longitude values.}
@@ -99,14 +99,12 @@ to pass a filepath for the location of the shapefile `shp_fn` which is read in w
 
 
 
-df <- geolink_population(start_year = 2018,
-                        end_year = 2019,
-                        iso_code = "NGA",
+df <- geolink_population(iso_code = "NGA",
                         UN_adjst = "N",
-                        constrained = "N",
+                        constrained = "Y",
                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                         grid_size = 1000,
-                        extract_fun = "mean",
-                        file_location = "/Users/nikos/Documents/temp/nga_pop")
+                        extract_fun = "mean")
 }
+
 }
