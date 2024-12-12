@@ -84,7 +84,6 @@ test_that("It returns the correct object structure using a survey and a raster",
 
 
 #Test - C
-
 test_that("It returns the correct object structure using a survey and a raster list", {
 
   result_sf <-postdownload_processor(raster_objs = raster_list,
@@ -112,6 +111,54 @@ test_that("It returns the correct object structure using a survey and a raster l
   #Expect the radios of the buffer to be a 1000 m
   expect_equal(as.numeric(round(sqrt(st_area(result_sf[1,]) / pi))), 1000)
 })
+
+#Test - D
+test_that("It returns the correct object structure using a survey stata users and a raster list", {
+
+  result_sf <-postdownload_processor(raster_objs = raster_list,
+                                     extract_fun = "mean",
+                                     survey_fn = "testdata/xy_hhgeo_dt.dta",
+                                     survey_lat = "y",
+                                     survey_lon = "x",
+                                     buffer_size = 1000,
+                                     name_set = paste0("nga_chirps_",
+                                                       1:length(raster_list)))
+
+  #Write expectations from the results sf object
+
+  #Expect the nameset to work properly
+  expect_equal(names(result_sf)[ncol(result_sf) - 1], "nga_chirps_2")
+
+  #SF object
+  expect_s3_class(result_sf, "sf")
+
+  #Length
+  expect_equal(length(unique(result_sf$hhid)), 5116)
+
+  #Expect the radios of the buffer to be a 1000 m
+  expect_equal(as.numeric(round(sqrt(st_area(result_sf[1,]) / pi))), 1000)
+})
+
+
+#Test - E
+test_that("It returns the correct object structure using a shapefile path and a raster list", {
+
+
+  result_sf <-postdownload_processor(raster_objs = raster_list,
+                                     extract_fun = "mean",
+                                     shp_fn = "testdata/shp_dt.shp",
+                                     grid_size = 1000,
+                                     name_set = paste0("nga_chirps_",
+                                                       1:length(raster_list)))
+
+
+  expect_equal(names(result_sf)[ncol(result_sf) - 1], "nga_chirps_2")
+
+  #SF object
+  expect_s3_class(result_sf, "sf")
+}
+)
+
 
 
 

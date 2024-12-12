@@ -783,7 +783,7 @@ geolink_population <- function(start_year = NULL,
 
 geolink_get_poi <- function(osm_feature_category,
                             osm_feature_subcategory,
-                            shp_dt,
+                            shp_dt = NULL,
                             shp_dsn = NULL,
                             buffer = NULL,
                             stata = FALSE){
@@ -857,7 +857,8 @@ geolink_get_poi <- function(osm_feature_category,
 #'\donttest{
 #'
 #'
-#' df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",], start_date = "2018-12-31", end_date = "2019-12-31")
+#' df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#'                        start_date = "2018-12-31", end_date = "2019-12-31")
 #'
 #' }
 #'
@@ -1063,7 +1064,9 @@ geolink_elevation <- function(iso_code,
 
 #' Download high resolution building data from WorldPop
 #'
-#' This function downloads high-resolution building data from WorldPop based on the specified version and ISO country code. It can incorporate survey data for further analysis. The building data is downloaded as raster files and can be processed and analyzed using the `postdownload_processor` function.
+#' This function downloads high-resolution building data from WorldPop based on the specified version and ISO country code.
+#'  It can incorporate survey data for further analysis. The building data is downloaded as raster files and can be processed and
+#'  analyzed using the `postdownload_processor` function.
 #'
 #' @param version A character, the version of the building data to download. Options are "v1.1" and "v2.0".
 #' @param iso_code A character, the ISO country code for the country of interest.
@@ -1088,8 +1091,11 @@ geolink_elevation <- function(iso_code,
 #' \donttest{
 #'
 #' # Example usage with version 1.1
-#' df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
-#'
+#'df <- geolink_buildings(version = "v1.1",
+#'                             iso_code = "NGA",
+#'                           shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+#'                           indicators = "ALL",
+#'                             grid_size = 1000)
 #' }
 #'
 
@@ -1259,8 +1265,30 @@ geolink_CMIP6 <- function(start_date,
                           survey_crs = 4326) {
 
   # Ensure shapefile and survey are in the correct CRS
-  #shp_dt <- ensure_crs_4326(shp_dt)
-  #survey_dt <- ensure_crs_4326(survey_dt)
+
+  if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
+
+  } else if (!is.null(survey_dt)) {
+    sf_obj <- ensure_crs_4326(survey_dt)
+
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
+    sf_obj <- haven::read_dta(survey_fn)
+    sf_obj <- st_as_sf(sf_obj,
+                       coords = c(survey_lon, survey_lat),
+                       crs = survey_crs)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else {
+    print("Input a valid sf object or geosurvey")
+    sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
+  }
+
+
 
   # Set date range
   start_date <- as.Date(start_date)
@@ -1273,7 +1301,7 @@ geolink_CMIP6 <- function(start_date,
   it_obj <- s_obj %>%
     stac_search(
       collections = "nasa-nex-gddp-cmip6",
-      bbox = sf::st_bbox(shp_dt),
+      bbox = sf::st_bbox(sf_obj),
       datetime = paste(start_date, end_date, sep = "/")
     ) %>%
     get_request() %>%
@@ -1377,9 +1405,9 @@ geolink_CMIP6 <- function(start_date,
   )
 
   # Save the dataframe in the global environment
-  assign("geolink_CMIP6_output", dt, envir = .GlobalEnv)
+  #assign("geolink_CMIP6_output", dt, envir = .GlobalEnv)
 
-  print("Process Complete! DataFrame saved as 'geolink_CMIP6_output' in the environment.")
+  #print("Process Complete! DataFrame saved as 'geolink_CMIP6_output' in the environment.")
 
   return(dt)
 }

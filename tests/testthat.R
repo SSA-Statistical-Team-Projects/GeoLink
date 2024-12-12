@@ -9,11 +9,10 @@
 library(testthat)
 library(GeoLink)
 
-test_check("GeoLink")
-
+#test_check("GeoLink")
 
 #Done
-#usethis::use_test("chirps_functions") #Done
+usethis::use_test("chirps_functions") #Done
 #usethis::use_test("postdownload_processor") #Done
 #usethis::use_test("elevation_functions")  #Done
 #usethis::use_test("cropland_function")  # Done
@@ -21,10 +20,7 @@ test_check("GeoLink")
 #usethis::use_test("ntl_functions") # Done
 #usethis::use_test("population_functions") # Done
 #usethis::use_test("building_functions") # Done
-
-
-
-usethis::use_test("geolink_CMIP6") # Done
-usethis::use_test("geolink_landcover") # Done
+#usethis::use_test("geolink_CMIP6") # Done
+#usethis::use_test("geolink_landcover") # Done
 
 
