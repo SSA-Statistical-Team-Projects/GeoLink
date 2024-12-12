@@ -7,3 +7,4 @@
 ^README\.Rmd$
 ^README.md
 ^\.github$
+^inst/python/virtual_env$

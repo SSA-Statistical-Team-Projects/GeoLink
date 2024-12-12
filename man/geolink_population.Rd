@@ -14,7 +14,7 @@ geolink_population(
   version = NULL,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = NULL,
+  grid_size = 1000,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -92,7 +92,7 @@ a .dta file which is read in with `haven::read_dta()` package. Likewise, the use
 to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 `sf::read_sf()` function.
 
-'@import rstac reticulate terra raster osmdata sf  geodata rvest httr
+'@import rstac reticulate terra raster osmdata sp sf  geodata rvest httr
 }
 \examples{
 \donttest{

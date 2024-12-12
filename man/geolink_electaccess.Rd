@@ -9,7 +9,7 @@ geolink_electaccess(
   end_date = NULL,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = NULL,
+  grid_size = 1000,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -51,8 +51,7 @@ Details for the dataset can be found here: https://hrea.isr.umich.edu/
 \donttest{
 
 
-df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                       start_date = "2018-12-31", end_date = "2019-12-31")
+df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",], start_date = "2018-12-31", end_date = "2019-12-31")
 
 }
 
