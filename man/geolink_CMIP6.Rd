@@ -9,9 +9,9 @@ geolink_CMIP6(
   end_date,
   scenario,
   desired_models,
-  shp_dt = NULL,
+  shp_dt,
   shp_fn = NULL,
-  grid_size = NULL,
+  grid_size = 1000,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -26,7 +26,11 @@ geolink_CMIP6(
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only).}
 
+<<<<<<<< HEAD:man/geolink_pollution.Rd
+\item{grid_size}{A numeric, the grid size to be used in meters for pulling the vegetation data.}
+========
 \item{grid_size}{A numeric, the grid size to be used in meters for analyzing the climate model data.}
+>>>>>>>> d710aae (updated landcover, added python virtual environment, updated roxygen comments):man/geolink_CMIP6.Rd
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).}
 

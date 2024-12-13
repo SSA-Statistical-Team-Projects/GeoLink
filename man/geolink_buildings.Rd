@@ -9,15 +9,14 @@ geolink_buildings(
   iso_code,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = NULL,
+  grid_size = 1000,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326,
-  indicators = "ALL"
+  survey_crs = 4326
 )
 }
 \arguments{
@@ -50,19 +49,14 @@ Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms"
 A processed data frame or object based on the input parameters and downloaded data.
 }
 \description{
-This function downloads high-resolution building data from WorldPop based on the specified version and ISO country code.
- It can incorporate survey data for further analysis. The building data is downloaded as raster files and can be processed and
- analyzed using the `postdownload_processor` function.
+This function downloads high-resolution building data from WorldPop based on the specified version and ISO country code. It can incorporate survey data for further analysis. The building data is downloaded as raster files and can be processed and analyzed using the `postdownload_processor` function.
 }
 \examples{
 \donttest{
 
 # Example usage with version 1.1
-df <- geolink_buildings(version = "v1.1",
-                            iso_code = "NGA",
-                          shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                          indicators = "ALL",
-                            grid_size = 1000)
+df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
+
 }
 
 }
