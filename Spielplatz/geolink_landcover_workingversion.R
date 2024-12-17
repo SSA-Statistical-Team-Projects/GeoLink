@@ -1,4 +1,8 @@
-geolink_landcover <- function(start_date, end_date, shp_dt) {
+geolink_landcover <- function(start_date = NULL,
+                              end_date = NULL,
+                              shp_dt = NULL,
+                              survey_dt = NULL,
+                              use_resampling = TRUE) {
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -74,24 +78,24 @@ geolink_landcover <- function(start_date, end_date, shp_dt) {
 
     cat("Rasters for year:", year, "are located at:", raster_paths, "\n")
 
-    if (length(raster_paths) == 1) {
+    if (use_resampling) {
       resampled_rasters <- resample_rasters(
         input_files = raster_paths,
         output_folder = file.path(temp_dir, "resampled", year),
         target_resolution = 1000
       )
-    } else {
-      resampled_rasters <- resample_rasters(
-        input_files = raster_paths,
-        output_folder = file.path(temp_dir, "resampled", year),
-        target_resolution = 1000
-      )
-    }
 
-    if (length(resampled_rasters) == 1) {
-      mosaicked_path <- resampled_rasters[[1]]
+      if (length(resampled_rasters) == 1) {
+        mosaicked_path <- resampled_rasters[[1]]
+      } else {
+        mosaicked_path <- mosaic_rasters(input_files = resampled_rasters)
+      }
     } else {
-      mosaicked_path <- mosaic_rasters(input_files = resampled_rasters)
+      if (length(raster_paths) == 1) {
+        mosaicked_path <- raster_paths[[1]]
+      } else {
+        mosaicked_path <- mosaic_rasters(input_files = raster_paths)
+      }
     }
 
     mosaicked_raster <- terra::rast(mosaicked_path)
@@ -193,9 +197,3 @@ geolink_landcover <- function(start_date, end_date, shp_dt) {
 
   return(final_result)
 }
-
-
-
-df <- geolink_landcover(start_date = "2019-01-02", end_date = "2020-09-10",
-                        shp_dt = region_shp,
-                        use_resampling = TRUE)
