@@ -169,9 +169,10 @@ devtools::install()    # Reinstall the package
 library(geolink)       # Load your package
 
 
-df <- geolink_CMIP6(start_date = "2019-01-01", end_date = "2019-12-31",
+df_survey <- geolink_CMIP6(start_date = "2019-01-01", end_date = "2019-12-31",
                       scenario = "ssp245", desired_models = "UKESM1-0-LL",
-                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                       survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 
 
 
