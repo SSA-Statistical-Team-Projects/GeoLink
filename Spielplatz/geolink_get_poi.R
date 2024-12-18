@@ -68,6 +68,7 @@ geolink_get_poi <- function(osm_key,
 
 
 df <- geolink_get_poi(osm_key = "amenity",
-                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+                  survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Lagos",],
+                  buffer = 100000)
 
 

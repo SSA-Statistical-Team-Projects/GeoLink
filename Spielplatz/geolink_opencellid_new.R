@@ -77,5 +77,3 @@ geolink_opencellid <- function(cell_tower_file, shp_dt) {
 results <- geolink_opencellid(cell_tower_file = "C:/Users/Diana Jaganjac/Downloads/nigeria.csv.gz",
                               shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 
-# Display the results
-print(results)
