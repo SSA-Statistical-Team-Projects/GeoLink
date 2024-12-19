@@ -119,9 +119,6 @@ geolink_chirps <- function(time_unit,
     return(raster_obj)
   })
 
-  # Crop the raster objects using either shp_dt or survey_dt
- # raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = shp_dt,
-                       # survey_dt = survey_dt)
 
   name_set <- paste0("rainfall_", time_unit, 1:length(raster_objs))
 
@@ -243,7 +240,7 @@ geolink_ntl <- function(time_unit = "annual",
                         month_version = "v10",
                         indicator,
                         slc_type = "vcmslcfg",
-                        shp_dt,
+                        shp_dt = NULL,
                         shp_fn = NULL,
                         grid_size = 1000,
                         survey_dt = NULL,
@@ -295,7 +292,6 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Global NTL Raster Downloaded")
 
-  raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = shp_dt)
 
   name_set <- paste0("ntl_", time_unit, 1:length(raster_objs), indicator)
 
@@ -639,6 +635,7 @@ geolink_population <- function(start_year = NULL,
                                survey_crs = 4326,
                                file_location = tempdir()) {
 
+  unlink(tempdir(), recursive = TRUE)
 
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
@@ -725,7 +722,6 @@ geolink_population <- function(start_year = NULL,
 
   print("Population Raster Processed")
 
-  raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = shp_dt)
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
@@ -1002,7 +998,6 @@ geolink_electaccess <- function(
 
   print("Electrification Access Raster Downloaded")
 
-  raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = shp_dt)
 
   dt <- postdownload_processor(
     shp_dt = shp_dt,
@@ -1057,7 +1052,7 @@ geolink_electaccess <- function(
 #'
 
 geolink_elevation <- function(iso_code,
-                              shp_dt,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt = NULL,
@@ -1108,8 +1103,6 @@ geolink_elevation <- function(iso_code,
   }
 
   print("Elevation Raster Downloaded")
-
-  raster_list <- lapply(raster_list, crop_and_clean_raster, shp_dt = shp_dt)
 
 
   dt <- postdownload_processor(shp_dt = shp_dt,
@@ -1251,8 +1244,6 @@ geolink_buildings <- function(version,
 
 
   print("Building Raster Downloaded")
-
-  raster_list <- lapply(raster_list, crop_and_clean_raster, shp_dt = shp_dt)
 
 
   dt <- postdownload_processor(shp_dt = shp_dt,
@@ -1416,7 +1407,6 @@ geolink_CMIP6 <- function(start_date,
     paste0(c("pr_", "tas_", "hurs_", "huss_", "rlds_", "rsds_", "tasmax_", "tasmin_", "sfcWind_"), year)
   }))
 
-  #raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = shp_dt)
 
   # Create the final dataframe using postdownload_processor
   dt <- postdownload_processor(
@@ -1477,7 +1467,7 @@ geolink_CMIP6 <- function(start_date,
 
 geolink_cropland <- function(
     source = "WorldCover",
-    shp_dt,
+    shp_dt = NULL,
     shp_fn = NULL,
     grid_size = 1000,
     survey_dt = NULL,
@@ -1527,8 +1517,6 @@ geolink_cropland <- function(
 
   # Convert to list
   raster_list <- as.list(raster_objs)
-
-  raster_list <- lapply(raster_list, crop_and_clean_raster, shp_dt = shp_dt)
 
 
   print("WorldCover Raster Downloaded")
@@ -1589,7 +1577,7 @@ geolink_cropland <- function(
 geolink_worldclim <- function(iso_code,
                               var,
                               res,
-                              shp_dt,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt = NULL,
@@ -1639,8 +1627,6 @@ geolink_worldclim <- function(iso_code,
   name_set <- paste0(iso_code,"_WC_", var, "_", months)
 
   print("WorldClim Raster Downloaded")
-
-  raster_list <- lapply(raster_list, crop_and_clean_raster, shp_dt = shp_dt)
 
 
   dt <- postdownload_processor(shp_dt = shp_dt,
@@ -1932,8 +1918,6 @@ geolink_terraclimate <- function(var,
 
     print("Terraclimate Raster Downloaded")
 
-    raster_list <- lapply(raster_list, crop_and_clean_raster, shp_dt = shp_dt)
-
 
     dt <- postdownload_processor(shp_dt = shp_dt,
                                  raster_objs = raster_list,
@@ -2003,7 +1987,7 @@ geolink_vegindex <- function(
                              start_date,
                              end_date,
                              indicator = "NDVI",
-                             shp_dt,
+                             shp_dt = NULL,
                              shp_fn = NULL,
                              grid_size = 1000,
                              survey_dt = NULL,
@@ -2107,7 +2091,6 @@ geolink_vegindex <- function(
 
   print("NDVI Raster Downloaded")
 
-  raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = shp_dt)
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
@@ -2170,7 +2153,7 @@ geolink_pollution <- function(
                               start_date,
                               end_date,
                               indicator,
-                              shp_dt,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt,
@@ -2278,8 +2261,6 @@ geolink_pollution <- function(
   name_set <- paste0(indicator, "_", "y", allmonths$year, "_m", allmonths$month)
 
   print("Pollution Rasters Downloaded")
-
-  raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = shp_dt)
 
 
   dt <- postdownload_processor(shp_dt = shp_dt,

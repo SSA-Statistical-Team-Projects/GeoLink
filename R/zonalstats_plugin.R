@@ -75,8 +75,8 @@ zonalstats_prepsurvey <- function(survey_dt,
                                   survey_fn = NULL,
                                   survey_lat = NULL,
                                   survey_lon = NULL,
-                                  buffer_size = NULL,
-                                  survey_crs){
+                                  buffer_size = 1000,
+                                  survey_crs = 4326){
 
   ### read in stata file and convert to an sf/data.frame obj
 
@@ -300,9 +300,8 @@ postdownload_processor <- function(raster_objs,
     )
   }
 
-  # Process survey data if it exists and has buffer
-  if (!is.null(survey_dt)) {
-    if (!is.null(buffer_size)) {
+  # Process survey data if it exists
+  if (!is.null(survey_dt)) {{
       survey_dt <- compute_zonalstats(
         shp_dt = survey_dt,
         raster_objs = raster_objs,

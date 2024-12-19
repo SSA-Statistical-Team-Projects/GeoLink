@@ -75,10 +75,9 @@ geolink_elevation <- function(country_name = "",
 
 
 
-test_dt <- geolink_elevation(country_name = "NGA",
-                             survey_dt =  st_as_sf(hhgeo_dt[1:10,],
-                                                   crs = 4326),
-                             buffer_size = 1000)
+test_dt <- geolink_elevation(iso_code = "NGA",
+                             survey_dt =  hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
+                             buffer = 1000)
 
 
 test_dt <- geolink_elevation(country_name = "Nigeria",

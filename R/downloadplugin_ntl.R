@@ -29,84 +29,45 @@ get_month_ntl <- function(start_date,
                                         "avg_rade9h.masked"),
                           link_base = "https://eogdata.mines.edu/nighttime_light") {
 
-  ### read in the data
-  date_dt <- data.table::data.table(ntl_date = seq(start_date, end_date, "day"))
+  ### Generate the date range
+  date_dt <- data.table::data.table(ntl_date = seq.Date(as.Date(start_date), as.Date(end_date), "day"))
+  date_dt[, c("year", "month") := .(format(ntl_date, "%Y"), format(ntl_date, "%m"))]
+  date_dt <- unique(date_dt[, .(year, month)])
 
-  date_dt[, c("year",
-              "month",
-              "day") := tstrsplit(ntl_date,
-                                  "-",
-                                  fixed = TRUE)]
+  ### Match slc_type
+  slc_type <- match.arg(slc_type, c("vcmcfg", "vcmslcfg"), several.ok = FALSE)
 
-  date_dt <- unique(date_dt[ ,c("year", "month")])
+  ### Construct URLs for each month
+  url_links <- mapply(FUN = construct_month_link,
+                      year = date_dt$year,
+                      month = date_dt$month,
+                      version = rep(version, nrow(date_dt)),
+                      slc_type = rep(slc_type, nrow(date_dt)),
+                      no_tile = rep(no_tile, nrow(date_dt)),
+                      SIMPLIFY = FALSE)
 
-  ### match slc_type
-  slc_type <- match.arg(slc_type,
-                        c("vcmcfg", "vcmslcfg"),
-                        several.ok = FALSE)
+  ### Filter URLs based on the indicator
+  indicator <- match.arg(indicator, c("avg_rade9h", "cf_cvg", "cvg", "avg_rade9h.masked"), several.ok = FALSE)
+  indicator <- paste0(indicator, ".tif.gz")
 
-  url_link <- mapply(FUN = construct_month_link,
-                     year = date_dt$year,
-                     month = date_dt$month,
-                     version = rep(version, nrow(date_dt)),
-                     slc_type = rep(slc_type, nrow(date_dt)),
-                     no_tile = rep(no_tile, nrow(date_dt)),
-                     SIMPLIFY = FALSE)
+  url_links <- unlist(lapply(url_links, function(x) {
+    matched_links <- grep(indicator, basename(x), value = TRUE)
+    if (length(matched_links) == 0) {
+      warning(paste(indicator, "is missing from the database for one or more months"))
+    }
+    x[basename(x) %in% matched_links]
+  }))
 
-
-
-  if (no_tile == TRUE) {
-
-    indicator <- match.arg(indicator, c("avg_rade9h",
-                                        "cf_cvg",
-                                        "cvg",
-                                        "avg_rade9h.masked"),
-                           several.ok = FALSE)
-  }
-
-  #### select the set of indicators we want
-  indicator <- paste0(indicator, ".tif")
-
-  url_link <- lapply(url_link,
-                     function(x){
-
-                       base_x <- basename(x)
-
-                       y <- base_x[grepl(indicator, base_x)]
-
-                       if (is.null(y)){
-
-                         date_chr <- substr(base_x[[1]],
-                                            11,
-                                            27)
-
-                         warning(paste0(indicator,
-                                        " is missing from the EOG NTL database",
-                                        " for the month in",
-                                        date_chr))
-
-                       }
-
-                       full_link <- x[grepl(y, x)]
-
-                       return(full_link)
-
-                     })
-
-  url_link <- unlist(url_link)
-
-  ### download the data
-  raster_list <-
-    lapply(X = url_link,
-           FUN = download_reader)
-
-
-
+  ### Download and process the data
+  raster_list <- lapply(url_links, function(link) {
+    temp_file <- tempfile(fileext = ".gz")
+    download.file(link, temp_file, mode = "wb")
+    decompressed_file <- sub("\\.gz$", "", temp_file)
+    R.utils::gunzip(temp_file, destname = decompressed_file, overwrite = TRUE)
+    raster::raster(decompressed_file)
+  })
 
   return(raster_list)
-
-
-
 }
 
 #' Download Annual Night Time Lights Data
@@ -125,50 +86,40 @@ get_month_ntl <- function(start_date,
 #' @export
 #'
 
-
-
 get_annual_ntl <- function(year,
                            version,
                            link_base = "https://eogdata.mines.edu/nighttime_light/annual/",
                            indicator = c("average", "average_masked", "cf_cvg", "cvg",
                                          "lit_mask", "maximum", "median", "median_masked",
                                          "minimum")) {
-  ### construct the link
-  url_link <- construct_year_link(
-    year = year,
-    version = version
-  )
+  ### Construct the base link
+  url_link <- construct_year_link(year = year, version = version)
 
-  ### find the list of links on the page
+  ### Fetch the download links from the webpage
   webpage <- rvest::read_html(url_link)
-
   download_links <- webpage %>%
     rvest::html_nodes("a") %>%
-    rvest::html_attr("href")
+    rvest::html_attr("href") %>%
+    grep("\\.tif.gz$", ., value = TRUE)
 
-  download_links <- download_links[grep(
-    "\\.tif.gz$|\\.TIF.GZ$",
-    download_links
-  )]
-
-  download_links <- unique(download_links)
-
-  ## select files
-  indicator_list <- paste0("\\", indicator, ".tif.gz")
-
-  search_regex <- paste(indicator, collapse = "|")
-
+  ### Filter based on the indicator
+  indicator <- match.arg(indicator, several.ok = TRUE)
+  search_regex <- paste0("(", paste(indicator, collapse = "|"), ").tif.gz$")
   download_links <- download_links[grep(search_regex, download_links)]
 
-  ### create full link
-  download_links <- paste0(url_link, "/", download_links)
+  ### Create full URLs
+  full_links <- paste0(url_link, "/", download_links)
 
-  raster_list <-
-  lapply(X = download_links,
-         FUN = download_reader)
-
-
-
+  ### Download and process the data
+  raster_list <- lapply(full_links, function(link) {
+    temp_file <- tempfile(fileext = ".gz")
+    download.file(link, temp_file, mode = "wb")
+    decompressed_file <- sub("\\.gz$", "", temp_file)
+    R.utils::gunzip(temp_file, destname = decompressed_file, overwrite = TRUE)
+    raster::raster(decompressed_file)
+  })
 
   return(raster_list)
 }
+
+
