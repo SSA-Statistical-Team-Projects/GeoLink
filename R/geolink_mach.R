@@ -952,7 +952,20 @@ geolink_electaccess <- function(
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
 
-  it_obj <- fetch_planetary_data("hrea", start_date, end_date, shp_dt)
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  it_obj <- s_obj %>%
+    stac_search(
+      collections = "hrea",
+      bbox = sf::st_bbox(shp_dt),
+      datetime = paste(start_date, end_date, sep = "/")
+    ) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
+
 
   # Modify url_list extraction
   url_list <- lapply(1:length(it_obj$features), function(x) {
@@ -1803,6 +1816,7 @@ geolink_opencellid <- function(cell_tower_file,
     return(results_df)
   }
 }
+
 
 
 #' Download Terraclimate data

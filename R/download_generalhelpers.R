@@ -285,3 +285,34 @@ convert_to_sf <- function(survey_dt, geometry_col = "geometry", crs = 4326) {
     stop("Error in converting data.table/data.frame to sf object:", e$message)
   })
 }
+
+read_opencellid_data <- function(file_path) {
+  # Load the cell tower data as a data.frame
+  cell_towers <- read.csv(file_path)
+
+  # Ensure the file has at least 8 columns, as we need columns 7 and 8 for lon and lat
+  if (ncol(cell_towers) < 8) {
+    stop("The cell tower data must have at least 8 columns, with the 7th being 'lon' and the 8th being 'lat'.")
+  }
+
+  # Extract the 7th and 8th columns for lon and lat
+  lon <- cell_towers[, 7]
+  lat <- cell_towers[, 8]
+
+  # Add lon and lat to the data as new columns (if not already present)
+  cell_towers$lon <- lon
+  cell_towers$lat <- lat
+
+  # Convert the data.frame to an sf object with proper coordinates (lon, lat)
+  cell_towers_sf <- st_as_sf(cell_towers, coords = c("lon", "lat"), crs = 4326)
+
+  # Explicitly set the CRS to EPSG:4326 to ensure it's recognized
+  st_crs(cell_towers_sf) <- 4326
+
+  # Ensure CRS is set to EPSG:4326 if not already set
+  if (is.null(st_crs(cell_towers_sf))) {
+    stop("Failed to set CRS to EPSG:4326.")
+  }
+
+  return(cell_towers_sf)
+}
