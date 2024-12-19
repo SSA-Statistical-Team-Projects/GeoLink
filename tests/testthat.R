@@ -14,13 +14,14 @@ library(GeoLink)
 #Done
 usethis::use_test("chirps_functions") #Done
 #usethis::use_test("postdownload_processor") #Done
-#usethis::use_test("elevation_functions")  #Done
-#usethis::use_test("cropland_function")  # Done
-#usethis::use_test("geolink_worldclim")  # Done
+usethis::use_test("elevation_functions")  #Server is down
+usethis::use_test("cropland_function")  #  Server is down, back in Dec 21st
+usethis::use_test("geolink_worldclim")  # Server is down
 #usethis::use_test("ntl_functions") # Done
 #usethis::use_test("population_functions") # Done
 #usethis::use_test("building_functions") # Done
 #usethis::use_test("geolink_CMIP6") # Done
 #usethis::use_test("geolink_landcover") # Done
 
+usethis::use_test("geolink_vegindex") # Done
 
