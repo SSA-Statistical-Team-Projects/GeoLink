@@ -77,5 +77,3 @@ geolink_opencellid <- function(cell_tower_file, shapefile_input) {
 results <- geolink_opencellid(cell_tower_file = "C:/Users/Diana Jaganjac/Downloads/621.csv.gz",
                               shapefile_input = shp_dt)
 
-# Display the results
-print(results)

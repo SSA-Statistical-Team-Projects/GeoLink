@@ -50,7 +50,11 @@ geolink_get_poi <- function(osm_feature_category,
 
   return(query_dt)}
 
-df <- geolink_get_poi(osm_feature_category = "building",
-                  osm_feature_subcategory ="farm",
-                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+
+
+
+df <- geolink_get_poi(osm_key = "amenity",
+                  survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Lagos",],
+                  buffer = 100000)
+
 
