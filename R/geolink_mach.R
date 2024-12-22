@@ -172,6 +172,8 @@ geolink_chirps <- function(time_unit,
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum" for annual data and "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
 #' for monthly data
+#' @param ego_username username for your eogdata account
+#' @param ego_password password for your egodata account
 #'
 #' @inheritParams get_annual_ntl
 #' @inheritParams get_month_ntl
@@ -249,7 +251,9 @@ geolink_ntl <- function(time_unit = "annual",
                         survey_lon = NULL,
                         extract_fun = "mean",
                         buffer_size = NULL,
-                        survey_crs = 4326){
+                        survey_crs = 4326,
+                        ego_username = NULL,
+                        ego_password = NULL){
 
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
@@ -265,7 +269,9 @@ geolink_ntl <- function(time_unit = "annual",
                                  version = month_version,
                                  slc_type = slc_type,
                                  indicator = indicator,
-                                 no_tile = TRUE)
+                                 no_tile = TRUE,
+                                 ego_password = ego_password,
+                                 ego_username = ego_username)
 
     name_count <- lubridate::interval(as.Date(start_date),
                                       as.Date(end_date)) %/% months(1) + 1
@@ -277,7 +283,9 @@ geolink_ntl <- function(time_unit = "annual",
                                        "years")),
                           FUN = get_annual_ntl,
                           version = annual_version,
-                          indicator = indicator)
+                          indicator = indicator,
+                          ego_password = ego_password,
+                          ego_username = ego_username)
 
     raster_objs <- unlist(raster_objs)
 

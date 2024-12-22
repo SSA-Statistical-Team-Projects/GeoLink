@@ -11,7 +11,7 @@ geolink_CMIP6(
   desired_models,
   shp_dt,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -22,15 +22,20 @@ geolink_CMIP6(
 )
 }
 \arguments{
+\item{start_date}{An object of class date, must be specified like "yyyy-mm-dd"}
+
+\item{end_date}{An object of class date, must be specified like "yyyy-mm-dd"}
+
+\item{scenario}{A scenario has to be selected and can be one of "historical", "ssp245" or "ssp585"}
+
+\item{desired_models}{The name or names in a list, of the desired model(s) required for the analysis, for example
+("ACCESS-CM-2" or ["ACCESS-CM-2","UKESM1-0-LL" ]). See the cmip6:model summary in the STAC collection for a full list of models.}
+
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.}
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only).}
 
-<<<<<<<< HEAD:man/geolink_pollution.Rd
-\item{grid_size}{A numeric, the grid size to be used in meters for pulling the vegetation data.}
-========
 \item{grid_size}{A numeric, the grid size to be used in meters for analyzing the climate model data.}
->>>>>>>> d710aae (updated landcover, added python virtual environment, updated roxygen comments):man/geolink_CMIP6.Rd
 
 \item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).}
 
@@ -46,22 +51,14 @@ geolink_CMIP6(
 Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).}
 
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
-
-\item{var}{A character, the variable of interest (e.g., "temperature", "precipitation").}
-
-\item{res}{A character, the resolution of the data (e.g., "2.5m", "5m").}
-
-\item{model}{A character, the climate model name (e.g., "ACCESS-ESM1-5", "CanESM5").}
-
-\item{ssp}{A character, the Shared Socioeconomic Pathway (SSP) scenario (e.g., "ssp126", "ssp585").}
-
-\item{time}{A character, the time period of interest (e.g., "historical", "2020-2049").}
 }
 \value{
-A processed data frame or object based on the input parameters and downloaded data.
+A processed data frame based on the input parameters and downloaded data.
 }
 \description{
-This function downloads CMIP6 (Coupled Model Intercomparison Project Phase 6) climate model data for a specific variable, resolution, model, Shared Socioeconomic Pathway (SSP), and time period. It allows for further analysis of the data in conjunction with geographic data.
+This function downloads and processes CMIP6 (Coupled Model Intercomparison Project Phase 6)
+climate model data for a specific scenario and desired model.
+It allows for further analysis of the data in conjunction with geographic data.
 }
 \examples{
 \donttest{

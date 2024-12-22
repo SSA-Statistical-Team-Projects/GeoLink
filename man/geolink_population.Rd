@@ -14,7 +14,7 @@ geolink_population(
   version = NULL,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,

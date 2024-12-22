@@ -4,60 +4,26 @@
 \alias{geolink_landcover}
 \title{Download and Merge Annual Land Use Land Cover data into geocoded surveys}
 \usage{
-geolink_landcover(time_unit = "annual", start_date, end_date, shp_dt)
+geolink_landcover(
+  start_date = NULL,
+  end_date = NULL,
+  shp_dt = NULL,
+  survey_dt = NULL
+)
 }
 \arguments{
-\item{time_unit}{A character, must be annual as the dataset only provides annual data}
-
 \item{start_date}{An object of class date, must be specified like "yyyy-mm-dd"}
 
 \item{end_date}{An object of class date, must be specified like "yyyy-mm-dd"}
 
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons}
 
-\item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only)}
-
-\item{grid_size}{A numeric, the grid size to be used in meters}
-
-\item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.
-a household survey with latitude and longitude values.}
-
-\item{survey_fn}{A character, file path for geocoded survey (.dta format) (for STATA users only &
-if use_survey is TRUE)}
-
-\item{survey_lat}{A character, latitude variable from survey (for STATA users only &
-if use_survey is TRUE)}
-
-\item{survey_lon}{A character, longitude variable from survey (for STATA users only &
-if use survey is TRUE)}
-
-\item{buffer_survey}{A logical, specify TRUE if interested in estimating a statistic based on distance
-from the survey location.}
-
-\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
-Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
-
-\item{survey_crs}{A numeric, the default is 4326}
+\item{survey_dt}{An object of class "sf", "data.frame", a geocoded household survey i.e.}
 }
 \description{
 Download Land Use Land Cover data from the LULC dataset at annual intervals for a specified period
 The data is downloaded in raster format and combined with shapefile and/or survey data provided
 by the user. Source data: https://planetarycomputer.microsoft.com/dataset/io-lulc-annual-v02
-}
-\details{
-LULC data is sourced from Microsoft Planetary Computer.
-The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
-the shapefile is also provided for users that need this data further analytics that require
-equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
-permitted final output. However, a geocoded survey with land use land cover estimates are the end goal
-if the user also chooses. The function will merge shapefile polygons (either gridded or
-native polygons) with the location of the survey units i.e. land use land cover estimates for the
-locations of the units within the survey will be returned. The function is also set up for
-stata users and allows the user to pass file paths for the household survey `survey_fn`
-(with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
-a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
-to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
-`sf::read_sf()` function.
 }
 \examples{
 
@@ -71,7 +37,7 @@ data("shp_dt")
 #pull annual land use land cover and combine with household survey based on
 #grid tesselation of shapefile at 1000m
 
-df <- geolink_landcover(time_unit,
+df <- geolink_landcover(
 
 
 }

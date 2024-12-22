@@ -9,14 +9,15 @@ geolink_buildings(
   iso_code,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326
+  survey_crs = 4326,
+  indicators = "ALL"
 )
 }
 \arguments{

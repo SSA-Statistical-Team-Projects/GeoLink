@@ -12,16 +12,18 @@ geolink_ntl(
   month_version = "v10",
   indicator,
   slc_type = "vcmslcfg",
-  shp_dt,
+  shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
   survey_lon = NULL,
   extract_fun = "mean",
   buffer_size = NULL,
-  survey_crs = 4326
+  survey_crs = 4326,
+  ego_username = NULL,
+  ego_password = NULL
 )
 }
 \arguments{
@@ -38,7 +40,8 @@ are to be estimated}
 
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
 "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
-"median_masked" and "minimum"}
+"median_masked" and "minimum" for annual data and "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
+for monthly data}
 
 \item{slc_type}{A character, adjustment type made to the NTL data either "vcmcfg" or
 "vcmslcfg"}
@@ -60,10 +63,16 @@ if use_survey is TRUE)}
 \item{survey_lon}{A character, longitude variable from survey (for STATA users only &
 if use survey is TRUE)}
 
-\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
-Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
+\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.}
 
 \item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
+
+\item{survey_crs}{A numeric, the default is 4326
+Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
+
+\item{ego_username}{username for your eogdata account}
+
+\item{ego_password}{password for your egodata account}
 }
 \description{
 Download night lights luminosity at monthly/annual intervals for a specified period
@@ -100,7 +109,7 @@ df <- geolink_ntl(time_unit = "month",
                   start_date = "2020-01-01",
                   end_date = "2020-03-01",
                   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                  version = "v21",
+                  annual_version = "v21",
                   indicator = "average_masked",
                   grid_size = 1000,
                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
@@ -113,7 +122,7 @@ df <- geolink_ntl(time_unit = "annual",
                   start_date = "2020-01-01",
                   end_date = "2020-03-01",
                   shp_dt = NULL,
-                  version = "v21",
+                  annual_version = "v21",
                   indicator = "average_masked",
                   survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
                   extract_fun = "mean",
