@@ -5,26 +5,28 @@
 \title{Download points of interest from OSM data using open street maps API.}
 \usage{
 geolink_get_poi(
-  osm_feature_category,
-  osm_feature_subcategory,
-  shp_dt,
-  shp_dsn = NULL,
+  osm_key,
+  osm_value = NULL,
+  shp_dt = NULL,
+  survey_dt = NULL,
+  shp_fn = NULL,
+  survey_fn = NULL,
   buffer = NULL,
   stata = FALSE
 )
 }
 \arguments{
-\item{osm_feature_category}{A character, refering to the osm key wiki page, please see details below}
-
-\item{osm_feature_subcategory}{A character, refering to the osm key wiki page, please see details below}
-
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons}
-
-\item{shp_dsn}{A link to location of shapefile for stat users}
 
 \item{buffer}{buffer area around shapefile}
 
 \item{stata}{A flag for stata users}
+
+\item{osm_feature_category}{A character, refering to the osm key wiki page, please see details below}
+
+\item{osm_feature_subcategory}{A character, refering to the osm key wiki page, please see details below}
+
+\item{shp_dsn}{A link to location of shapefile for stat users}
 }
 \description{
 Download points of interest from OSM data using open street maps API.
@@ -37,9 +39,8 @@ Details for feature category and sub-category can be found here: https://wiki.op
 
 
 
-df <- geolink_get_poi(osm_feature_category = "building",
-osm_feature_subcategory ="farm",
-shp_dt = shp_dt)
+df <- geolink_get_poi(osm_key = "amenity",
+                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 
 }
 

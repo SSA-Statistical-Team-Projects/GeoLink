@@ -8,9 +8,9 @@ geolink_chirps(
   time_unit,
   start_date,
   end_date,
-  shp_dt,
+  shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -46,8 +46,12 @@ if use_survey is TRUE)}
 \item{survey_lon}{A character, longitude variable from survey (for STATA users only &
 if use survey is TRUE)}
 
+\item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
+
 \item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
+
+\item{survey_crs}{A numeric, the default is 4326}
 }
 \description{
 Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period

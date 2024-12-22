@@ -4,29 +4,42 @@
 \alias{geolink_opencellid}
 \title{Download OpenCellID data}
 \usage{
-geolink_opencellid(cell_tower_file, shapefile_input)
+geolink_opencellid(
+  cell_tower_file,
+  shp_dt = NULL,
+  survey_dt = NULL,
+  shp_fn = NULL,
+  survey_fn = NULL,
+  grid_size = 1000
+)
 }
 \arguments{
+\item{cell_tower_file}{A csv.gz file path downloaded from OpencellID.}
+
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.}
 
 \item{shp_fn}{A character, file path for the shapefile (.shp) to be read (for STATA users only).}
 
-\item{grid_size_meters}{A numeric, the grid size to be used in meters for analyzing the cell tower data. The maximum possible is 2000 meters.}
-
-\item{key}{A character, the API key created in when signing up to Opencellid profile.}
+\item{grid_size}{A numeric, the grid size to be used in meters for analyzing the cell tower data. The maximum possible is 2000 meters.}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.
 }
 \description{
-This function downloads OpenCellID data, which provides information about cell towers and their coverage areas. It allows for further analysis of cellular network coverage in a given area.
+This function processes downloaded OpenCellID data, which provides information about cell towers and their coverage areas.
+The return dataframe gives data of the nearest cell tower to the shapefile polygon centroid.
 }
 \examples{
 \donttest{
 
 # Example usage
 results <- geolink_opencellid(cell_tower_file = "C:/Users/username/Downloads/621.csv.gz",
-                             shapefile_input = shp_dt)
+                             shp_dt = shp_dt)
+
+ results <- geolink_opencellid(cell_tower_file = "C:/Users/username/Downloads/621.csv.gz",
+                                    survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
+                                   shp_dt = NULL)
+
 }
 
 }

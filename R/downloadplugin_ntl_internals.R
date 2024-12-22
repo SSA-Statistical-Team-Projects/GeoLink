@@ -37,7 +37,7 @@ ntl_downloader <- function(client_id,
   auth <- paste("Bearer", access_token)
 
   raster_obj <-
-  download_reader(url = data_url,
+  ntl_download_reader(url = data_url,
                   headers = list(Authorization = auth),
                   shp_dt = shp_dt)
 
