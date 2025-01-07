@@ -1401,7 +1401,7 @@ geolink_CMIP6 <- function(start_date,
     sf_obj <- ensure_crs_4326(sf_obj)
 
   } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
-    sf_obj  sf_obj <- zonalstats_prepsurvey(
+    sf_obj <- zonalstats_prepsurvey(
       survey_dt = survey_dt,
       survey_fn = survey_fn,
       survey_lat = survey_lat,
