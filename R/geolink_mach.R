@@ -1115,7 +1115,7 @@ geolink_electaccess <- function(
 #'
 
 geolink_elevation <- function(iso_code,
-                              shp_dt,
+                              shp_dt=NULL,
                               shp_fn = NULL,
                               grid_size = NULL,
                               survey_dt = NULL,
@@ -1376,7 +1376,7 @@ geolink_CMIP6 <- function(start_date,
                           end_date,
                           scenario,
                           desired_models,
-                          shp_dt,
+                          shp_dt = NULL,
                           shp_fn = NULL,
                           grid_size = NULL,
                           survey_dt = NULL,
@@ -1401,10 +1401,13 @@ geolink_CMIP6 <- function(start_date,
     sf_obj <- ensure_crs_4326(sf_obj)
 
   } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
-    sf_obj <- haven::read_dta(survey_fn)
-    sf_obj <- st_as_sf(sf_obj,
-                       coords = c(survey_lon, survey_lat),
-                       crs = survey_crs)
+    sf_obj  sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
     sf_obj <- ensure_crs_4326(sf_obj)
 
   } else {
@@ -2083,10 +2086,13 @@ geolink_vegindex <- function(
     sf_obj <- ensure_crs_4326(sf_obj)
 
   } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
-    sf_obj <- haven::read_dta(survey_fn)
-    sf_obj <- st_as_sf(sf_obj,
-                       coords = c(survey_lon, survey_lat),
-                       crs = survey_crs)
+    sf_obj <-  sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
     sf_obj <- ensure_crs_4326(sf_obj)
 
   } else {
@@ -2099,34 +2105,32 @@ geolink_vegindex <- function(
   if (indicator != "NDVI" & indicator != "EVI"){
     stop("Indicator must be either 'NDVI' or 'EVI'")
   }
-  indicator <- paste0("500m_16_days_", indicator)
 
+  if (indicator != "NDVI" & indicator != "EVI"){
+    stop("Indicator must be either 'NDVI' or 'EVI'")
+  }
+  indicator <- paste0("500m_16_days_", indicator)
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
-
-
-
-  it_obj <- fetch_planetary_data("modis-13A1-061", start_date, end_date, sf_obj)
-
-
-
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+  it_obj <- s_obj %>%
+    stac_search(collections = "modis-13A1-061",
+                bbox = sf::st_bbox(sf_obj),
+                datetime = paste(start_date, end_date, sep = "/")) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
   date_list <- lapply(1:length(it_obj$features),
                       function(x){
-
                         date <- cbind(year(it_obj$features[[x]]$properties$end_datetime),
                                       month(it_obj$features[[x]]$properties$end_datetime),
                                       lubridate::day(it_obj$features[[x]]$properties$end_datetime))
                         colnames(date) <- c("year", "month", "day")
-
                         return(date)
-
                       })
   date_list <- data.table::data.table(do.call(rbind, date_list))
   date_list <- date_list[, .SD[1], by = .(year, month)]
-
   features_todl <- lapply(1:nrow(date_list),
                           function(x){
-
                             feat <- c()
                             for (i in 1:length(it_obj$features)){
                               if ((year(it_obj$features[[i]]$properties$end_datetime) == date_list[x, .(year)] &
@@ -2136,30 +2140,22 @@ geolink_vegindex <- function(
                               }
                             }
                             return(feat)
-
                           })
-
-
-
   url_list <- lapply(1:length(features_todl),
                      function(x){
                        url <- c()
                        for (i in features_todl[x][[1]]){
                          url <- c(url, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
                        }
-
-
                        return(url)
-
                      })
-
   print("NDVI/EVI raster download started. This may take some time.")
-
   raster_objs <- c()
   num <- 1
+
   for (x in url_list){
     rall <- terra::rast(x[[1]])
-    for (i in 2:length(x)){
+    for (i in 2:length(url_list)){
       r <- terra::rast(x[[i]])
       rall <- terra::mosaic(r, rall, fun = "max")
     }
@@ -2171,26 +2167,9 @@ geolink_vegindex <- function(
     num <- num + 1
   }
 
-  # raster_objs <- lapply(url_list,
-  #                       function(x){
-  #                         rall <- terra::rast(x[[1]])
-  #                         for (i in 2:length(x)){
-  #                           r <- terra::rast(x[[i]])
-  #                           rall <- terra::mosaic(r, rall, fun = "mean")
-  #                         }
-  #                         raster::crs(rall) <- "EPSG:3857"
-  #                         rall <- project(rall, crs(shp_dt))
-  #                         rall <- rall/100000000
-  #                         return(rall)
-  #                       })
-
-
 
   name_set <- paste0("ndvi_", "y", date_list$year, "_m", date_list$month)
-
   print("NDVI Raster Downloaded")
-
-  raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = sf_obj)
 
 
   dt <- postdownload_processor(shp_dt = shp_dt,
@@ -2205,15 +2184,9 @@ geolink_vegindex <- function(
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
                                name_set = name_set)
-
   print("Process Complete!!!")
-
   return(dt)
 }
-
-
-
-
 
 
 
@@ -2277,10 +2250,13 @@ geolink_pollution <- function(
     sf_obj <- ensure_crs_4326(sf_obj)
 
   } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
-    sf_obj <- haven::read_dta(survey_fn)
-    sf_obj <- st_as_sf(sf_obj,
-                       coords = c(survey_lon, survey_lat),
-                       crs = survey_crs)
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
     sf_obj <- ensure_crs_4326(sf_obj)
 
   } else {
@@ -2290,12 +2266,22 @@ geolink_pollution <- function(
 
 
   # checks
+
+  valid_indicators <- c("aer-ai", "ch4", "co", "hcho", "no2", "o3", "so2", "ALL")
+
   if (missing(indicator)==TRUE){
-    print("You must specify an indicator: aer-ai, ch4, co, hcho, no2, o3, so2")
+
+    print("You must specify ALL, a list or a single indicator: aer-ai, ch4, co, hcho, no2, o3, so2")
+
+  } else if (any(!indicator %in% valid_indicators)) {
+
+     stop("Error: Invalid indicator(s). Valid options are ALL, a list or a single indicator: aer-ai, ch4, co, hcho, no2, o3, so2.")
+
+   } else if (any(indicator == "ALL")) {
+
+    indicator <- c("aer-ai", "ch4", "co", "hcho", "no2", "o3", "so2")
   }
-  if ((indicator %in% c("aer-ai", "ch4", "co", "hcho", "no2", "o3", "so2"))==FALSE){
-    print("You must specify one of the following indicators: aer-ai, ch4, co, hcho, no2, o3, so2")
-  }
+
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -2311,6 +2297,11 @@ geolink_pollution <- function(
   print("Collection of monthly links started.")
   # this will collect the features we need to download for the variable of interest
   # all months
+
+  indicator_ls <- as.list(indicator)
+
+  sf_list <- lapply(indicator_ls, function(indicator){
+
   url_list <- c()
   bboxes <- c()
   for (x in 1:nrow(allmonths)){
@@ -2327,64 +2318,77 @@ geolink_pollution <- function(
     features_month <- c()
     dates_month <- c()
     bboxes_month <- c()
-    for (i in 1:length(it_obj$features)){
-      if (names(it_obj$features[[i]]$assets)==paste0(indicator)){
-        features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
-        dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
-        bboxes_month <- c(bboxes_month, list(it_obj$features[[i]]$bbox))
-      }
-    }
-    features_month <- features_month[which(lubridate::day(dates_month)==lubridate::day(dates_month[which.max(lubridate::day(dates_month))]))]
-    bboxes_month <- bboxes_month[which(lubridate::day(dates_month)==lubridate::day(dates_month[which.max(lubridate::day(dates_month))]))]
 
-    url_list <- c(url_list, list(features_month))
-    bboxes <- c(bboxes, list(bboxes_month))
-  }
+   for (i in 1:length(it_obj$features)){
+     if (names(it_obj$features[[i]]$assets)==paste0(indicator)){
+       features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
+       dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
+       bboxes_month <- c(bboxes_month, list(it_obj$features[[i]]$bbox))
+     }
+   }
+   features_month <- features_month[which(lubridate::day(dates_month)==lubridate::day(dates_month[which.max(lubridate::day(dates_month))]))]
+   bboxes_month <- bboxes_month[which(lubridate::day(dates_month)==lubridate::day(dates_month[which.max(lubridate::day(dates_month))]))]
 
-  print("Pollution raster download started. This may take some time.")
+   url_list <- c(url_list, list(features_month))
+   bboxes <- c(bboxes, list(bboxes_month))}
+
+  print(paste0(indicator , ": ", "raster download started. This may take some time."))
 
 
-  # right layer name depending on the indicator
-  layer <- dplyr::case_match(
-    indicator,
-    "aer-ai" ~ "aerosol_index_340_380",
-    "ch4" ~ "methane_strong_twoband_total_column",
-    "co" ~ "carbonmonoxide_total_column",
-    "hcho" ~ "formaldehyde_tropospheric_vertical_column",
-    "no2" ~ "nitrogendioxide_tropospheric_column",
-    "o3" ~ "ozone_total_vertical_column",
-    "so2" ~ "sulfurdioxide_total_vertical_column"
-  )
+ # right layer name depending on the indicator
+ layer <- dplyr::case_match(
+   indicator,
+   "aer-ai" ~ "aerosol_index_340_380",
+   "ch4" ~ "methane_strong_twoband_total_column",
+   "co" ~ "carbonmonoxide_total_column",
+   "hcho" ~ "formaldehyde_tropospheric_vertical_column",
+   "no2" ~ "nitrogendioxide_tropospheric_column",
+   "o3" ~ "ozone_total_vertical_column",
+   "so2" ~ "sulfurdioxide_total_vertical_column")
 
-  # The rasters do not have the appropriate extent and CRS
-  # We have saved the bbox from the metadata and will use it to transform the raster
+ # The rasters do not have the appropriate extent and CRS
+ # We have saved the bbox from the metadata and will use it to transform the raster
   raster_objs <- c()
+
   num <- 1
-  for (x in url_list){
-    # get bbox for this raster
-    bb <- bboxes[[num]][1]
-    # load raster
-    rall <- terra::rast(x[[1]])
-    # keep just the layer we want and transform to array
-    rall <- as.array(rall[[paste0(layer)]])
-    # now back to raster with the appropriate extent and CRS
-    rall <- rast(rall, crs = "EPSG:4326", extent = ext(c(bb[[1]][1], bb[[1]][3], bb[[1]][2], bb[[1]][4])))
-    # match shp_dt
-    rall <- project(rall, crs(shp_dt))
-    raster_objs <- c(raster_objs, rall)
-    print(paste0("Month ", num, " of ", length(url_list), " completed."))
-    num <- num + 1
-  }
+ for (x in url_list){
+   # get bbox for this raster
+   bb <- bboxes[[num]][1]
+   # load raster
+   rall <- terra::rast(x[[1]])
+   # keep just the layer we want and transform to array
+   rall <- as.array(rall[[paste0(layer)]])
+   # now back to raster with the appropriate extent and CRS
+   rall <- rast(rall, crs = "EPSG:4326", extent = ext(c(bb[[1]][1], bb[[1]][3], bb[[1]][2], bb[[1]][4])))
+   # match shp_dt
+   rall <- project(rall, crs(shp_dt))
+   raster_objs <- c(raster_objs, rall)
+   print(paste0("Month ", num, " of ", length(url_list), " completed."))
+   num <- num + 1
+ }
 
 
   date_list <- as_date(paste0(allmonths$year, "-", allmonths$month, "-01"))
   name_set <- paste0(indicator, "_", "y", allmonths$year, "_m", allmonths$month)
 
-  print("Pollution Rasters Downloaded")
 
-  raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = sf_obj)
+  names(raster_objs) <- name_set
 
 
+
+  print(paste0(indicator , ": ", "rasters downloaded."))
+
+ # raster_objs <- lapply(raster_objs, crop_and_clean_raster, shp_dt = sf_obj)
+
+
+  return(raster_objs)
+
+  })
+
+  #Prepare rasters and nameset
+  raster_objs <- unlist(sf_list)
+
+  name_set <- names(raster_objs)
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
@@ -2399,10 +2403,12 @@ geolink_pollution <- function(
                                survey_crs = survey_crs,
                                name_set = name_set)
 
-  print("Process Complete!!!")
+  print(paste0("Process Completed!!!"))
+
 
   return(dt)
-}
+  }
+
 
 
 

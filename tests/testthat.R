@@ -11,17 +11,25 @@ library(GeoLink)
 
 #test_check("GeoLink")
 
-#Done
-usethis::use_test("chirps_functions") #Done
+#Functions that passed tests
+
+#usethis::use_test("chirps_functions") #Done
 #usethis::use_test("postdownload_processor") #Done
-usethis::use_test("elevation_functions")  #Server is down
-usethis::use_test("cropland_function")  #  Server is down, back in Dec 21st
-usethis::use_test("geolink_worldclim")  # Server is down
-usethis::use_test("ntl_functions") # Done
+#usethis::use_test("elevation_functions") #Done
+#usethis::use_test("cropland_function")  # Done
+#usethis::use_test("geolink_worldclim")  #
+#usethis::use_test("ntl_functions") # Done
 #usethis::use_test("population_functions") # Done
 #usethis::use_test("building_functions") # Done
 #usethis::use_test("geolink_CMIP6") # Done
-#usethis::use_test("geolink_landcover") # Done
 
-usethis::use_test("geolink_vegindex") # Done
+
+# 6 functions not working
+
+#usethis::use_test("geolink_electaccess") # Not working
+#usethis::use_test("geolink_vegindex") # Not working
+#usethis::use_test("geolink_pollution") # Not working
+#usethis::use_test("geolink_landcover") # Not working
+#usethis::use_test("geolink_get_poi") # Not working
+#usethis::use_test("geolink_opencellid") # Not working
 
