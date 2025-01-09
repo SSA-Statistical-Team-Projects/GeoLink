@@ -3,21 +3,21 @@ pacman::p_load(sf, raster, geosphere, data.table)
 
 
 # Combined function to calculate tower stats and return the nearest lat/lon for a polygon
-geolink_opencellid <- function(cell_tower_file, shp_dt) {
+geolink_opencellid <- function(cell_tower_file, shapefile_input) {
 
   # Load the OpenCellID data
   cell_towers <- read_opencellid_data(cell_tower_file)
 
   # Check if shapefile_input is a file path (character) or an in-memory sf object
-  if (is.character(shp_dt)) {
+  if (is.character(shapefile_input)) {
     # Load shapefile if it's a file path
-    if (!file.exists(shp_dt)) {
+    if (!file.exists(shapefile_input)) {
       stop("Shapefile not found at the specified path")
     }
-    polygons <- st_read(shp_dt)
-  } else if (inherits(shp_dt, "sf")) {
+    polygons <- st_read(shapefile_input)
+  } else if (inherits(shapefile_input, "sf")) {
     # Use the sf object directly
-    polygons <- shp_dt
+    polygons <- shapefile_input
   } else {
     stop("Invalid shapefile input: must be a file path or an sf object.")
   }
@@ -74,6 +74,6 @@ geolink_opencellid <- function(cell_tower_file, shp_dt) {
 # Example usage
 # Assume `shp_dt` is a preloaded shapefile object
 
-results <- geolink_opencellid(cell_tower_file = "C:/Users/Diana Jaganjac/Downloads/nigeria.csv.gz",
-                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+results <- geolink_opencellid(cell_tower_file = "C:/Users/Diana Jaganjac/Downloads/621.csv.gz",
+                              shapefile_input = shp_dt)
 

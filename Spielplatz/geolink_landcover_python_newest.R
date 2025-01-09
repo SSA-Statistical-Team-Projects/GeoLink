@@ -196,6 +196,4 @@ geolink_landcover <- function(start_date, end_date, shp_dt) {
 
 
 
-df <- geolink_landcover(start_date = "2019-01-02", end_date = "2020-09-10",
-                        shp_dt = region_shp,
-                        use_resampling = TRUE)
+df <- geolink_landcover(start_date = "2019-01-02", end_date = "2020-09-10", shp_dt = region_shp)
