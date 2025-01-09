@@ -466,18 +466,15 @@ run_geolink <- function(
   # Prepare arguments dynamically
   args <- list(
     shp_dt = shp_dt,
-    survey_dt = survey_dt,
     start_date = start_date,
-    end_date = end_date,
-    iso_code = iso_code
+    end_date = end_date
   )
 
   # Add additional arguments passed via ...
   additional_args <- list(...)
   args <- c(args, additional_args)
 
-  # Remove NULL arguments
-  args <- args[!sapply(args, is.null)]
+
 
   # Call the function with prepared arguments
   tryCatch({

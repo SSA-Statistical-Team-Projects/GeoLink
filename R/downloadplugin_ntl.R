@@ -57,6 +57,62 @@ get_month_ntl <- function(start_date,
     }
     x[basename(x) %in% matched_links]
   }))
+  url_link <- mapply(FUN = construct_month_link,
+                     year = date_dt$year,
+                     month = date_dt$month,
+                     version = rep(version, nrow(date_dt)),
+                     slc_type = rep(slc_type, nrow(date_dt)),
+                     no_tile = rep(no_tile, nrow(date_dt)),
+                     SIMPLIFY = FALSE)
+
+
+
+  if (no_tile == TRUE) {
+
+    indicator <- match.arg(indicator, c("avg_rade9h",
+                                        "cf_cvg",
+                                        "cvg",
+                                        "avg_rade9h.masked"),
+                           several.ok = FALSE)
+  }
+
+  #### select the set of indicators we want
+  indicator <- paste0(indicator, ".tif")
+
+  url_link <- lapply(url_link,
+                     function(x){
+
+                       base_x <- basename(x)
+
+                       y <- base_x[grepl(indicator, base_x)]
+
+                       if (is.null(y)){
+
+                         date_chr <- substr(base_x[[1]],
+                                            11,
+                                            27)
+
+                         warning(paste0(indicator,
+                                        " is missing from the EOG NTL database",
+                                        " for the month in",
+                                        date_chr))
+
+                       }
+
+                       full_link <- x[grepl(y, x)]
+
+                       return(full_link)
+
+                     })
+
+  url_link <- unlist(url_link)
+
+  ### download the data
+  raster_list <-
+    lapply(X = url_link,
+           FUN = download_reader)
+
+
 
   ### Download and process the data
   raster_list <- lapply(url_links, function(link) {
@@ -94,6 +150,11 @@ get_annual_ntl <- function(year,
                                          "minimum")) {
   ### Construct the base link
   url_link <- construct_year_link(year = year, version = version)
+  ### construct the link
+  url_link <- construct_year_link(
+    year = year,
+    version = version
+  )
 
   ### Fetch the download links from the webpage
   webpage <- rvest::read_html(url_link)
@@ -109,6 +170,14 @@ get_annual_ntl <- function(year,
 
   ### Create full URLs
   full_links <- paste0(url_link, "/", download_links)
+  ### create full link
+  download_links <- paste0(url_link, "/", download_links)
+
+  raster_list <-
+  lapply(X = download_links,
+         FUN = download_reader)
+
+
 
   ### Download and process the data
   raster_list <- lapply(full_links, function(link) {

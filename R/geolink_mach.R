@@ -70,7 +70,7 @@
 geolink_chirps <- function(time_unit,
                            start_date,
                            end_date,
-                           shp_dt = NULL,
+                           shp_dt,
                            shp_fn = NULL,
                            grid_size = 1000,
                            survey_dt = NULL,
@@ -240,7 +240,7 @@ geolink_ntl <- function(time_unit = "annual",
                         month_version = "v10",
                         indicator,
                         slc_type = "vcmslcfg",
-                        shp_dt = NULL,
+                        shp_dt,
                         shp_fn = NULL,
                         grid_size = 1000,
                         survey_dt = NULL,
@@ -638,7 +638,10 @@ geolink_population <- function(start_year = NULL,
   unlink(tempdir(), recursive = TRUE)
 
   shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  }
 
   if (!dir.exists(file_location)) {
     dir.create(file_location, recursive = TRUE)
@@ -765,8 +768,9 @@ geolink_population <- function(start_year = NULL,
 #'
 #'
 #'
-#' df <- geolink_get_poi(osm_key = "amenity",
-#'                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#' df <- geolink_get_poi(osm_feature_category = "building",
+#' osm_feature_subcategory ="farm",
+#' shp_dt = shp_dt)
 #'
 #'}
 #'
@@ -779,7 +783,7 @@ geolink_get_poi <- function(osm_key,
                             shp_fn = NULL,
                             survey_fn = NULL,
                             buffer = NULL,
-                            stata = FALSE) {
+                            stata = FALSE){
 
   # Automatically convert survey_dt to sf if provided and shp_dt is NULL
   if (!is.null(survey_dt)) {
@@ -798,107 +802,49 @@ geolink_get_poi <- function(osm_key,
     }
     survey_dt <- ensure_crs_4326(survey_dt)
     shp_dt <- survey_dt  # Use survey_dt as shp_dt for OSM queries
+  shp_dt <- ensure_crs_4326(shp_dt)
+
+  if (!is.null(shp_dsn)) {
+    shp_dt <- st_read(shp_dsn)
   }
 
-  # If shp_fn is provided, read shapefile
-  if (!is.null(shp_fn)) {
-    shp_dt <- st_read(shp_fn)
-  }
 
-  # Ensure either shp_dt or survey_dt is provided
-  if (is.null(shp_dt)) {
-    stop("Either shp_dt or survey_dt must be provided.")
-  }
+  bbox <- create_query_bbox(shp_dt = shp_dt,
+                            area_name = NULL,
+                            buffer_dist = c(0, 0, 0, 0),
+                            metric_crs = FALSE,
+                            osm_crs = 4326)
 
-  # Validate shp_dt and ensure it's not empty
-  if (nrow(shp_dt) == 0) {
-    stop("shp_dt is empty after filtering. Please check the filter conditions.")
-  }
-  if (any(is.na(st_geometry(shp_dt)))) {
-    stop("shp_dt contains invalid geometries. Please ensure all geometries are valid.")
-  }
+  datapull <- opq(c(bbox = bbox, timeout = 7200)) %>%
+    add_osm_feature(osm_feature_category, osm_feature_subcategory)
 
-  # Query OpenStreetMap for POI data
-  if (!is.null(survey_dt)) {
-    # Use individual points from survey_dt for the OSM query
-    points <- st_geometry(survey_dt)
-    results_list <- list()
+  features <- osmdata_sf(datapull)
 
-    for (point in points) {
-      point_bbox <- st_bbox(point)
 
-      # Use withCallingHandlers to suppress CRS and Bounding Box warnings
-      datapull <- opq(c(bbox = point_bbox, timeout = 7200)) %>%
-        add_osm_feature(key = osm_key, value = osm_value)
-
-      # Suppress CRS and Bounding Box warnings during osmdata_sf call
-      features <- withCallingHandlers({
-        osmdata_sf(datapull)
-      }, warning = function(w) {
-        if (grepl("Bounding Box", conditionMessage(w)) || grepl("CRS is already EPSG:4326", conditionMessage(w))) {
-          return(NULL)  # Ignore this specific warning
-        }
-        # Otherwise, re-throw the warning
-        invokeRestart("muffleWarning")
-      })
-
-      if (!is.null(features)) {
-        results_list[[length(results_list) + 1]] <- features$osm_points
-      }
-    }
-
-    # Combine results from all points
-    results <- do.call(rbind, results_list)
-  } else {
-    # Use bbox of shp_dt for the OSM query
-    bbox <- st_bbox(shp_dt)
-    if (any(is.na(bbox))) {
-      stop("Bounding box contains NA values. Please ensure shp_dt has valid geometries.")
-    }
-
-    datapull <- opq(c(bbox = bbox, timeout = 7200)) %>%
-      add_osm_feature(key = osm_key, value = osm_value)
-
-    # Suppress warnings here as well using withCallingHandlers
-    features <- withCallingHandlers({
-      osmdata_sf(datapull)
-    }, warning = function(w) {
-      if (grepl("Bounding Box", conditionMessage(w)) || grepl("CRS is already EPSG:4326", conditionMessage(w))) {
-        return(NULL)  # Ignore this specific warning
-      }
-      # Otherwise, re-throw the warning
-      invokeRestart("muffleWarning")
-    })
-
-    if (!is.null(features)) {
-      results <- features$osm_points
-    }
-  }
-
-  # Filter out points without meaningful data
-  results <- results %>%
-    filter(if_any(-c(osm_id, geometry), ~ !is.na(.x)))
-
-  # Spatial join between results and shp_dt/survey_dt
-  query_dt <- st_join(results, shp_dt, left = FALSE)
-
-  # Handle case with no matching POI
-  if (nrow(query_dt) == 0) {
+  if (nrow(features$osm_points) == 0) {
     print("No points of interest")
+    return()
+  } else {
+    results <- (features$osm_points)
   }
 
-  # Optionally remove geometry for Stata compatibility
-  if (stata) {
+
+    # Optionally remove geometry for Stata compatibility
+
+    query_dt <- st_join(results, shp_dt)
+
+
+      if (stata) {
     query_dt <- query_dt[, !grepl("geometry", names(query_dt))]
   }
 
-  # Log completion
-  print("OpenStreetMap data downloaded.")
-  print("Process complete!")
+
+
+
+  print("Open Street Maps Raster Downloaded")
 
   return(query_dt)
-}
-
+}}
 
 
 
@@ -950,7 +896,10 @@ geolink_electaccess <- function(
 
 
   shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  }
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -1184,7 +1133,10 @@ geolink_buildings <- function(version,
 
 
   shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  }
 
   temp_dir <- tempdir()
 
@@ -1321,7 +1273,7 @@ geolink_CMIP6 <- function(start_date,
                           end_date,
                           scenario,
                           desired_models,
-                          shp_dt = NULL,
+                          shp_dt,
                           shp_fn = NULL,
                           grid_size = 1000,
                           survey_dt = NULL,
@@ -1338,6 +1290,22 @@ geolink_CMIP6 <- function(start_date,
   survey_dt <- ensure_crs_4326(survey_dt)
 
  it_obj <- fetch_planetary_data("nasa-nex-gddp-cmip6", start_date, end_date, shp_dt)
+  # Set date range
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+
+  # Create STAC connection
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  # Retrieve URLs for the specified scenario
+  it_obj <- s_obj %>%
+    stac_search(
+      collections = "nasa-nex-gddp-cmip6",
+      bbox = sf::st_bbox(shp_dt),
+      datetime = paste(start_date, end_date, sep = "/")
+    ) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
 
   # Filter features based on the scenario and desired models
   filtered_features <- Filter(function(feature) {
@@ -1491,10 +1459,12 @@ geolink_cropland <- function(
     extract_fun = "mean",
     survey_crs = 4326) {
 
-
   # Ensure consistent CRS
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
+
+  # Clear temporary directory
+  unlink(tempdir(), recursive = TRUE)
 
   # Get bounding box of shapefile
   bbox <- sf::st_bbox(shp_dt)
@@ -1590,7 +1560,7 @@ geolink_cropland <- function(
 geolink_worldclim <- function(iso_code,
                               var,
                               res,
-                              shp_dt = NULL,
+                              shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt = NULL,
@@ -1686,11 +1656,6 @@ geolink_worldclim <- function(iso_code,
 #' # Example usage
 #' results <- geolink_opencellid(cell_tower_file = "C:/Users/username/Downloads/621.csv.gz",
 #'                              shp_dt = shp_dt)
-#'
-#'  results <- geolink_opencellid(cell_tower_file = "C:/Users/username/Downloads/621.csv.gz",
-#'                                     survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
-#'                                    shp_dt = NULL)
-#'
 #' }
 #'
 
@@ -1742,20 +1707,65 @@ geolink_opencellid <- function(cell_tower_file,
   }
 
   # Load and prepare cell tower data
+  shp_dt <- ensure_crs_4326(shp_dt)
+
+  # Load the OpenCellID data
   cell_towers <- read_opencellid_data(cell_tower_file)
+
+  # Check if shapefile_input is a file path (character) or an in-memory sf object
+  if (is.character(shapefile_input)) {
+    # Load shapefile if it's a file path
+    if (!file.exists(shapefile_input)) {
+      stop("Shapefile not found at the specified path")
+    }
+    polygons <- st_read(shapefile_input)
+  } else if (inherits(shapefile_input, "sf")) {
+    # Use the sf object directly
+    polygons <- shapefile_input
+  } else {
+    stop("Invalid shapefile input: must be a file path or an sf object.")
+  }
+
+  # Ensure CRS matches between towers and polygons
   cell_towers_sf <- st_as_sf(cell_towers, coords = c("lon", "lat"), crs = 4326)
+  cell_towers_sf <- st_transform(cell_towers_sf, st_crs(polygons))
 
-  # Helper function to find the nearest cell tower
-  find_nearest_tower <- function(geometry, cell_towers_sf) {
-    distances <- st_distance(geometry, cell_towers_sf, by_element = FALSE)
-    nearest_idx <- which.min(distances)
-    nearest_distance <- min(distances)
-    nearest_coordinates <- st_coordinates(cell_towers_sf)[nearest_idx, ]
+  # Create a list to store results
+  results <- list()
 
-    list(
+  # Loop through each polygon to calculate stats
+  for (i in 1:nrow(polygons)) {
+    polygon <- polygons[i, ]
+
+    # Towers within the polygon
+    towers_in_polygon <- st_within(cell_towers_sf, polygon, sparse = FALSE)
+    num_towers <- sum(towers_in_polygon)
+
+    # Calculate centroid of the polygon
+    centroid <- st_centroid(polygon)
+
+    # Calculate nearest tower distance
+    if (num_towers > 0) {
+      towers_sf <- cell_towers_sf[towers_in_polygon, ]
+      distances <- st_distance(centroid, towers_sf, by_element = FALSE)
+      nearest_idx <- which.min(distances)
+      nearest_distance <- min(distances)
+
+      nearest_lon <- st_coordinates(towers_sf)[nearest_idx, "X"]
+      nearest_lat <- st_coordinates(towers_sf)[nearest_idx, "Y"]
+    } else {
+      nearest_distance <- NA
+      nearest_lon <- NA
+      nearest_lat <- NA
+    }
+
+    # Store results
+    results[[i]] <- data.frame(
+      polygon_id = i,
+      num_towers = num_towers,
       nearest_distance = nearest_distance,
-      nearest_lon = nearest_coordinates["X"],
-      nearest_lat = nearest_coordinates["Y"]
+      nearest_lon = nearest_lon,
+      nearest_lat = nearest_lat
     )
   }
 
@@ -1815,6 +1825,10 @@ geolink_opencellid <- function(cell_tower_file,
     results_df <- do.call(rbind, results)
     return(results_df)
   }
+  # Combine all results into a data frame
+  results_df <- do.call(rbind, results)
+
+  return(results_df)
 }
 
 
@@ -2001,7 +2015,7 @@ geolink_vegindex <- function(
                              start_date,
                              end_date,
                              indicator = "NDVI",
-                             shp_dt = NULL,
+                             shp_dt,
                              shp_fn = NULL,
                              grid_size = 1000,
                              survey_dt = NULL,
@@ -2011,7 +2025,6 @@ geolink_vegindex <- function(
                              buffer_size = NULL,
                              extract_fun = "mean",
                              survey_crs = 4326){
-
 
   shp_dt <- ensure_crs_4326(shp_dt)
   survey_dt <- ensure_crs_4326(survey_dt)
@@ -2023,6 +2036,18 @@ geolink_vegindex <- function(
 
 
   it_obj <- fetch_planetary_data("modis-13A1-061", start_date, end_date, shp_dt)
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  it_obj <- s_obj %>%
+    stac_search(collections = "modis-13A1-061",
+                bbox = sf::st_bbox(shp_dt),
+                datetime = paste(start_date, end_date, sep = "/")) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
 
 
   date_list <- lapply(1:length(it_obj$features),
@@ -2105,6 +2130,7 @@ geolink_vegindex <- function(
 
   print("NDVI Raster Downloaded")
 
+  print("NDVI Raster Downloaded")
 
   dt <- postdownload_processor(shp_dt = shp_dt,
                                raster_objs = raster_objs,
@@ -2167,7 +2193,7 @@ geolink_pollution <- function(
                               start_date,
                               end_date,
                               indicator,
-                              shp_dt = NULL,
+                              shp_dt,
                               shp_fn = NULL,
                               grid_size = 1000,
                               survey_dt,
@@ -2180,7 +2206,9 @@ geolink_pollution <- function(
 
 
   shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  }
 
   # checks
   if (missing(indicator)==TRUE){
