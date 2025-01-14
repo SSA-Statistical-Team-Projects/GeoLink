@@ -35,7 +35,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\Diana Jaganjac\Documents\GitHub\Geolink\inst\python\virtual_env"
+VIRTUAL_ENV="C:\Users\wb610463\OneDrive - WBG\Documents\GeoLink\inst\python\virtual_env"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

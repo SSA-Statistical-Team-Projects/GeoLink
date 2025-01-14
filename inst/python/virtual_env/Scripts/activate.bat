@@ -8,7 +8,7 @@ if defined _OLD_CODEPAGE (
     "%SystemRoot%\System32\chcp.com" 65001 > nul
 )
 
-set VIRTUAL_ENV=C:\Users\Diana Jaganjac\Documents\GitHub\Geolink\inst\python\virtual_env
+set VIRTUAL_ENV=C:\Users\wb610463\OneDrive - WBG\Documents\GeoLink\inst\python\virtual_env
 
 if not defined PROMPT set PROMPT=$P$G
 

@@ -1,9 +1,29 @@
-geolink_landcover <- function(start_date, end_date, shp_dt) {
+geolink_landcover <- function(start_date = NULL,
+                              end_date = NULL,
+                              shp_dt = NULL,
+                              survey_dt = NULL,
+                              use_resampling = TRUE) {
+
+  if (is.null(start_date) || is.null(end_date)) {
+    stop("start_date and end_date must be provided")
+  }
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
-  source_python(file.path("inst", "python", "raster_utils.py"))
+  # Clear existing Python config
+  Sys.unsetenv("RETICULATE_PYTHON")
+
+  # Set up virtual environment
+  venv_path <- file.path(system.file(package = "GeoLink"), "python", "virtual_env")
+  reticulate::use_virtualenv(venv_path, required = TRUE)
+
+  # Source Python utilities from correct path
+  python_utils_path <- system.file("python_scripts", "raster_utils.py", package = "GeoLink")
+  if (!file.exists(python_utils_path)) {
+    stop("Python utilities not found. Check package installation.")
+  }
+  reticulate::source_python(python_utils_path)
 
   # STAC search
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
@@ -74,24 +94,24 @@ geolink_landcover <- function(start_date, end_date, shp_dt) {
 
     cat("Rasters for year:", year, "are located at:", raster_paths, "\n")
 
-    if (length(raster_paths) == 1) {
+    if (use_resampling) {
       resampled_rasters <- resample_rasters(
         input_files = raster_paths,
         output_folder = file.path(temp_dir, "resampled", year),
         target_resolution = 1000
       )
-    } else {
-      resampled_rasters <- resample_rasters(
-        input_files = raster_paths,
-        output_folder = file.path(temp_dir, "resampled", year),
-        target_resolution = 1000
-      )
-    }
 
-    if (length(resampled_rasters) == 1) {
-      mosaicked_path <- resampled_rasters[[1]]
+      if (length(resampled_rasters) == 1) {
+        mosaicked_path <- resampled_rasters[[1]]
+      } else {
+        mosaicked_path <- mosaic_rasters(input_files = resampled_rasters)
+      }
     } else {
-      mosaicked_path <- mosaic_rasters(input_files = resampled_rasters)
+      if (length(raster_paths) == 1) {
+        mosaicked_path <- raster_paths[[1]]
+      } else {
+        mosaicked_path <- mosaic_rasters(input_files = raster_paths)
+      }
     }
 
     mosaicked_raster <- terra::rast(mosaicked_path)
@@ -193,7 +213,3 @@ geolink_landcover <- function(start_date, end_date, shp_dt) {
 
   return(final_result)
 }
-
-
-
-df <- geolink_landcover(start_date = "2019-01-02", end_date = "2020-09-10", shp_dt = region_shp)
