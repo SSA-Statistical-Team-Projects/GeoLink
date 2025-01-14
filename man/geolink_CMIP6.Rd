@@ -9,7 +9,7 @@ geolink_CMIP6(
   end_date,
   scenario,
   desired_models,
-  shp_dt,
+  shp_dt = NULL,
   shp_fn = NULL,
   grid_size = NULL,
   survey_dt = NULL,
@@ -63,12 +63,14 @@ It allows for further analysis of the data in conjunction with geographic data.
 \examples{
 \donttest{
 
-# Example usage
-df <- geolink_CMIP6(start_date = "2019-01-01", end_date = "2019-12-31",
-                      scenario = "ssp245", desired_models = "UKESM1-0-LL",
-                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+ #example usage
+df <- geolink_CMIP6(start_date = "2019-01-01",
+                    end_date = "2019-12-31",
+                    scenario = "ssp245",
+                   desired_models = "UKESM1-0-LL",
+                   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                   grid_size = 1000)
 
 
 }
-
 }

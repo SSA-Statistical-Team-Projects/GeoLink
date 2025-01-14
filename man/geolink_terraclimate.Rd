@@ -54,8 +54,12 @@ This function downloads Terraclimate data for a specific variable and year. It a
 \examples{
 \donttest{
 
-# Example usage
-df <- geolink_terraclimate(var ="tmin", year = 2017, shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+ #example usage
+df <- geolink_terraclimate( var='tmax',
+                               year = 2017,
+                                shp_dt = shp_dt[shp_dt$ADM1_EN
+                                                == "Abia",],
+                                grid_size = 1000,
+                                extract_fun = "mean")
 }
-
 }

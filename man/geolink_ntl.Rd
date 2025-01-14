@@ -21,9 +21,7 @@ geolink_ntl(
   survey_lon = NULL,
   extract_fun = "mean",
   buffer_size = NULL,
-  survey_crs = 4326,
-  ego_username = NULL,
-  ego_password = NULL
+  survey_crs = 4326
 )
 }
 \arguments{
@@ -106,30 +104,24 @@ data("shp_dt")
 #grid tesselation of shapefile at 1000m
 
 df <- geolink_ntl(time_unit = "month",
-                  start_date = "2020-01-01",
-                  end_date = "2020-03-01",
-                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                  annual_version = "v21",
-                  indicator = "average_masked",
-                  grid_size = 1000,
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-                  extract_fun = "mean")
+           start_date = "2020-01-01",
+           end_date = "2020-03-01",
+           shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+           indicator = "avg_rade9h",
+           grid_size = 1000,
+           extract_fun = "mean")
 
 #estimate annual night time luminosity for each household within a 100 meters
 #of it's location
 
 df <- geolink_ntl(time_unit = "annual",
                   start_date = "2020-01-01",
-                  end_date = "2020-03-01",
-                  shp_dt = NULL,
-                  annual_version = "v21",
-                  indicator = "average_masked",
-                  survey_dt = st_as_sf(hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",], crs = 4326),
-                  extract_fun = "mean",
-                  buffer_size = 100)
-
-
-
+                  end_date = "2021-12-01",
+                 survey_dt =  sf::st_as_sf(hhgeo_dt[1:10],
+                     crs = 4326),
+                 buffer_size = 100,
+                 indicator = c("average_masked","cf_cvg"),
+                 extract_fun = "mean")
 
 }
 }

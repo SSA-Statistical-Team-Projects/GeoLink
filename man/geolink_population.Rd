@@ -92,19 +92,22 @@ a .dta file which is read in with `haven::read_dta()` package. Likewise, the use
 to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 `sf::read_sf()` function.
 
-'@import rstac reticulate terra raster osmdata sp sf  geodata rvest httr
+'@import rstac reticulate terra raster osmdata sf  geodata rvest httr
 }
 \examples{
 \donttest{
 
 
 
-df <- geolink_population(iso_code = "NGA",
-                        UN_adjst = "N",
-                        constrained = "Y",
-                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-                        grid_size = 1000,
-                        extract_fun = "mean")
-}
+df <- geolink_population(start_year = 2018,
+                           end_year = 2019,
+                          iso_code = "NGA",
+                           UN_adjst = "N",
+                           constrained = "N",
+                           shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                           grid_size = 1000,
+                           extract_fun = "mean",
+                           file_location = "/Users/nikos/Documents/temp/nga_pop")
 
+}
 }

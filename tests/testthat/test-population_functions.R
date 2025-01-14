@@ -85,7 +85,7 @@ test_that("Population works using a survey :", {
 
 
 #Test- C
-test_that("Constrain argument works:", {
+test_that("Enrure argument works:", {
 
   suppressWarnings({ test_dt <- geolink_population(start_year = 2020,
                                                    end_year = 2020,
@@ -130,7 +130,7 @@ test_that("Constrain argument works:", {
 
 ##Test Error Messages
 test_that("Error is thrown for invalid  link construction", {
-  expect_error(test_dt <- geolink_population(start_year = 2018,
+  expect_error( test_dt <- geolink_population(start_year = 2018,
                                              end_year = 2018,
                                              iso_code = "NGA",
                                              UN_adjst = "N",
@@ -138,7 +138,7 @@ test_that("Error is thrown for invalid  link construction", {
                                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                              grid_size = 1000,
                                              extract_fun = "mean",
-                                             file_location = "/Users/nikos/Documents/temp/nga_pop")
+                                            file_location = "/Users/nikos/Documents/temp/nga_pop")
 
                ,
                regexp = "No valid raster files found.")

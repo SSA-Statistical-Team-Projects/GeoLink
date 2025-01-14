@@ -12,8 +12,6 @@
 #' "vcmslcfg"
 #' @param indicator A character, specifying the specific indicator of interest. Options are
 #' "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
-#' @param ego_username username for your eogdata account
-#' @param ego_password password for your egodata account
 #'
 #' @import httr rvest data.table
 #'
@@ -29,9 +27,7 @@ get_month_ntl <- function(start_date,
                                         "cf_cvg",
                                         "cvg",
                                         "avg_rade9h.masked"),
-                          link_base = "https://eogdata.mines.edu/nighttime_light",
-                          ego_username = ego_username,
-                          ego_password = ego_password) {
+                          link_base = "https://eogdata.mines.edu/nighttime_light") {
 
   ### read in the data
   date_dt <- data.table::data.table(ntl_date = seq(start_date, end_date, "day"))
@@ -100,15 +96,12 @@ get_month_ntl <- function(start_date,
   url_link <- unlist(url_link)
 
   ### download the data
-  ego_username <- ego_username
-  ego_password <- ego_password
+
 
   print("Downloading rasters...")
   raster_list <-
     lapply(X = url_link,
-           FUN = ntl_download_reader,
-           ego_username = ego_username,
-           ego_password = ego_password)
+           FUN = ntl_download_reader)
 
 
   return(raster_list)
@@ -128,8 +121,6 @@ get_month_ntl <- function(start_date,
 #' @param indicator A character, specifying the specific indicator of interest. Options are
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum"
-#' @param ego_username username for your eogdata account
-#' @param ego_password password for your egodata account
 #' @param shp_dt A sf/dataframe object, a polygon shapefile
 #' @import rvest
 #' @export
@@ -142,9 +133,7 @@ get_annual_ntl <- function(year,
                            link_base = "https://eogdata.mines.edu/nighttime_light/annual/",
                            indicator = c("average", "average_masked", "cf_cvg", "cvg",
                                          "lit_mask", "maximum", "median", "median_masked",
-                                         "minimum"),
-                           ego_username = ego_username,
-                           ego_password = ego_password) {
+                                         "minimum")) {
   ### construct the link
   url_link <- construct_year_link(
     year = year,
@@ -177,12 +166,9 @@ get_annual_ntl <- function(year,
 
   raster_list <-
   lapply(X = download_links,
-         FUN = ntl_download_reader,
-         ego_username = ego_username,
-         ego_password = ego_password)
-
-
+         FUN = ntl_download_reader)
 
 
   return(raster_list)
+  unlink(tempdir(), recursive = TRUE)
 }

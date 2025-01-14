@@ -9,9 +9,7 @@ get_annual_ntl(
   version,
   link_base = "https://eogdata.mines.edu/nighttime_light/annual/",
   indicator = c("average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum",
-    "median", "median_masked", "minimum"),
-  ego_username = ego_username,
-  ego_password = ego_password
+    "median", "median_masked", "minimum")
 )
 }
 \arguments{
@@ -22,10 +20,6 @@ get_annual_ntl(
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
 "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 "median_masked" and "minimum"}
-
-\item{ego_username}{username for your eogdata account}
-
-\item{ego_password}{password for your egodata account}
 
 \item{shp_dt}{A sf/dataframe object, a polygon shapefile}
 }

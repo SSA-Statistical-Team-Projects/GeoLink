@@ -79,10 +79,6 @@ to pass a filepath for the location of the shapefile `shp_fn` which is read in w
 
 \donttest{
 
-#loading the survey data and shapefile
-
-data("hhgeo_dt")
-data("shp_dt")
 
 #quick example
 df <- geolink_chirps(time_unit = "month",

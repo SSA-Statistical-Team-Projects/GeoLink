@@ -6,8 +6,8 @@
 \usage{
 ntl_download_reader(
   url,
-  ego_username,
-  ego_password,
+  ego_username = "102398test@gmail.com",
+  ego_password = "Test1029384756!",
   client_id = "eogdata_oidc",
   client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
   max_retries = 3,

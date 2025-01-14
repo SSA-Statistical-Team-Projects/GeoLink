@@ -55,9 +55,12 @@ This function downloads high-resolution building data from WorldPop based on the
 \examples{
 \donttest{
 
-# Example usage with version 1.1
-df <- geolink_buildings(version = "v1.1", iso_code = "NGA", shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",])
+#example usage with version 1.1
+test_dt <- geolink_buildings(version = "v1.1",
+                            iso_code = "NGA",
+                            shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+                            indicators = "ALL",
+                            grid_size = 1000)
 
 }
-
 }

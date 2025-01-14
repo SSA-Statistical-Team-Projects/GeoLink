@@ -11,9 +11,7 @@ get_month_ntl(
   no_tile,
   slc_type,
   indicator = c("avg_rade9h", "cf_cvg", "cvg", "avg_rade9h.masked"),
-  link_base = "https://eogdata.mines.edu/nighttime_light",
-  ego_username = ego_username,
-  ego_password = ego_password
+  link_base = "https://eogdata.mines.edu/nighttime_light"
 )
 }
 \arguments{
@@ -28,10 +26,6 @@ get_month_ntl(
 
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
 "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"}
-
-\item{ego_username}{username for your eogdata account}
-
-\item{ego_password}{password for your egodata account}
 
 \item{shp_dt}{A sf/dataframe object, a polygon shapefile}
 }

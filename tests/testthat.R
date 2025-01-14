@@ -9,20 +9,20 @@
 library(testthat)
 library(GeoLink)
 
-#test_check("GeoLink")
+test_check("GeoLink")
 
 #Functions that passed tests
-
+#
 #usethis::use_test("chirps_functions") #Done
-#usethis::use_test("postdownload_processor") #Done
-#usethis::use_test("elevation_functions") #Done
-#usethis::use_test("cropland_function")  # Done
-#usethis::use_test("geolink_worldclim")  #
-#usethis::use_test("ntl_functions") # Done
-#usethis::use_test("population_functions") # Done
-#usethis::use_test("building_functions") # Done
+# usethis::use_test("postdownload_processor") #Done
+# usethis::use_test("elevation_functions") #Done
+# usethis::use_test("cropland_function")  # Done
+# usethis::use_test("geolink_worldclim")  #
+# usethis::use_test("ntl_functions") # Done
+# usethis::use_test("population_functions") # Done
+# usethis::use_test("building_functions") # Done
 #usethis::use_test("geolink_CMIP6") # Done
-
+# usethis::use_test("geolink_terraclimate") # Done
 
 # 6 functions not working
 

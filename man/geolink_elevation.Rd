@@ -6,7 +6,7 @@
 \usage{
 geolink_elevation(
   iso_code,
-  shp_dt,
+  shp_dt = NULL,
   shp_fn = NULL,
   grid_size = NULL,
   survey_dt = NULL,
@@ -51,11 +51,10 @@ This function downloads high-resolution elevation data based on the coordinates 
 \examples{
 \donttest{
 
-# Example usage with shapefile
-df <- geolink_elevation(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
-
-# Example usage with file path
-df <- geolink_elevation(shp_fn = "path/to/shapefile.shp")
+ #example usage with shapefile
+test_dt <- geolink_elevation(iso_code = "NGA",
+                            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                            grid_size = 1000,
+                            extract_fun = "mean")
 }
-
 }

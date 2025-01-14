@@ -51,8 +51,10 @@ This function downloads cropland data from a specified source, such as WorldCove
 \examples{
 \donttest{
 
-# Example usage
-df <- geolink_cropland(source = "WorldCover", shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+ #example usage
+df <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN
+                                ==  "Abia",],
+                grid_size = 1000,
+                extract_fun = "mean")
 }
-
 }

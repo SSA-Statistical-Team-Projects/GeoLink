@@ -1,5 +1,5 @@
 # Load required libraries
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, exactextractr, lubridate)
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sf, geodata, exactextractr, lubridate)
 
 geolink_electaccess <- function(
     start_date = NULL,

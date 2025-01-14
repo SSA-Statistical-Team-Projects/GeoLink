@@ -1,4 +1,4 @@
-pacman::p_load(rstac, reticulate, terra, raster, osmdata, sp, sf, geodata, httr, ncdf4, rgdal, exactextractr, parallel, progress)
+pacman::p_load(rstac, reticulate, terra, raster, osmdata, sf, geodata, httr, ncdf4, rgdal, exactextractr, parallel, progress)
 
 
 # Set date range

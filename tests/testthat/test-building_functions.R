@@ -52,7 +52,7 @@ test_that("Buildings works using a survey :", {
                                                   iso_code = "NGA",
                                                   survey_dt =  st_as_sf(hhgeo_dt[1:10],
                                                                         crs = 4326),
-                                                  indicators = "ALL",
+                                                   indicators = "ALL",
                                                    buffer_size = 1000,
                                                    extract_fun = "mean" )
 

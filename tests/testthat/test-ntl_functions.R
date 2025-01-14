@@ -15,9 +15,8 @@ test_that("Monthly ntl works using a shapefile:", {
                                               shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                                               indicator = "avg_rade9h",
                                               grid_size = 1000,
-                                              extract_fun = "mean",
-                                            ego_username = "102398test@gmail.com",
-                                            ego_password = "Test1029384756!")
+                                              extract_fun = "mean")
+
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -54,9 +53,7 @@ test_that("Monthly ntl using a survey :", {
                                                                    crs = 4326),
                                              indicator = c("avg_rade9h"),
                                              buffer_size = 1000,
-                                             extract_fun = "mean" ,
-                                             ego_username = "102398test@gmail.com",
-                                             ego_password = "Test1029384756!")
+                                             extract_fun = "mean")
 
   })
 
@@ -88,9 +85,7 @@ test_that("Annual NTL using a shapefile:", {
                                             shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                                             indicator = "average_masked",
                                             grid_size = 1000,
-                                            extract_fun = "mean",
-                                            ego_username = "102398test@gmail.com",
-                                            ego_password = "Test1029384756!")
+                                            extract_fun = "mean")
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                         units = "m")
@@ -116,9 +111,7 @@ test_that("Annual ntl using a survey :", {
                                                                   crs = 4326),
                                             buffer_size = 1000,
                                             indicator = c("average_masked","cf_cvg"),
-                                            extract_fun = "mean",
-                                            ego_username = "102398test@gmail.com",
-                                            ego_password = "Test1029384756!")
+                                            extract_fun = "mean")
 
 
   })

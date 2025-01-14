@@ -11,7 +11,7 @@ Description: The R package 'GeoLink' supports the download of high resolution
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
     crsuggest,
     data.table,
     dbscan,
@@ -29,6 +29,7 @@ Imports:
     jsonlite,
     lubridate,
     lwgeom,
+    methods, 
     ncdf4,
     osmdata,
     parallel,
@@ -54,7 +55,7 @@ Imports:
     units,
     XML
 Suggests:
-  python3
+        python3 
 Depends: 
     R (>= 2.10)
 SystemRequirements: Python (>= 3.7)
