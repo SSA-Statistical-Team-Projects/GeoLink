@@ -39,6 +39,11 @@ jobs:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+     # Set up Python to resolve the python3 dependency
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
