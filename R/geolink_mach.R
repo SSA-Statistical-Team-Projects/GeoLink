@@ -110,6 +110,11 @@ geolink_chirps <- function(time_unit,
 
   print("Global Rainfall Raster Downloaded")
 
+  # Replace -9999.9999 values with NA in downloaded rasters
+  raster_objs <- lapply(raster_objs, function(raster_obj) {
+    raster_obj[raster_obj == -9999.9999] <- NA
+    return(raster_obj)
+  })
 
   name_set <- paste0("rainfall_", time_unit, 1:length(raster_objs))
 
