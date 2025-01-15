@@ -55,7 +55,6 @@ Imports:
     units,
     XML
 Suggests:
-        python3 
 Depends: 
     R (>= 2.10)
 SystemRequirements: Python (>= 3.7)
@@ -63,5 +62,5 @@ RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Config/reticulate:
     list(
-        packages = c("numpy", "pandas")
+        packages = c("numpy", "pandas", "rasterio", "tqdm")
     )
