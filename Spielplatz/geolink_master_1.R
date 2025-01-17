@@ -152,27 +152,6 @@
 #'     )
 #' )
 #'
-#' # 14. Vegetation Index Data Extraction
-#' vegindex_data <- run_geolink(
-#'     data_type = "vegindex",
-#'     start_date = "2020-01-01",
-#'     end_date = "2020-12-31",
-#'     shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-#'     additional_params = list(
-#'         indicator = "NDVI"
-#'     )
-#' )
-#'
-#' # 15. Pollution Data Extraction
-#' pollution_data <- run_geolink(
-#'     data_type = "pollution",
-#'     start_date = "2020-01-01",
-#'     end_date = "2020-12-31",
-#'     shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-#'     additional_params = list(
-#'         indicator = "no2"
-#'     )
-#' )
 #' }
 #'
 #' @export
@@ -192,7 +171,7 @@ run_geolink <- function(
   param_suggestions <- list(
     "rainfall" = list(
       description = "Download monthly/annual rainfall data from CHIRPS",
-      required = c("time_unit", "start_date", "end_date", "shp_dt"),
+      required = c("start_date", "end_date", "shp_dt"),
       optional = list(
         time_unit = "month",
         grid_size = 1000,
@@ -303,22 +282,6 @@ run_geolink <- function(
         grid_size = 1000,
         extract_fun = "mean"
       )
-    ),
-    "vegindex" = list(
-      description = "Download vegetation index data (NDVI/EVI)",
-      required = c("start_date", "end_date", "indicator", "shp_dt"),
-      optional = list(
-        grid_size = 1000,
-        extract_fun = "mean"
-      )
-    ),
-    "pollution" = list(
-      description = "Download monthly pollution data",
-      required = c("start_date", "end_date", "indicator", "shp_dt"),
-      optional = list(
-        grid_size = 1000,
-        extract_fun = "mean"
-      )
     )
   )
 
@@ -358,9 +321,7 @@ run_geolink <- function(
     "cropland" = geolink_cropland,
     "worldclim" = geolink_worldclim,
     "opencellid" = geolink_opencellid,
-    "terraclimate" = geolink_terraclimate,
-    "vegindex" = geolink_vegindex,
-    "pollution" = geolink_pollution
+    "terraclimate" = geolink_terraclimate
   )
 
   # Prepare arguments dynamically
