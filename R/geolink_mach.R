@@ -65,7 +65,7 @@
 
 
 
-geolink_chirps <- function(time_unit,
+geolink_chirps <- function(time_unit = NULL,
                            start_date,
                            end_date,
                            shp_dt = NULL,
@@ -340,8 +340,7 @@ geolink_ntl <- function(time_unit = "annual",
 #' if use_survey is TRUE)
 #' @param survey_lon A character, longitude variable from survey (for STATA users only &
 #' if use survey is TRUE)
-#' @param buffer_survey A logical, specify TRUE if interested in estimating a statistic based on distance
-#' from the survey location.
+#' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @param survey_crs A numeric, the default is 4326
@@ -1376,6 +1375,13 @@ geolink_terraclimate <- function(var,
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' @param use_resampling An option to resample data to 1km squared if the resolution of the data is higher than this,
 #' this will speed up the processing of the code
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate data.
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
 #'
 #'
 #' @examples
@@ -1409,6 +1415,13 @@ geolink_landcover <- function(start_date = NULL,
                               end_date = NULL,
                               shp_dt = NULL,
                               survey_dt = NULL,
+                              shp_fn = NULL,
+                              grid_size = NULL,
+                              survey_fn = NULL,
+                              survey_lat = NULL,
+                              survey_lon = NULL,
+                              buffer_size = NULL,
+                              survey_crs = 4326,
                               use_resampling = TRUE) {
 
   if (is.null(start_date) || is.null(end_date)) {
@@ -1417,6 +1430,32 @@ geolink_landcover <- function(start_date = NULL,
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
+
+  # Ensure shapefile and survey are in the correct CRS
+  if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
+
+  } else if (!is.null(survey_dt)) {
+    sf_obj <- ensure_crs_4326(survey_dt)
+
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else {
+    print("Input a valid sf object or geosurvey")
+    sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
+  }
 
   # Clear existing Python config
   Sys.unsetenv("RETICULATE_PYTHON")
