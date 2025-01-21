@@ -1433,24 +1433,29 @@ geolink_landcover <- function(start_date = NULL,
 
   # Ensure shapefile and survey are in the correct CRS
   if (!is.null(shp_dt)) {
-    sf_obj <- ensure_crs_4326(shp_dt)
+    sf_obj <- zonalstats_prepshp(shp_dt = shp_dt,
+                                 grid_size = grid_size) %>%
+      ensure_crs_4326()
 
   } else if (!is.null(survey_dt)) {
-    sf_obj <- ensure_crs_4326(survey_dt)
+    sf_obj <-  zonalstats_prepsurvey(survey_dt = survey_dt,
+                                     buffer_size = buffer_size) %>%
+      ensure_crs_4326()
 
   } else if (!is.null(shp_fn)) {
-    sf_obj <- sf::read_sf(shp_fn)
-    sf_obj <- ensure_crs_4326(sf_obj)
+    sf_obj <-  zonalstats_prepshp(shp_dt = NULL,
+                       shp_fn = shp_fn,
+                      grid_size = grid_size) %>%
+      ensure_crs_4326()
 
   } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
     sf_obj <- zonalstats_prepsurvey(
-      survey_dt = survey_dt,
       survey_fn = survey_fn,
       survey_lat = survey_lat,
       survey_lon = survey_lon,
-      buffer_size = NULL,
-      survey_crs = survey_crs)
-    sf_obj <- ensure_crs_4326(sf_obj)
+      buffer_size = buffer_size,
+      survey_crs = survey_crs) %>%
+      ensure_crs_4326()
 
   } else {
     print("Input a valid sf object or geosurvey")
@@ -1477,7 +1482,7 @@ geolink_landcover <- function(start_date = NULL,
   it_obj <- s_obj %>%
     stac_search(
       collections = "io-lulc-annual-v02",
-      bbox = sf::st_bbox(shp_dt),
+      bbox = sf::st_bbox(sf_obj),
       datetime = paste(start_date, end_date, sep = "/")
     ) %>%
     get_request() %>%
@@ -1577,14 +1582,14 @@ geolink_landcover <- function(start_date = NULL,
   }
 
   # Transform shapefile
-  projected_shapefile <- if (sf::st_crs(shp_dt)$input == "EPSG:4326") {
-    shp_dt
+  projected_shapefile <- if (sf::st_crs(sf_obj)$input == "EPSG:4326") {
+    sf_obj
   } else {
     tryCatch({
-      sf::st_transform(shp_dt, crs = sf::st_crs("EPSG:4326"))
+      sf::st_transform(sf_obj, crs = sf::st_crs("EPSG:4326"))
     }, error = function(e) {
       warning("Could not reproject shapefile. Assigning EPSG:4326 CRS.")
-      sf::st_set_crs(shp_dt, "EPSG:4326")
+      sf::st_set_crs(sf_obj, "EPSG:4326")
     })
   }
 
@@ -1636,26 +1641,21 @@ geolink_landcover <- function(start_date = NULL,
     # Convert to matrix
     proportions_matrix <- do.call(rbind, polygon_proportions)
 
-    # Create a data frame with shapefile data and proportions
-    year_results <- sf::st_drop_geometry(projected_shapefile)
+     #Clean colnames
+    colnames(proportions_matrix)  <- paste0(colnames(proportions_matrix), "_", year)
+    colnames(proportions_matrix) <- gsub("/", "_", colnames(proportions_matrix))
 
-    # Add proportions as columns
-    for (col in all_column_names) {
-      year_results[[col]] <- proportions_matrix[, col]
-    }
-
-    # Add year column
-    year_results$year <- year
-
-    # Add results for this year to the list
-    results_list[[year]] <- year_results
+    #create data frame
+    results_list[[year]] <- as.data.frame(proportions_matrix)
   }
 
-  # Combine results from all years
-  final_result <- do.call(rbind, results_list)
+   # Combine results from all years
+  final_result <- do.call(cbind, results_list)
+  colnames(final_result) <- gsub("^\\d+\\.", "", colnames(final_result))
+
 
   # Re-attach geometry to the combined result
-  final_result <- sf::st_sf(final_result, geometry = sf::st_geometry(projected_shapefile))
+  final_result <- cbind(projected_shapefile,final_result)
 
   return(final_result)
 }
