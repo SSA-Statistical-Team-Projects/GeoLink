@@ -1470,10 +1470,12 @@ geolink_landcover <- function(start_date = NULL,
   reticulate::use_virtualenv(venv_path, required = TRUE)
 
   # Source Python utilities from correct path
-  python_utils_path <- system.file("python_scripts", "raster_utils.py", package = "GeoLink")
+  python_utils_path <- system.file('python_scripts', 'raster_utils.py', package = "GeoLink")
   if (!file.exists(python_utils_path)) {
     stop("Python utilities not found. Check package installation.")
   }
+  # Print the full path being searched
+  print(python_utils_path)
   reticulate::source_python(python_utils_path)
 
   # STAC search
