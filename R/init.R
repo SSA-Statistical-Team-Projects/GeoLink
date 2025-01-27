@@ -51,7 +51,7 @@
 
       reticulate::virtualenv_install(
         venv_path,
-        packages = c("numpy", "rasterio", "tqdm"),
+        packages = c("numpy", "rasterio", "tqdm", "certifi"),
         ignore_installed = TRUE
       )
 

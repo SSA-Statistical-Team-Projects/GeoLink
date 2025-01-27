@@ -1,4 +1,3 @@
-
 import os
 import rasterio
 import numpy as np
@@ -9,124 +8,177 @@ from tqdm import tqdm
 from rasterio.io import MemoryFile
 import tempfile
 
+def resample_rasters(input_files, output_folder, target_resolution):
+    import rasterio
+    from rasterio.warp import calculate_default_transform, reproject, Resampling
+    import os
+    import shutil
+    from tqdm import tqdm
 
-def resample_rasters(input_files, output_folder, target_resolution=1000):
-    # Ensure input files are valid
-    if isinstance(input_files, str):
-        input_files = [input_files]  # Handle case where input_files is a single string
-    input_files = [f for f in input_files if f and os.path.exists(f)]  # Filter invalid paths
+    # First try to clean up the output folder if it exists
+    try:
+        if os.path.exists(output_folder):
+            shutil.rmtree(output_folder)
+    except:
+        pass
     
-    if not input_files:
-        raise FileNotFoundError("No valid input files provided.")
+    # Create new output folder
+    try:
+        os.makedirs(output_folder, exist_ok=True)
+    except Exception as e:
+        # If we can't create/clear the original folder, create a new one in temp
+        import tempfile
+        output_folder = os.path.join(tempfile.gettempdir(), f'resampled_rasters_{os.getpid()}')
+        os.makedirs(output_folder, exist_ok=True)
 
-    # Create output folder if it doesn't exist
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    resampled_files = []
 
-    resampled_files = []  # Store paths of resampled rasters
+    for input_file in tqdm(input_files, desc="Processing files"):
+        try:
+            with rasterio.open(input_file) as src:
+                # Force the CRS to be EPSG:4326
+                dst_crs = 'EPSG:4326'
+                
+                transform, width, height = calculate_default_transform(
+                    src.crs, dst_crs,
+                    src.width, src.height,
+                    *src.bounds,
+                    resolution=target_resolution
+                )
 
-    for input_file in tqdm(input_files, desc='Processing files'):
-        # Double-check if the file exists
-        if not os.path.exists(input_file):
-            raise FileNotFoundError(f"Input file not found: {input_file}")
+                output_filename = os.path.join(
+                    output_folder,
+                    f"resampled_{os.path.basename(input_file)}"
+                )
 
-        # Create output filename with _1km appended
-        base_filename = os.path.basename(input_file)
-        filename_without_ext, ext = os.path.splitext(base_filename)
-        output_file = os.path.join(output_folder, f'{filename_without_ext}_1km{ext}')
+                kwargs = src.meta.copy()
+                kwargs.update({
+                    'crs': dst_crs,
+                    'transform': transform,
+                    'width': width,
+                    'height': height
+                })
 
-        # Skip if output file already exists
-        if os.path.exists(output_file):
-            try:
-                os.remove(output_file)
-            except PermissionError:
-                print(f'Skipping {output_file}: File is in use.')
-                continue
-
-        # Open the input file for processing
-        with rasterio.open(input_file) as src:
-            # Calculate the new transform and dimensions
-            transform, width, height = calculate_default_transform(
-                src.crs, src.crs,
-                src.width, src.height,
-                *src.bounds,
-                resolution=(target_resolution, target_resolution)
-            )
-
-            # Update metadata for the new raster
-            kwargs = src.meta.copy()
-            kwargs.update({
-                'driver': 'GTiff',
-                'height': height,
-                'width': width,
-                'transform': transform,
-                'compress': 'lzw'  # Add compression to reduce file size
-            })
-
-            # Perform the resampling and save to the output file
-            with rasterio.open(output_file, 'w', **kwargs) as dst:
-                for i in range(1, src.count + 1):  # For each band
+                with rasterio.open(output_filename, 'w', **kwargs) as dst:
                     reproject(
-                        source=rasterio.band(src, i),
-                        destination=rasterio.band(dst, i),
+                        source=rasterio.band(src, 1),
+                        destination=rasterio.band(dst, 1),
                         src_transform=src.transform,
                         src_crs=src.crs,
                         dst_transform=transform,
-                        dst_crs=src.crs,
-                        resampling=Resampling.average
+                        dst_crs=dst_crs,
+                        resampling=Resampling.nearest
                     )
 
-        # Append to the resampled file list and log the success
-        resampled_files.append(output_file)
-        print(f'Resampled raster saved to {output_file}')
+                print(f"Resampled raster saved to {output_filename}")
+                resampled_files.append(output_filename)
+        except Exception as e:
+            print(f"Error processing {input_file}: {str(e)}")
+            continue
 
-    # Final validation of resampled files
     if not resampled_files:
-        raise FileNotFoundError("No resampled files were created.")
-    else:
-        print(f"Resampled files: {resampled_files}")
+        raise Exception("No files were successfully resampled")
 
-    print('Resampling process completed.')
+    print("Resampled files:", resampled_files)
+    print("Resampling process completed.")
     return resampled_files
-
-
-
-def mosaic_rasters(input_files):
   
-    # Open the raster files using rasterio
-    rasters = [rasterio.open(f) for f in input_files]
-
-    # Merge the rasters using rasterio's merge function
-    mosaic, out_transform = merge(rasters)
-
-    # Get the metadata from the first raster
-    out_meta = rasters[0].meta.copy()
-
-    # Update the metadata to reflect the mosaic's size and transform
-    out_meta.update({
-        'driver': 'GTiff',
-        'count': 1,  # Assuming single-band rasters, adjust for multi-band if necessary
-        'dtype': mosaic.dtype,
-        'width': mosaic.shape[2],
-        'height': mosaic.shape[1],
-        'crs': rasters[0].crs,
-        'transform': out_transform
-    })
-
-    # Create a temporary file to store the mosaic
-    with NamedTemporaryFile(delete=False, suffix='.tif') as tmpfile:
-        tmpfile.close()  # Close the file so it can be accessed later
-
-        # Use MemoryFile to create a memory-mapped file
-        with MemoryFile() as memfile:
-            with memfile.open(**out_meta) as dest:
-                dest.write(mosaic[0], 1)  # Write the mosaic to memory-mapped file
-
-            # Save the mosaic data to the temporary file
-            with open(tmpfile.name, 'wb') as out_f:
-                out_f.write(memfile.read())
-
-        # Return the temporary file path
-        return tmpfile.name
-
-
+  
+def mosaic_rasters(input_files):
+    import rasterio
+    from rasterio.merge import merge
+    from rasterio.warp import calculate_default_transform, reproject, Resampling
+    import os
+    import tempfile
+    
+    target_crs = 'EPSG:4326'
+    processed_files = []
+    
+    # Process each file to ensure consistent CRS
+    for input_file in input_files:
+        with rasterio.open(input_file) as src:
+            # Check if reprojection is needed
+            needs_reprojection = False
+            
+            # If no CRS, assign EPSG:4326
+            if src.crs is None:
+                current_crs = target_crs
+                needs_reprojection = True
+            # If CRS different from 4326, needs reprojection
+            elif src.crs.to_string() != target_crs:
+                current_crs = src.crs
+                needs_reprojection = True
+            else:
+                processed_files.append(input_file)
+                continue
+                
+            # Create temporary file for reprojected raster
+            temp_file = os.path.join(tempfile.gettempdir(), f'reprojected_{os.path.basename(input_file)}')
+            
+            transform, width, height = calculate_default_transform(
+                current_crs, target_crs,
+                src.width, src.height,
+                *src.bounds
+            )
+            
+            kwargs = src.meta.copy()
+            kwargs.update({
+                'crs': target_crs,
+                'transform': transform,
+                'width': width,
+                'height': height
+            })
+            
+            with rasterio.open(temp_file, 'w', **kwargs) as dst:
+                reproject(
+                    source=rasterio.band(src, 1),
+                    destination=rasterio.band(dst, 1),
+                    src_transform=src.transform,
+                    src_crs=current_crs,
+                    dst_transform=transform,
+                    dst_crs=target_crs,
+                    resampling=Resampling.nearest
+                )
+            
+            processed_files.append(temp_file)
+    
+    # Open all processed raster files
+    src_files = [rasterio.open(f) for f in processed_files]
+    
+    try:
+        # Merge the rasters
+        mosaic, out_trans = merge(src_files)
+        
+        # Create output filename
+        output_file = os.path.join(os.path.dirname(input_files[0]), 'mosaic.tif')
+        
+        # Copy the metadata from the first file
+        out_meta = src_files[0].meta.copy()
+        
+        # Update the metadata
+        out_meta.update({
+            "driver": "GTiff",
+            "height": mosaic.shape[1],
+            "width": mosaic.shape[2],
+            "transform": out_trans,
+            "crs": target_crs
+        })
+        
+        # Write the mosaic
+        with rasterio.open(output_file, "w", **out_meta) as dest:
+            dest.write(mosaic)
+        
+        return output_file
+        
+    finally:
+        # Close all open files
+        for src in src_files:
+            src.close()
+        
+        # Clean up temporary files
+        for file in processed_files:
+            if 'reprojected_' in os.path.basename(file):
+                try:
+                    os.remove(file)
+                except:
+                    pass

@@ -62,5 +62,5 @@ RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Config/reticulate:
     list(
-        packages = c("numpy", "pandas", "rasterio", "tqdm")
+        packages = c("numpy", "rasterio", "tqdm", "certifi")
     )
