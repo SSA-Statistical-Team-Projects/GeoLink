@@ -1358,3 +1358,158 @@ geolink_terraclimate <- function(var,
   }
   unlink(tempdir(), recursive = TRUE)
 }
+
+
+
+#' Download and Merge monthly NDVI into geocoded surveys
+#'
+#' This function downloads MODIS NDVI or EVI data for a specific region and time period. Please note that, due to the way the data is stored, this function can take a long time to complete.
+#'
+#' @param start_date An object of class date, this indicates the start time for which the indicator will be pulled.
+#' @param end_date An object of class date, this indicates the end time for which the indicator will be pulled.
+#' @param indicator A character, the indicator of interest. Default is "NDVI". Other options are "EVI".
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param grid_size A numeric, the grid size to be used in meters for pulling the vegetation data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame or object based on the input parameters and downloaded data.
+#'
+#' @importFrom terra rast
+#' @importFrom httr GET http_type write_disk
+#' @importFrom lubridate year month day
+#' @import rstac reticulate terra raster osmdata sf geodata httr ncdf4
+#'
+#' @examples
+#' \donttest{
+#'
+#' # Example usage
+#' df <- geolink_vegindex(start_date = "2020-01-01",
+#'                        end_date = "2020-01-15",
+#'                        shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#'                        grid_size = 1000)
+#' }
+#' @export
+#'
+geolink_vegindex <- function(start_date,
+                             end_date,
+                             indicator = "NDVI",
+                             shp_dt,
+                             shp_fn = NULL,
+                             grid_size = NULL,
+                             survey_dt = NULL,
+                             survey_fn = NULL,
+                             survey_lat = NULL,
+                             survey_lon = NULL,
+                             buffer_size = NULL,
+                             extract_fun = "mean",
+                             survey_crs = 4326){
+
+  if (indicator != "NDVI" & indicator != "EVI"){
+    stop("Indicator must be either 'NDVI' or 'EVI'")
+  }
+  indicator <- paste0("500m_16_days_", indicator)
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+  it_obj <- s_obj %>%
+    stac_search(collections = "modis-13A1-061",
+                bbox = sf::st_bbox(shp_dt),
+                datetime = paste(start_date, end_date, sep = "/")) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
+  date_list <- lapply(1:length(it_obj$features),
+                      function(x){
+                        date <- cbind(year(it_obj$features[[x]]$properties$end_datetime),
+                                      month(it_obj$features[[x]]$properties$end_datetime),
+                                      day(it_obj$features[[x]]$properties$end_datetime))
+                        colnames(date) <- c("year", "month", "day")
+                        return(date)
+                      })
+  date_list <- data.table::data.table(do.call(rbind, date_list))
+  date_list <- date_list[, .SD[1], by = .(year, month)]
+  features_todl <- lapply(1:nrow(date_list),
+                          function(x){
+                            feat <- c()
+                            for (i in 1:length(it_obj$features)){
+                              if ((year(it_obj$features[[i]]$properties$end_datetime) ==
+                                   date_list[x, .(year)] &
+                                   month(it_obj$features[[i]]$properties$end_datetime) ==
+                                   date_list[x, .(month)] &
+                                   day(it_obj$features[[i]]$properties$end_datetime) ==
+                                   date_list[x, .(day)])==TRUE){
+                                feat <- c(feat, i)
+                              }
+                            }
+                            return(feat)
+                          })
+  url_list <- lapply(1:length(features_todl),
+                     function(x){
+                       url <- c()
+                       for (i in features_todl[x][[1]]){
+                         url <- c(url, paste0("/vsicurl/",
+                                              it_obj$features[[i]]$assets[[indicator]]$href))
+                       }
+                       return(url)
+                     })
+  print("NDVI/EVI raster download started. This may take some time.")
+
+
+  name_set <- paste0("ndvi_", "y", date_list$year, "_m", date_list$month)
+  print("NDVI Raster Downloaded")
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_objs,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+  print("Process Complete!!!")
+  return(dt)
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
