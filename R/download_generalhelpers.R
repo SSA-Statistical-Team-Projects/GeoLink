@@ -399,3 +399,67 @@ convert_to_sf <- function(survey_dt, geometry_col = "geometry", crs = 4326) {
   })
 }
 
+
+filter_by_year <- function(features, start_date, end_date) {
+  # Convert dates to Date objects
+  start <- as.Date(start_date)
+  end <- as.Date(end_date)
+
+  # Check for special cases (±1 day from year boundaries)
+  start_year <- as.numeric(format(start, "%Y"))
+  end_year <- as.numeric(format(end, "%Y"))
+
+  # Adjust dates if they're ±1 day from year boundaries
+  if ((
+    # Case 1: Jan 1 to Jan 1
+    abs(as.numeric(start - as.Date(paste0(start_year, "-01-01")))) <= 1 &&
+    abs(as.numeric(end - as.Date(paste0(end_year, "-01-01")))) <= 1 &&
+    end_year - start_year == 1
+  ) || (
+    # Case 2: Dec 31 to Dec 31
+    format(start, "%m-%d") == "12-31" &&
+    format(end, "%m-%d") == "12-31" &&
+    end_year - start_year == 1
+  ) || (
+    # Case 3: Dec 31 to Jan 1 with any year gap
+    format(start, "%m-%d") == "12-31" &&
+    format(end, "%m-%d") == "01-01"
+  )) {
+    # For Dec 31 to Jan 1 case, use the year from the start date
+    target_year <- start_year
+    start <- as.Date(paste0(target_year, "-01-01"))
+    end <- as.Date(paste0(target_year, "-12-31"))
+  }}
+
+
+# Helper function to get OSM data with retries
+get_osm_data <- function(bbox, osm_key, osm_value, max_retries = 3, timeout = 300) {
+  for (i in 1:max_retries) {
+    tryCatch({
+      datapull <- opq(bbox = bbox, timeout = timeout) %>%
+        add_osm_feature(key = osm_key, value = osm_value)
+      return(osmdata_sf(datapull))
+    }, error = function(e) {
+      if (i == max_retries) stop(e)
+      message(sprintf("Attempt %d failed. Retrying in 5 seconds...", i))
+      Sys.sleep(5)  # Wait 5 seconds before retrying
+      NULL
+    })
+  }
+}
+
+# Helper function to process bbox quadrants
+process_bbox_quadrant <- function(quad_bbox, osm_key, osm_value) {
+  tryCatch({
+    features <- get_osm_data(quad_bbox, osm_key, osm_value)
+    if (!is.null(features$osm_points)) {
+      return(features$osm_points %>%
+               filter(if_any(-c(osm_id, geometry), ~ !is.na(.x))))
+    }
+    NULL
+  }, error = function(e) {
+    message(sprintf("Error processing quadrant: %s", e$message))
+    NULL
+  })
+}
+

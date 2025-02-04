@@ -14,14 +14,47 @@ geolink_landcover <- function(start_date = NULL,
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
+  # Set CRS to 4326 if data is provided as survey_dt
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  }
+
+  # Handle survey file input and projection
+  if (!is.null(survey_fn)) {
+    if (is.null(survey_lat) || is.null(survey_lon)) {
+      stop("Both survey_lat and survey_lon must be provided when using survey_fn")
+    }
+
+    # Read the survey file
+    tryCatch({
+      if (grepl("\\.dta$", survey_fn)) {
+        survey_dt <- haven::read_dta(survey_fn)
+      } else if (grepl("\\.csv$", survey_fn)) {
+        survey_dt <- read.csv(survey_fn)
+      } else {
+        stop("Unsupported file format. Please provide .dta or .csv file")
+      }
+    }, error = function(e) {
+      stop(sprintf("Error reading survey file: %s", e$message))
+    })
+
+    # Convert to sf object with specified projection
+    survey_dt <- st_as_sf(survey_dt,
+                          coords = c(survey_lon, survey_lat),
+                          crs = survey_crs)
+
+    # Transform to EPSG:4326 if needed
+    if (st_crs(survey_dt)$epsg != 4326) {
+      survey_dt <- st_transform(survey_dt, 4326)
+    }
+  }
+
   # Process input data using helper functions
   if (!is.null(shp_dt)) {
-    sf_obj <- zonalstats_prepshp(shp_dt = shp_dt,
-                                 grid_size = grid_size) %>%
+    sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
       ensure_crs_4326()
   } else if (!is.null(shp_fn)) {
-    sf_obj <- zonalstats_prepshp(shp_fn = shp_fn,
-                                 grid_size = grid_size) %>%
+    sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
       ensure_crs_4326()
   } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
     sf_obj <- zonalstats_prepsurvey(

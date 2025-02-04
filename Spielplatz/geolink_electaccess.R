@@ -71,7 +71,6 @@ geolink_electaccess <- function(
   }))
 
 
-
   print("Electrification Access Raster Downloaded")
 
   dt <- postdownload_processor(

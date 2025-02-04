@@ -1,4 +1,3 @@
-
 import os
 import rasterio
 import numpy as np
@@ -128,5 +127,3 @@ def mosaic_rasters(input_files):
 
         # Return the temporary file path
         return tmpfile.name
-
-
