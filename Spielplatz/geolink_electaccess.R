@@ -96,3 +96,6 @@ geolink_electaccess <- function(
 
 df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",], start_date = "2018-12-31", end_date = "2019-12-31")
 
+
+
+
