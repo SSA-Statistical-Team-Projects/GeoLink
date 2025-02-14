@@ -2138,7 +2138,7 @@ geolink_electaccess <- function(
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET timeout
-#' @import rstac terra raster osmdata sf httr geodata data.table geosphere memorise haven
+#' @import rstac terra raster osmdata sf httr geodata data.table geosphere memoise haven
 #'
 #' @examples
 #' \donttest{
@@ -2161,7 +2161,7 @@ geolink_opencellid <- function(cell_tower_file,
                                survey_crs = 4326) {
 
   # Create memoised version of the function
-  read_opencellid_data_cached <- memoise(read_opencellid_data)
+  read_opencellid_data_cached <- memoise::memoise(read_opencellid_data)
 
   # Process input geometry
   if (!is.null(survey_dt)) {
