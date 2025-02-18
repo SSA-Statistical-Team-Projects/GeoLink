@@ -10,7 +10,8 @@ GeoLink is an R package that provides easy access to various geospatial datasets
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Examples](#examples)
+- [Data Visualization Examples](#data-visualization-examples)
+- [Basic Usage Examples](#basic-usage-examples)
 - [Documentation](#documentation)
 - [Contributing](#contributing)
 - [License](#license)
@@ -38,6 +39,9 @@ Download and process:
 # Install devtools if you haven't already
 install.packages("devtools")
 
+# Install required visualization packages
+install.packages(c("ggplot2", "sf", "leaflet", "viridis"))
+
 # Install GeoLink
 devtools::install_github("your-username/GeoLink")
 
@@ -51,42 +55,15 @@ Most functions require either:
 - A shapefile (`shp_dt` or `shp_fn`)
 - OR a survey dataset (`survey_dt` or `survey_fn`) with coordinates
 
-Common parameters:
+## 🗺️ Data Visualization Examples
+
+### 1. Rainfall Visualization
 ```R
-geolink_function(
-    shp_dt = your_shapefile,          # sf object containing polygons
-    grid_size = 1000,                 # Grid size in meters
-    survey_dt = your_survey,          # Survey data with coordinates
-    buffer_size = 1000,               # Buffer size in meters
-    extract_fun = "mean"              # Aggregation function
-)
-```
-
-## 📝 Examples
-
-### Rainfall Data (CHIRPS)
-```R
-df <- geolink_chirps(
-    time_unit = "month",
-    start_date = "2020-01-01",
-    end_date = "2020-03-01",
-    shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-    grid_size = 1000,
-    extract_fun = "mean"
-)
-```
-
-Output:
-```
-Global Rainfall Raster Downloaded
-Process Complete!!!
-# Returns data.frame with rainfall_month1, rainfall_month2, etc.
-```
-
 library(ggplot2)
 library(sf)
+library(viridis)
 
-# Example: Visualizing Rainfall Data
+# Get rainfall data
 rainfall_map <- geolink_chirps(
     time_unit = "month",
     start_date = "2020-01-01",
@@ -95,13 +72,148 @@ rainfall_map <- geolink_chirps(
     grid_size = 1000
 )
 
-# Create map
+# Create beautiful rainfall map
 ggplot(rainfall_map) +
     geom_sf(aes(fill = rainfall_month1)) +
-    scale_fill_viridis_c(name = "Rainfall (mm)") +
+    scale_fill_viridis_c(
+        name = "Rainfall (mm)",
+        option = "plasma"
+    ) +
     theme_minimal() +
-    labs(title = "January 2020 Rainfall in Abia State, Nigeria")
-    
+    labs(
+        title = "January 2020 Rainfall Distribution",
+        subtitle = "Abia State, Nigeria",
+        caption = "Data source: CHIRPS"
+    ) +
+    theme(
+        plot.title = element_text(size = 16, face = "bold"),
+        legend.position = "right"
+    )
+```
+
+![Rainfall Map Example](/assets/images/rainfall_map.png)
+
+### 2. Night Time Lights Analysis
+```R
+# Get night time lights data
+ntl_map <- geolink_ntl(
+    time_unit = "annual",
+    start_date = "2020-01-01",
+    end_date = "2020-12-31",
+    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Lagos",],
+    indicator = "average_masked",
+    grid_size = 1000
+)
+
+# Create illuminating visualization
+ggplot(ntl_map) +
+    geom_sf(aes(fill = ntl_annual1average_masked)) +
+    scale_fill_gradient(
+        low = "navy",
+        high = "yellow",
+        name = "Light Intensity"
+    ) +
+    theme_minimal() +
+    labs(
+        title = "2020 Night Time Light Intensity",
+        subtitle = "Lagos State, Nigeria",
+        caption = "Data source: NASA Black Marble"
+    ) +
+    theme(
+        panel.background = element_rect(fill = "black"),
+        plot.background = element_rect(fill = "black"),
+        text = element_text(color = "white"),
+        plot.title = element_text(color = "white", size = 16, face = "bold")
+    )
+```
+
+![Night Time Lights Map](/assets/images/ntl_map.png)
+
+### 3. Interactive Population Density
+```R
+library(leaflet)
+
+# Get population data
+pop_data <- geolink_population(
+    start_year = 2020,
+    end_year = 2020,
+    iso_code = "NGA",
+    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Kano",],
+    grid_size = 1000
+)
+
+# Create interactive population map
+leaflet(pop_data) %>%
+    addProviderTiles(providers$CartoDB.DarkMatter) %>%
+    addPolygons(
+        fillColor = ~colorQuantile("YlOrRd", population_2020)(population_2020),
+        fillOpacity = 0.7,
+        weight = 1,
+        color = "#666",
+        popup = ~paste(
+            "<strong>Area:</strong>", 
+            "<br>Population:", round(population_2020),
+            "<br>Density:", round(population_2020/st_area(geometry))
+        )
+    ) %>%
+    addLegend(
+        "bottomright",
+        title = "Population Density",
+        pal = colorQuantile("YlOrRd", pop_data$population_2020),
+        values = ~population_2020
+    )
+```
+
+![Population Density Map](/assets/images/population_map.png)
+
+### 4. Elevation Profile with Cropland Overlay
+```R
+# Combine elevation and cropland data
+elevation_data <- geolink_elevation(
+    iso_code = "NGA",
+    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    grid_size = 1000
+)
+
+cropland_data <- geolink_cropland(
+    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    grid_size = 1000
+)
+
+# Create combined visualization
+ggplot(elevation_data) +
+    geom_sf(aes(fill = elevation)) +
+    geom_sf(data = cropland_data, aes(alpha = cropland), fill = "darkgreen") +
+    scale_fill_gradient2(
+        low = "darkgreen",
+        mid = "yellowgreen",
+        high = "brown",
+        midpoint = median(elevation_data$elevation),
+        name = "Elevation (m)"
+    ) +
+    scale_alpha_continuous(name = "Cropland Density") +
+    theme_minimal() +
+    labs(
+        title = "Elevation Profile with Cropland Overlay",
+        subtitle = "Plateau State, Nigeria"
+    )
+```
+
+![Elevation and Cropland Map](/assets/images/elevation_cropland_map.png)
+
+## 📝 Basic Usage Examples
+
+### Rainfall Data (CHIRPS)
+```R
+df <- geolink_chirps(
+    time_unit = "month",
+    start_date = "2020-01-01",
+    end_date = "2020-03-01",
+    shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+    grid_size = 1000
+)
+```
+
 ### Night Time Lights
 ```R
 df <- geolink_ntl(
@@ -114,30 +226,6 @@ df <- geolink_ntl(
 )
 ```
 
-Output:
-```
-Global NTL Raster Downloaded
-Process Complete!!!
-# Returns data.frame with ntl_month1_avg_rade9h, etc.
-```
-
-# Example: Night Time Lights Visualization
-ntl_map <- geolink_ntl(
-    time_unit = "annual",
-    start_date = "2020-01-01",
-    end_date = "2020-12-31",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Lagos",],
-    indicator = "average_masked",
-    grid_size = 1000
-)
-
-# Create map
-ggplot(ntl_map) +
-    geom_sf(aes(fill = ntl_annual1average_masked)) +
-    scale_fill_gradient(low = "navy", high = "yellow", name = "Light Intensity") +
-    theme_minimal() +
-    labs(title = "2020 Night Time Lights in Lagos State, Nigeria")  
-
 ### Population Data
 ```R
 df <- geolink_population(
@@ -148,41 +236,6 @@ df <- geolink_population(
     grid_size = 1000
 )
 ```
-
-Output:
-```
-Population Raster Processed
-Process Complete!!!
-# Returns data.frame with population_2018, population_2019
-```
-
-# Example: Population Density with Interactive Map
-library(leaflet)
-
-pop_data <- geolink_population(
-    start_year = 2020,
-    end_year = 2020,
-    iso_code = "NGA",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Kano",],
-    grid_size = 1000
-)
-
-# Create interactive map
-leaflet(pop_data) %>%
-    addTiles() %>%
-    addPolygons(
-        fillColor = ~colorQuantile("YlOrRd", population_2020)(population_2020),
-        fillOpacity = 0.7,
-        weight = 1,
-        popup = ~paste("Population:", round(population_2020))
-    ) %>%
-    addLegend(
-        "bottomright",
-        title = "Population",
-        pal = colorQuantile("YlOrRd", pop_data$population_2020),
-        values = ~population_2020
-    )
-    
 
 ## 📚 Documentation
 
@@ -203,7 +256,7 @@ The package includes comprehensive error checking:
 ```R
 # Invalid file format
 df <- geolink_population(survey_fn = "invalid.txt")
-# Error: "Unsupported file format. Please provide .dta or .csv file"
+# Error: "Unsupported file format. Please provide .dta file"
 
 # CRS mismatch
 df <- geolink_chirps(shp_dt = invalid_crs_data)
@@ -231,4 +284,4 @@ Your Name - [@your_twitter](https://twitter.com/your_twitter) - email@example.co
 Project Link: [https://github.com/your-username/geolink](https://github.com/your-username/geolink)
 
 ---
-Made with ❤️ by [The World Bank Group]
+Made with ❤️ by [Your Name/Organization]
