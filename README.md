@@ -83,6 +83,25 @@ Process Complete!!!
 # Returns data.frame with rainfall_month1, rainfall_month2, etc.
 ```
 
+library(ggplot2)
+library(sf)
+
+# Example: Visualizing Rainfall Data
+rainfall_map <- geolink_chirps(
+    time_unit = "month",
+    start_date = "2020-01-01",
+    end_date = "2020-01-31",
+    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Abia",],
+    grid_size = 1000
+)
+
+# Create map
+ggplot(rainfall_map) +
+    geom_sf(aes(fill = rainfall_month1)) +
+    scale_fill_viridis_c(name = "Rainfall (mm)") +
+    theme_minimal() +
+    labs(title = "January 2020 Rainfall in Abia State, Nigeria")
+    
 ### Night Time Lights
 ```R
 df <- geolink_ntl(
@@ -102,6 +121,23 @@ Process Complete!!!
 # Returns data.frame with ntl_month1_avg_rade9h, etc.
 ```
 
+# Example: Night Time Lights Visualization
+ntl_map <- geolink_ntl(
+    time_unit = "annual",
+    start_date = "2020-01-01",
+    end_date = "2020-12-31",
+    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Lagos",],
+    indicator = "average_masked",
+    grid_size = 1000
+)
+
+# Create map
+ggplot(ntl_map) +
+    geom_sf(aes(fill = ntl_annual1average_masked)) +
+    scale_fill_gradient(low = "navy", high = "yellow", name = "Light Intensity") +
+    theme_minimal() +
+    labs(title = "2020 Night Time Lights in Lagos State, Nigeria")  
+
 ### Population Data
 ```R
 df <- geolink_population(
@@ -119,6 +155,34 @@ Population Raster Processed
 Process Complete!!!
 # Returns data.frame with population_2018, population_2019
 ```
+
+# Example: Population Density with Interactive Map
+library(leaflet)
+
+pop_data <- geolink_population(
+    start_year = 2020,
+    end_year = 2020,
+    iso_code = "NGA",
+    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Kano",],
+    grid_size = 1000
+)
+
+# Create interactive map
+leaflet(pop_data) %>%
+    addTiles() %>%
+    addPolygons(
+        fillColor = ~colorQuantile("YlOrRd", population_2020)(population_2020),
+        fillOpacity = 0.7,
+        weight = 1,
+        popup = ~paste("Population:", round(population_2020))
+    ) %>%
+    addLegend(
+        "bottomright",
+        title = "Population",
+        pal = colorQuantile("YlOrRd", pop_data$population_2020),
+        values = ~population_2020
+    )
+    
 
 ## 📚 Documentation
 
