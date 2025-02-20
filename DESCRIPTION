@@ -29,7 +29,7 @@ Imports:
     jsonlite,
     lubridate,
     lwgeom,
-    memorise,
+    memoise,
     methods, 
     ncdf4,
     osmdata,

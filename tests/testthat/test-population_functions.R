@@ -7,6 +7,7 @@
 
 #Test- A.
 test_that("Population works using a shapefile:", {
+#Create a consistent file directory:
 
   suppressWarnings({ test_dt <- geolink_population(start_year = 2018,
                                                    end_year = 2019,
@@ -16,7 +17,7 @@ test_that("Population works using a shapefile:", {
                                                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                                    grid_size = 1000,
                                                    extract_fun = "mean",
-                                                   file_location = "/Users/nikos/Documents/temp/nga_pop")
+                                                   file_location = tempdir())
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -55,7 +56,7 @@ test_that("Population works using a survey :", {
                                                                         crs = 4326),
                                                   buffer_size = 1000,
                                                   extract_fun = "mean",
-                                                  file_location = "/Users/nikos/Documents/temp/nga_pop")
+                                                  file_location =tempdir())
 
 
   })
@@ -95,7 +96,7 @@ test_that("Enrure argument works:", {
                                                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                                    grid_size = 1000,
                                                    extract_fun = "mean",
-                                                   file_location = "/Users/nikos/Documents/temp/nga_pop")
+                                                   file_location = tempdir())
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -138,7 +139,7 @@ test_that("Error is thrown for invalid  link construction", {
                                              shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                              grid_size = 1000,
                                              extract_fun = "mean",
-                                            file_location = "/Users/nikos/Documents/temp/nga_pop")
+                                            file_location = tempdir())
 
                ,
                regexp = "No valid raster files found.")
