@@ -11,7 +11,7 @@
 #' @param fun the function to be used compute zonal statistics
 #' @param numCores the number of cores to be used in parallel processing
 #'
-#' @import parallelMap doParallel
+#' @import parallelMap doParallel foreach raster sf exactextractr
 #' @export
 
 
@@ -67,6 +67,8 @@ parallel_zonalstats <- function(x,
 #' (STATA users only)
 #' @param survey_dt a sf/data.frame object, the geocoded survey
 #' @param buffer_size a numeric, radius of buffer for survey_dt (or survey_fn) units.
+#' @param survey_crs an integer or character, the CRS for the survey
+#'
 #' @import parallelMap doParallel
 #' @export
 
@@ -178,7 +180,10 @@ zonalstats_prepshp <- function(shp_dt,
 
 
 
-compute_zonalstats <- function(shp_dt, raster_objs, extract_fun, name_set) {
+compute_zonalstats <- function(shp_dt,
+                               raster_objs,
+                               extract_fun,
+                               name_set) {
   # Validate inputs
   if (is.null(shp_dt) || is.null(raster_objs)) {
     warning("Input shapefile or raster objects are NULL. Cannot proceed.")

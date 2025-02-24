@@ -4,17 +4,8 @@
 #' grid size
 #'
 #' @param shp_dt an object of class 'sf' or 'sfc'
-#' @param shp_dsn character; the local directory folder in which the shapefile is location. Must be specified
-#' when shp_dt is not specified.
-#' @param shp_layer character; the layer name for the shapefile. Must be specified with shp_dsn when shp_dt is not
-#' specified
 #' @param grid_size numeric of length 1; representing the desired size of the grid in meters
 #' @param sqr logical; if TRUE, a square grid is created. If FALSE, a hexagonal polygon grid is created
-#' @param pop_raster raster; an object of class 'raster'
-#' @param raster_path character; if pop_raster is not specified but raster is to read in from file. raster_path is
-#' the full name of the raster (including filepath)
-#' @param extract_name character of length 1; the name of the indicator to be extracted from the raster
-#' @param raster_function function to be applied in extracting raster into created grids
 #'
 #' @importFrom raster raster
 #' @importFrom raster cellStats
@@ -114,6 +105,13 @@ gengrid2 <- function(shp_dt,
 #' A function to create an osmdata package readable bounding box (bbox)
 #' with a buffer distance
 #'
+#' @param shp_dt `sf`, `data.frame`, a shapefile object with polygon geometry
+#' @param area_name character, the geographic name of the area of interest
+#' @param buffer_dist numeric, a numeric vector of length 4 for the distance from
+#' xmin, xmax, ymin and ymax to be added to the extent of `shp_dt`
+#' @param metric_crs logical, default is FALSE. If TRUE, `shp_dt` posseses a metric
+#' crs.
+#' @param osm_crs integer, the integer coordinate reference system for the OSM object
 #'
 #' @export
 #' @importFrom osmdata getbb

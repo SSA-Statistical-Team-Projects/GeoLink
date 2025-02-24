@@ -1,3 +1,5 @@
+#' @import data.table lubridate
+
 chirpname_annual <- function(start_year,
                              end_year) {
   time_list <- check_valid_annual(

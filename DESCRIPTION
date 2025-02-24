@@ -3,27 +3,27 @@ Type: Package
 Title: An R package for downloading, extracting and combining geospatial/remotely 
   sensed data with geocoded unit level data 
 Version: 0.1.0
-Author: c(person("Ifeanyi", "Edochie", role = c("aut", "cre"), email = "iedochie@worldbank.org"))
-Maintainer: The package maintainer <yourself@somewhere.net>
+Authors@R: c(person("Ifeanyi", "Edochie", role = c("aut", "cre"), email = "iedochie@worldbank.org"),
+             person("Diana", "Jaganjac", role = "aut", email = "djaganjac@worldbank.org"),
+             person("Daylan", "Salmeron", role = "aut", email = "dsalmerongomez@worldbank.org"),
+             person("Josh", "Merfeld", role = "ctb", email = "jdmesp@gmail.com"),
+             person("David", "Newhouse", role = "ctb", email = "dnewhouse@worldbank.org"),
+             person("Nikos", "Schmidt", role = "ctb", email = "n.tzavidis@soton.ac.uk"),
+             person("Christopher", "Lloyd", role = "ctb", email = "C.T.Lloyd@soton.ac.uk"))
+Maintainer: The package maintainer <"djaganjac@worldbank.org">
 Description: The R package 'GeoLink' supports the download of high resolution 
   geospatial/remote sensing data, zonal statistics computation, shapefile tesselation as well as 
   spatial joining of geospatial data with unit level georeferenced data (such as household surveys).
-License: What license is it under?
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
-    crsuggest,
     data.table,
-    dbscan,
     doParallel,
     dplyr,
-    dtplyr,
     exactextractr,
     foreach,
-    furrr,
-    future,
     geodata,
-    geosphere,
     haven,
     httr,
     jsonlite,
@@ -35,27 +35,21 @@ Imports:
     osmdata,
     parallel,
     parallelMap,
-    progressr,
     progress,
     R.utils,
     raster,
-    RCurl,
     reticulate,
-    rlang,
-    roxygen2,
     rstac,
     rvest,
     sf,
-    stats,
     stringr,
-    svDialogs,
     terra,
-    testthat,
-    tidyterra,
     tools,
-    units,
-    XML
+    units
 Suggests:
+    testthat (>= 3.0.0),
+    crsuggest,
+    dbscan
 Depends: 
     R (>= 2.10)
 SystemRequirements: Python (>= 3.7)
@@ -63,5 +57,5 @@ RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Config/reticulate:
     list(
-        packages = c("numpy", "pandas", "rasterio", "tqdm")
+        packages = c("numpy", "rasterio", "tqdm", "certifi"))
     )

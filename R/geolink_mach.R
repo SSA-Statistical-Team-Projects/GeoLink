@@ -173,8 +173,6 @@ geolink_chirps <- function(time_unit = NULL,
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum" for annual data and "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
 #' for monthly data
-#' @param ego_username username for your eogdata account
-#' @param ego_password password for your egodata account
 #'
 #' @inheritParams get_annual_ntl
 #' @inheritParams get_month_ntl
@@ -675,6 +673,7 @@ geolink_elevation <- function(iso_code,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param indicators character, default = "ALL", the set of indicators of interest
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
