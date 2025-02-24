@@ -36,6 +36,8 @@ postdownload_processor(
 
 \item{buffer_size}{a numeric, radius of buffer for survey_dt (or survey_fn) units.}
 
+\item{survey_crs}{an integer or character, the CRS for the survey}
+
 \item{name_set}{a nameset which will be created for the variables}
 
 \item{shp_dt}{an sf/dataframe with polygons}

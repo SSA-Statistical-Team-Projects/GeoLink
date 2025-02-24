@@ -12,21 +12,6 @@ gengrid2(shp_dt, grid_size, sqr = TRUE)
 \item{grid_size}{numeric of length 1; representing the desired size of the grid in meters}
 
 \item{sqr}{logical; if TRUE, a square grid is created. If FALSE, a hexagonal polygon grid is created}
-
-\item{shp_dsn}{character; the local directory folder in which the shapefile is location. Must be specified
-when shp_dt is not specified.}
-
-\item{shp_layer}{character; the layer name for the shapefile. Must be specified with shp_dsn when shp_dt is not
-specified}
-
-\item{pop_raster}{raster; an object of class 'raster'}
-
-\item{raster_path}{character; if pop_raster is not specified but raster is to read in from file. raster_path is
-the full name of the raster (including filepath)}
-
-\item{extract_name}{character of length 1; the name of the indicator to be extracted from the raster}
-
-\item{raster_function}{function to be applied in extracting raster into created grids}
 }
 \description{
 This function takes in only a shapefile and creates a square or hexagon polygon grid based on a specified
