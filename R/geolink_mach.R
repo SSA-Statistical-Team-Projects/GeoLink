@@ -61,7 +61,6 @@
 #' @export
 #' @import data.table parallel raster
 #' @importFrom haven read_dta
-#' @importFrom crsuggest suggest_crs
 
 
 

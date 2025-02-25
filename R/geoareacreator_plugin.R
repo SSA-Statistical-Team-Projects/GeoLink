@@ -118,7 +118,6 @@ gengrid2 <- function(shp_dt,
 #' @importFrom sf st_bbox
 #' @importFrom crsuggest suggest_crs
 #' @importFrom raster extent
-#' @importFrom dbscan dbscan
 #' @import dplyr
 
 create_query_bbox <- function(shp_dt = NULL,
