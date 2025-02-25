@@ -129,6 +129,7 @@ construct_year_link <- function(year,
 #' Check if the url actually works and contains data
 #'
 #' @param url character, the url
+#' @param t integer, timeout value
 
 
 valid_url <- function(url,

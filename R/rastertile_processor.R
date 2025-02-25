@@ -13,6 +13,8 @@
 #' @param inmem (optional) Logical. If `TRUE`, process the raster in memory. Default is determined by `raster::canProcessInMemory()`.
 #'
 #' @param x an object of class `raster`.
+#'
+#' @importFrom data.table as.data.table
 #' @inheritParams raster::as.data.frame
 #'
 #' @export
@@ -24,7 +26,7 @@ as.data.table.raster <- function(x,
                                  inmem = raster::canProcessInMemory(x, 2),
                                  ...) {
 
-  stopifnot(require("data.table"))
+
   if(inmem) {
     v <- as.data.table(as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
   } else {

@@ -16,13 +16,6 @@ get_month_chirps(
 \item{end_date}{An object of class date, must be specified like as.Date("yyyy-mm-dd")}
 
 \item{link_base}{the link to the daily chirps data (no need to change this)}
-
-\item{resolution}{A character, gridded resolution of the data (options area "p05" i.e.
-0.05 degree resolution and p25 for 0.25)}
-
-\item{dsn}{data source name (a local folder where the data is to be stored)}
-
-\item{cores}{the number of PC cores to employ in pulling the data in parallel}
 }
 \description{
 Pull rainfall data from the CHIRPS data at monthly intervals for a specified period

@@ -6,10 +6,6 @@
 #' @param start_date An object of class date, must be specified like as.Date("yyyy-mm-dd")
 #' @param end_date An object of class date, must be specified like as.Date("yyyy-mm-dd")
 #' @param link_base the link to the daily chirps data (no need to change this)
-#' @param resolution A character, gridded resolution of the data (options area "p05" i.e.
-#'                   0.05 degree resolution and p25 for 0.25)
-#' @param dsn data source name (a local folder where the data is to be stored)
-#' @param cores the number of PC cores to employ in pulling the data in parallel
 #'
 #' @import data.table parallel raster
 #' @export

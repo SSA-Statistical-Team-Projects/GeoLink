@@ -122,7 +122,7 @@ get_month_ntl <- function(start_date,
 #' @param indicator A character, specifying the specific indicator of interest. Options are
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum"
-#' @param shp_dt A sf/dataframe object, a polygon shapefile
+#' @param link_base character, the link to the base website or database
 #' @import rvest
 #' @export
 #'
