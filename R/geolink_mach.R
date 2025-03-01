@@ -1358,3 +1358,172 @@ geolink_terraclimate <- function(var,
   }
   unlink(tempdir(), recursive = TRUE)
 }
+
+
+
+
+
+
+
+
+#' Download vegetation index data
+#'
+#' This function download vegetation index data, either NDVI or EVI, based on start and end dates.
+#'
+#' @param start_date A character object with the start date; it must be specified as "yyyy-mm-dd"
+#' @param end_date A character object with the end date; it must be specified as "yyyy-mm-dd"
+#' @param indicator A character object with the vegetation index to be used; it must be either "NDVI" or "EVI".
+#' @param shp_dt An object of class 'sf', which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param resolution A numeric, the resolution to be used in meters for extracting the vegetation index data.
+#' @param grid_size A numeric, the grid size to be used to extract the data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame based on the input parameters and downloaded data.
+#'
+#' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
+#'
+#' @examples
+#' \donttest{
+#'
+#'  #example usage
+#' df <- geolink_vegindex(shp_dt = shp_dt,
+#'                              start_date = "2019-01-01",
+#'                              end_date = "2019-12-31",
+#'                              extract_fun = "mean",
+#'                              buffer_size = 1000,
+#'                              survey_crs = 4326)
+#'
+#'
+#' }
+#'@export
+
+
+geolink_vegindex <- function(start_date,
+                          end_date,
+                          indicator = "NDVI",
+                          shp_dt,
+                          shp_fn = NULL,
+                          resolution = 5000,
+                          grid_size = 5000,
+                          survey_dt,
+                          survey_fn = NULL,
+                          survey_lat = NULL,
+                          survey_lon = NULL,
+                          buffer_size = NULL,
+                          extract_fun = "mean",
+                          survey_crs = 4326){
+
+  if (indicator != "NDVI" & indicator != "EVI"){
+    stop("Indicator must be either 'NDVI' or 'EVI'")
+  }
+  indicator <- paste0("500m_16_days_", indicator)
+
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  it_obj <- s_obj %>%
+    stac_search(collections = "modis-13A1-061",
+                bbox = sf::st_bbox(shp_dt),
+                datetime = paste(start_date, end_date, sep = "/")) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
+
+
+  date_list <- lapply(1:length(it_obj$features),
+                      function(x){
+
+                        date <- cbind(year(it_obj$features[[x]]$properties$end_datetime),
+                          month(it_obj$features[[x]]$properties$end_datetime),
+                          day(it_obj$features[[x]]$properties$end_datetime))
+                        colnames(date) <- c("year", "month", "day")
+
+                        return(date)
+
+                      })
+  date_list <- data.table::data.table(do.call(rbind, date_list))
+  date_list <- date_list[, .SD[1], by = .(year, month)]
+
+  features_todl <- lapply(1:nrow(date_list),
+                      function(x){
+
+                        feat <- c()
+                        for (i in 1:length(it_obj$features)){
+                          if ((year(it_obj$features[[i]]$properties$end_datetime) == date_list[x, .(year)] &
+                                          month(it_obj$features[[i]]$properties$end_datetime) == date_list[x, .(month)] &
+                                          day(it_obj$features[[i]]$properties$end_datetime) == date_list[x, .(day)])==TRUE){
+                            feat <- c(feat, i)
+                          }
+                        }
+                        return(feat)
+
+                      })
+
+
+
+  url_list <- lapply(1:length(features_todl),
+                     function(x){
+                       url <- c()
+                       for (i in features_todl[x][[1]]){
+                         url <- c(url, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
+                       }
+
+
+                       return(url)
+
+                     })
+
+  print("NDVI/EVI raster download started. This may take some time.")
+
+  raster_objs <- c()
+  num <- 1
+  for (x in url_list){
+    rall <- terra::rast(x[[1]])
+    for (i in 2:length(x)){
+      r <- terra::rast(x[[i]])
+      rall <- terra::mosaic(r, rall, fun = "max")
+    }
+    raster::crs(rall) <- "EPSG:3857"
+    rall <- terra::project(rall, crs(shp_dt))
+    rall <- rall/100000000
+    raster_objs <- c(raster_objs, rall)
+    print(paste0("Month ", num, " of ", length(url_list), " completed."))
+    num <- num + 1
+  }
+
+
+  name_set <- paste0("ndvi_", "y", date_list$year, "_m", date_list$month)
+
+  print("NDVI Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_objs,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)
+  }
+
+
+
+
