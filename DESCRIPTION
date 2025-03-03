@@ -3,11 +3,11 @@ Type: Package
 Title: An R package for downloading, extracting and combining geospatial/remotely 
   sensed data with geocoded unit level data 
 Version: 0.1.0
-Authors@R: 
-    person("Daylan", "Gomez", "dsalmerongomez@worldbank.org", role = c("aut", "cre"))
-    person("Diana", "Jaganjac", "djaganjac@worldbank.org", role = c("aut", "cre"))
-    person("Ifeanyi", "Edochie", "iedochie@worldbank.org", role = c("aut", "cre"))
-Maintainer: The package maintainer <"djaganjac@worldbank.org">
+Authors@R: c(
+    person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = c("aut", "cre")),
+    person("Diana", "Jaganjac", email = "djaganjac@worldbank.org", role = c("aut")),
+    person("Daylan", "Gomez", email = "dsalmerongomez@worldbank.org", role = c("aut"))
+)
 Description: A comprehensive toolkit for downloading and processing various types of 
     geospatial data. Supports multiple data sources including CHIRPS rainfall data, 
     night time lights, population data, elevation data, building footprints, CMIP6 
