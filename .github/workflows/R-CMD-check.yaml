@@ -24,108 +24,45 @@ jobs:
       R_KEEP_PKG_SOURCE: yes
     steps:
       - uses: actions/checkout@v4
+      
       - uses: r-lib/actions/setup-pandoc@v2
+      
       - uses: r-lib/actions/setup-r@v2
         with:
           r-version: ${{ matrix.config.r }}
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
+          
       # Set up Python to resolve the python3 dependency
       - name: Setup Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
           
-      # Fixed: Only install rcmdcheck without trying to install dependencies from DESCRIPTION
-      - name: Install checking packages
+      # Install necessary checking packages directly
+      - name: Install packages for checking
         run: |
-          # Set a CRAN mirror
           options(repos = c(CRAN = "https://cloud.r-project.org"))
-          
-          # Install required packages for checking
-          install.packages(c("rcmdcheck", "sessioninfo"))
+          install.packages(c("rcmdcheck", "sessioninfo", "remotes"))
         shell: Rscript {0}
       
-      # First fix the DESCRIPTION file
-      - name: Fix DESCRIPTION file
+      # Install individual dependencies instead of using remotes::install_deps
+      - name: Install individual package dependencies
         run: |
-          # Read the current content
-          description_text <- readLines("DESCRIPTION")
-          
-          # Find and fix the issue with Authors@R field
-          # Look for lines that might be malformed
-          cat("Original DESCRIPTION file:\n")
-          cat(description_text, sep="\n")
-          
-          # Create a new fixed DESCRIPTION file
-          writeLines('Package: GeoLink
-Type: Package
-Title: Geospatial Data Integration for Unit Level Analysis
-Version: 0.1.0
-Authors@R: c(
-    person("Daylan", "Gomez", email = "dsalmerongomez@worldbank.org", role = "aut"),
-    person("Diana", "Jaganjac", email = "djaganjac@worldbank.org", role = c("aut", "cre")),
-    person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = "aut"))
-Description: A toolkit for downloading and processing geospatial data from 
-    multiple sources including CHIRPS rainfall, night time lights, population,
-    elevation, building footprints, CMIP6 climate models, land use data,
-    OpenStreetMap points, OpencellID cell towers and electrification access.
-    Provides integration tools for spatial analysis with shapefiles and surveys.
-License: MIT + file LICENSE
-Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-LazyData: true
-Imports:
-    data.table,
-    doParallel,
-    exactextractr,
-    foreach,
-    geodata,
-    haven,
-    httr,
-    jsonlite,
-    lubridate,
-    lwgeom,
-    memoise,
-    methods,
-    ncdf4,
-    osmdata,
-    parallel,
-    parallelMap,
-    progress,
-    R.utils,
-    raster,
-    reticulate,
-    rstac,
-    rvest,
-    sf,
-    stringr,
-    terra,
-    tools,
-    units
-Suggests:
-    testthat (>= 3.0.0),
-    crsuggest,
-    dbscan
-Depends: 
-    R (>= 2.10)
-SystemRequirements: Python (>= 3.7)
-RoxygenNote: 7.3.2
-Config/testthat/edition: 3
-Config/reticulate: list(packages = c("numpy", "rasterio", "tqdm", "certifi"))
-', "DESCRIPTION")
-          
-          cat("\nFixed DESCRIPTION file created.\n")
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          # List all required packages individually
+          pkgs <- c(
+            "data.table", "doParallel", "exactextractr", "foreach", 
+            "geodata", "haven", "httr", "jsonlite", "lubridate", 
+            "lwgeom", "memoise", "methods", "ncdf4", "osmdata", 
+            "parallel", "parallelMap", "progress", "R.utils", "raster", 
+            "reticulate", "rstac", "rvest", "sf", "stringr", "terra", 
+            "tools", "units", "testthat", "crsuggest", "dbscan"
+          )
+          install.packages(pkgs, dependencies = TRUE)
         shell: Rscript {0}
         
-      # Now install dependencies from the fixed DESCRIPTION
-      - name: Install dependencies
-        run: |
-          options(repos = c(CRAN = "https://cloud.r-project.org"))
-          remotes::install_deps(dependencies = TRUE)
-        shell: Rscript {0}
-      
-      # Keep the check-r-package action
+      # Run R CMD check
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
