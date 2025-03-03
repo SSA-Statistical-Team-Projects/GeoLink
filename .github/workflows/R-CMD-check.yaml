@@ -65,8 +65,7 @@ Version: 0.1.0
 Authors@R: c(
     person("Daylan", "Gomez", email = "dsalmerongomez@worldbank.org", role = "aut"),
     person("Diana", "Jaganjac", email = "djaganjac@worldbank.org", role = c("aut", "cre")),
-    person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = "aut")
-)
+    person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = "aut"))
 Description: A toolkit for downloading and processing geospatial data from 
     multiple sources including CHIRPS rainfall, night time lights, population,
     elevation, building footprints, CMIP6 climate models, land use data,
