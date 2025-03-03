@@ -3,14 +3,19 @@ Type: Package
 Title: An R package for downloading, extracting and combining geospatial/remotely 
   sensed data with geocoded unit level data 
 Version: 0.1.0
-Authors@R: c(person("Ifeanyi", "Edochie", role=c("aut", "cre"), email = "iedochie@worldbank.org"),
-  person("Diana", "Jaganjac", role="aut", email = "djaganjac@worldbank.org"),
-  person("Daylan", "Salmeron", role="aut", email = "dsalmerongomez@worldbank.org"),
-  person("David", "Newhouse", role="aut", email = "dnewhouse@worldbank.org"), 
-  person("Timo", "Schmid", role="aut", email = "timo.schmid@fu-berlin.de"))
-Description: The R package 'GeoLink' supports the download of high resolution 
-  geospatial/remote sensing data, zonal statistics computation, shapefile tesselation as well as 
-  spatial joining of geospatial data with unit level georeferenced data (such as household surveys).
+Authors@R: c(
+    person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = c("aut", "cre")),
+    person("Diana", "Jaganjac", email = "djaganjac@worldbank.org", role = c("aut")),
+    person("Daylan", "Gomez", email = "dsalmerongomez@worldbank.org", role = c("aut")),
+    person("David", "Newhouse",  email = "dnewhouse@worldbank.org", role = c("aut")), 
+    person("Timo", "Schmid",  email = "timo.schmid@fu-berlin.de", role = c("aut"))
+)
+Description: A comprehensive toolkit for downloading and processing various types of 
+    geospatial data. Supports multiple data sources including CHIRPS rainfall data, 
+    night time lights, population data, elevation data, building footprints, CMIP6 
+    climate model data, land use/land cover data, OpenStreetMap points of interest, 
+    OpencellID cell tower data and electrification access data. Provides tools for 
+    integrating this data with shapefiles and survey data for spatial analysis.
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)

@@ -1473,8 +1473,6 @@ geolink_get_poi <- function(osm_key,
     tryCatch({
       if (grepl("\\.dta$", survey_fn)) {
         survey_dt <- haven::read_dta(survey_fn)
-      } else if (grepl("\\.csv$", survey_fn)) {
-        survey_dt <- read.csv(survey_fn)
       } else {
         stop("Unsupported file format. Please provide .dta file")
       }
@@ -1961,4 +1959,3 @@ geolink_opencellid <- function(cell_tower_file,
 
   return(original_data)
 }
-

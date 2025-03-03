@@ -9,29 +9,7 @@ from rasterio.crs import CRS
 import math
 from rasterio.windows import Window
 import tempfile
-import logging
 import sys
-
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-
-# Create handlers
-console_handler = logging.StreamHandler(sys.stdout)
-file_handler = logging.FileHandler('raster_utils.log')
-
-# Set level for handlers
-console_handler.setLevel(logging.INFO)
-file_handler.setLevel(logging.INFO)
-
-# Create formatter
-formatter = logging.Formatter('%(asctime)s - %(levelname)s: %(message)s')
-console_handler.setFormatter(formatter)
-file_handler.setFormatter(formatter)
-
-# Add handlers to the logger
-logger.addHandler(console_handler)
-logger.addHandler(file_handler)
 
 def validate_input_files(input_files):
     # Validate and process input file paths.
@@ -42,7 +20,7 @@ def validate_input_files(input_files):
     for file in input_files:
         file_path = Path(str(file)).resolve()
         if not file_path.exists():
-            logger.warning(f"Input file not found: {file_path}")
+            print(f"Input file not found: {file_path}")
             continue
         valid_files.append(file_path)
     
@@ -50,8 +28,6 @@ def validate_input_files(input_files):
         raise ValueError("No valid input files found")
     
     return valid_files
-
-# Rest of the functions remain unchanged...
 
 def ensure_crs_4326(raster_path, force_check=True):
     """
@@ -105,11 +81,11 @@ def ensure_crs_4326(raster_path, force_check=True):
                         resampling=Resampling.nearest
                     )
             
-            logger.info(f"Reprojected {input_path} to EPSG:4326")
+            print(f"Reprojected {input_path} to EPSG:4326")
             return str(output_path)
     
     except Exception as e:
-        logger.error(f"Error ensuring EPSG:4326 for {raster_path}: {e}")
+        print(f"Error ensuring EPSG:4326 for {raster_path}: {e}")
         raise
 
 def chunk_raster(src, chunk_size=1000):
@@ -154,16 +130,16 @@ def get_raster_info(raster_path):
             }
         return info
     except Exception as e:
-        logger.error(f"Error getting raster info for {raster_path}: {e}")
+        print(f"Error getting raster info for {raster_path}: {e}")
         return {'error': str(e), 'filename': str(raster_path)}
 
-def resample_raster(input_file, output_file, target_resolution, resampling_method=Resampling.nearest):
+def resample_raster(input_file, output_file, target_resolution=1000, resampling_method=Resampling.nearest):
     """
     Resample a single raster to a target resolution while ensuring EPSG:4326 CRS.
     
     :param input_file: Path to input raster file
     :param output_file: Path to output raster file
-    :param target_resolution: Target resolution in meters
+    :param target_resolution: Target resolution in meters (default: 1000m or 1km)
     :param resampling_method: Resampling method (default: nearest neighbor)
     :return: Path to resampled raster file
     """
@@ -213,20 +189,20 @@ def resample_raster(input_file, output_file, target_resolution, resampling_metho
                         resampling=resampling_method
                     )
         
-        logger.info(f"Resampled {input_path} to {target_resolution}m resolution")
+        print(f"Resampled {input_path} to {target_resolution}m resolution")
         return str(output_path)
         
     except Exception as e:
-        logger.error(f"Error resampling raster {input_file}: {e}")
+        print(f"Error resampling raster {input_file}: {e}")
         raise RuntimeError(f"Resampling failed for {input_file}: {e}")
 
-def resample_rasters(input_files, output_folder, target_resolution):
+def resample_rasters(input_files, output_folder, target_resolution=1000):
     """
     Resample multiple rasters to a common resolution in EPSG:4326.
     
     :param input_files: List of input raster files or single file path
     :param output_folder: Folder to save resampled rasters
-    :param target_resolution: Target resolution in meters
+    :param target_resolution: Target resolution in meters (default: 1000m or 1km)
     :return: List of paths to resampled raster files
     """
     # Validate and prepare input files
@@ -249,7 +225,7 @@ def resample_rasters(input_files, output_folder, target_resolution):
             )
             resampled_files.append(resampled_path)
         except Exception as e:
-            logger.warning(f"Could not process {input_file}: {e}")
+            print(f"Could not process {input_file}: {e}")
             continue
     
     if not resampled_files:
@@ -264,14 +240,15 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
     :param input_files: List of input raster file paths
     :param output_path: Optional path for final mosaic (if None, a temporary path is used)
     :param chunk_size: Size of processing chunks
-    :param target_resolution: Force a specific target resolution (in degrees for EPSG:4326)
+    :param target_resolution: Force a specific target resolution in meters (e.g., 1000 for 1km)
+                             Will be converted to degrees for EPSG:4326
     :return: Path to final mosaic raster
     """
     # Validate input files
     valid_files = validate_input_files(input_files)
     
     if len(valid_files) == 1:
-        logger.info("Only one raster provided. Returning as-is.")
+        print("Only one raster provided. Returning as-is.")
         return str(valid_files[0])
     
     # Create temporary directory for intermediate files
@@ -303,14 +280,17 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
             x_res = max([info['res'][0] for info in raster_info])
             y_res = max([info['res'][1] for info in raster_info])
             target_res = (x_res, y_res)
-            logger.info(f"Using coarsest resolution for mosaic: {target_res}")
+            print(f"Using coarsest resolution for mosaic: {target_res}")
         else:
-            # Use the specified target resolution
+            # Use the specified target resolution (convert from meters to degrees if needed)
             if isinstance(target_resolution, (int, float)):
-                target_res = (target_resolution, target_resolution)
+                # Convert meters to approximate degrees (at equator, 1 degree ≈ 111,320 meters)
+                degree_resolution = target_resolution / 111320
+                target_res = (degree_resolution, degree_resolution)
+                print(f"Converting {target_resolution}m to approximately {degree_resolution} degrees")
             else:
                 target_res = target_resolution
-            logger.info(f"Using specified resolution for mosaic: {target_res}")
+            print(f"Using specified resolution for mosaic: {target_res}")
         
         # Resample rasters to the same resolution if needed
         resampled_paths = []
@@ -319,14 +299,23 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
             
             # Check if resampling is needed
             if info['res'] != target_res:
-                logger.info(f"Resampling {path} from {info['res']} to {target_res}")
+                print(f"Resampling {path} from {info['res']} to {target_res}")
                 temp_output = temp_dir / f"resampled_{Path(path).name}"
                 
                 with rasterio.open(path) as src:
-                    # Calculate new transform
-                    transform = rasterio.transform.from_origin(
-                        src.bounds.left, src.bounds.top, target_res[0], target_res[1]
-                    )
+                    # Calculate new transform (handling both degree and meter inputs)
+                    if isinstance(target_resolution, (int, float)) and target_resolution > 1:
+                        # Likely in meters, convert to degrees
+                        degree_resolution = target_resolution / 111320
+                        transform = rasterio.transform.from_origin(
+                            src.bounds.left, src.bounds.top, degree_resolution, degree_resolution
+                        )
+                        print(f"Converting resolution from {target_resolution}m to {degree_resolution} degrees")
+                    else:
+                        # Already in degrees or small value
+                        transform = rasterio.transform.from_origin(
+                            src.bounds.left, src.bounds.top, target_res[0], target_res[1]
+                        )
                     
                     # Calculate new dimensions
                     width = max(1, round((src.bounds.right - src.bounds.left) / target_res[0]))
@@ -380,8 +369,8 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
                 # Verify all files have the same resolution before merging
                 resolutions = set(src.res for src in src_files)
                 if len(resolutions) > 1:
-                    logger.warning(f"Files still have different resolutions: {resolutions}")
-                    logger.warning("Will force resampling to exact resolution")
+                    print(f"Files still have different resolutions: {resolutions}")
+                    print("Will force resampling to exact resolution")
                     
                     # Close files and resample again with stricter parameters
                     for src in src_files:
@@ -448,10 +437,10 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
                 temp_files.append(temp_output)
                 
             except Exception as merge_error:
-                logger.error(f"Error during merge operation: {merge_error}")
+                print(f"Error during merge operation: {merge_error}")
                 # Fallback to manual mosaic
                 try:
-                    logger.info("Attempting manual mosaic as fallback")
+                    print("Attempting manual mosaic as fallback")
                     # Create an empty template raster covering the full extent
                     all_bounds = [src.bounds for src in src_files]
                     left = min(b.left for b in all_bounds)
@@ -497,7 +486,7 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
                     temp_files.append(temp_output)
                     
                 except Exception as fallback_error:
-                    logger.error(f"Fallback mosaic also failed: {fallback_error}")
+                    print(f"Fallback mosaic also failed: {fallback_error}")
                     raise
                 
             finally:
@@ -516,13 +505,13 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             os.replace(final_output, str(output_path))
-            logger.info(f"Final mosaic saved to {output_path}")
+            print(f"Final mosaic saved to {output_path}")
             return str(output_path)
         
         return final_output
         
     except Exception as e:
-        logger.error(f"Mosaic failed: {e}")
+        print(f"Mosaic failed: {e}")
         raise
     
     finally:
@@ -532,9 +521,9 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
                 if os.path.exists(str(temp_file)):
                     os.remove(str(temp_file))
             except Exception as cleanup_error:
-                logger.warning(f"Could not remove temp file {temp_file}: {cleanup_error}")
+                print(f"Could not remove temp file {temp_file}: {cleanup_error}")
         try:
             if os.path.exists(str(temp_dir)):
                 os.rmdir(str(temp_dir))
         except Exception as cleanup_error:
-            logger.warning(f"Could not remove temp directory {temp_dir}: {cleanup_error}")
+            print(f"Could not remove temp directory {temp_dir}: {cleanup_error}")
