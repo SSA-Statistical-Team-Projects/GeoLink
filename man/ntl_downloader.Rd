@@ -17,6 +17,23 @@ ntl_downloader(
   shp_dt
 )
 }
+\arguments{
+\item{client_id}{the client ID}
+
+\item{client_secret}{the client secret created on the website}
+
+\item{username}{character, username for your eogdata account}
+
+\item{password}{character, password for your egodata account}
+
+\item{grant_type}{character, the grant type}
+
+\item{token_url}{character, the token url}
+
+\item{data_url}{character, the data url}
+
+\item{shp_dt}{`sf`, `data.frame`, the shapefile object}
+}
 \description{
 An deprecated function used to download NTL rasters from the EOG website
 This function was useful when EOG needed a username and password. Therefore

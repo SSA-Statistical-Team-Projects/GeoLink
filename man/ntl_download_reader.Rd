@@ -21,6 +21,12 @@ ntl_download_reader(
 
 \item{ego_password}{password for your egodata account}
 
+\item{client_id}{the client ID}
+
+\item{client_secret}{the client secret created on the website}
+
+\item{max_retries}{the maximum number of retries before function time out}
+
 \item{...}{additional arguments to be used in `download.file()`}
 }
 \description{

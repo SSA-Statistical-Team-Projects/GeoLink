@@ -13,6 +13,8 @@
 #' @param inmem (optional) Logical. If `TRUE`, process the raster in memory. Default is determined by `raster::canProcessInMemory()`.
 #'
 #' @param x an object of class `raster`.
+#'
+#' @importFrom data.table as.data.table
 #' @inheritParams raster::as.data.frame
 #'
 #' @export
@@ -24,7 +26,7 @@ as.data.table.raster <- function(x,
                                  inmem = raster::canProcessInMemory(x, 2),
                                  ...) {
 
-  stopifnot(require("data.table"))
+
   if(inmem) {
     v <- as.data.table(as.data.frame(x, row.names=row.names, optional=optional, xy=xy, ...))
   } else {
@@ -111,9 +113,8 @@ filter_tiles <- function(raster_objs,
 
 }
 
-library(terra)
-library(sf)
-library(exactextractr)
+
+#' @import terra sf exactextractr
 
 # Function to filter and reproject tiles
 filter_tiles_landcover <- function(raster_objs, dt, numCores = NULL) {
@@ -156,15 +157,73 @@ filter_tiles_landcover <- function(raster_objs, dt, numCores = NULL) {
 
 
 
+#' A function convert point data to raster
+#'
+#' @param point_sf `sf`, `data.frame` object with point geometries, the first
+#' column is assumed contain the intended raster's field value.
+#' @param crs integer or crs projection string, default is EPSG:4326
+#' @param resolution numeric, the value of the raster's intended resolution
+#' @param agg_fun the aggregation function (e.g. sum, mean etc)
+#'
+#' @details Ensure, the `sf`, `data.frame` object contains the field value first and
+#' then the geometry and `resolution` of `point_dt` is in the same units as `crs`.
+#' i.e. a degree resolution only works correctly if `point_dt` has a `crs` in
+#' degrees and likewise for a metric resolution. In addition, if the point_dt
+#' comes as a `data.frame` object with latitude and longitude, it must be
+#' converted into an `sf`, `data.frame` by using the `sf::st_as_sf()` function.
+#' See help(sf::st_as_sf) for more details on the conversion process. In
+#' specifying the `crs`, simply using the 4 digit number will provide an error.
+#' See default for example.
+#'
+#' @export
+#'
+#' @examples
+#' \donttest{
+#'
+#'  #example usage with shapefile
+#'  raster_obj <- point_sf_to_raster(point_sf = point_dt,
+#'                                   crs = "EPSG:4326",
+#'                                   resolution = 0.1)
+#'
+#' }
+#'@export
 
 
+point_sf_to_raster <- function(point_sf,
+                               crs = "EPSG:4326",
+                               resolution,
+                               agg_fun = sum){
 
+  ### ensure point_df is an sf, data.frame
+  if(!inherits(point_sf, "sf")) {
 
+    stop("point_dt must be an point geometry sf")
 
+  }
 
+  coords <- st_coordinates(point_sf)
+  df <- st_drop_geometry(point_sf)
 
+  # Create a SpatRaster template based on extent and resolution
+  raster_obj <- rast(ext(min(coords[,1]), max(coords[,1]),
+                         min(coords[,2]), max(coords[,2])),
+                     resolution = resolution,
+                     crs = crs)
 
+  # Convert to SpatVector
+  points_vect <- vect(data.frame(coords, df),
+                      geom = c("X", "Y"),
+                      crs = crs)
 
+  # Rasterize using aggregation function
+  raster_obj <- rasterize(points_vect,
+                          raster_obj,
+                          field = names(df)[1],
+                          fun = agg_fun)
+
+  return(raster_obj)
+
+}
 
 
 

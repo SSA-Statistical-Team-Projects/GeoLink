@@ -67,15 +67,18 @@ download_reader <- function(url,
 #' @param ego_username username for your eogdata account
 #' @param ego_password password for your egodata account
 #' @param ... additional arguments to be used in `download.file()`
+#' @param client_id the client ID
+#' @param client_secret the client secret created on the website
+#' @param max_retries the maximum number of retries before function time out
 #' @import httr jsonlite progress tools
 #'
 
 ntl_download_reader <- function(url,
-                            ego_username = "102398test@gmail.com",
-                            ego_password = "Test1029384756!",
-                            client_id = "eogdata_oidc",
-                            client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
-                            max_retries = 3, ...) {
+                                ego_username = "102398test@gmail.com",
+                                ego_password = "Test1029384756!",
+                                client_id = "eogdata_oidc",
+                                client_secret = "2677ad81-521b-4869-8480-6d05b9e57d48",
+                                max_retries = 3, ...) {
 
   # Token URL
   token_url <- "https://eogauth.mines.edu/auth/realms/master/protocol/openid-connect/token"
@@ -277,8 +280,12 @@ read_opencellid_data <- function(file_path) {
   return(cell_towers)
 }
 
-
-# Helper function to read survey data
+#' Helper function to read survey data
+#'
+#' @param file_path character, a file location path
+#'
+#' @importFrom data.table as.data.table
+#'
 read_survey_data <- function(file_path) {
   if (grepl("\\.dta$", file_path)) {
     # Read Stata file
@@ -359,7 +366,9 @@ fetch_planetary_data <- function(collection, start_date, end_date, shp_dt) {
   return(it_obj)
 }
 
-crop_and_clean_raster <- function(raster_obj, shp_dt = NULL, survey_dt = NULL) {
+crop_and_clean_raster <- function(raster_obj,
+                                  shp_dt = NULL,
+                                  survey_dt = NULL) {
 
   # Check if shp_dt is NULL and survey_dt is provided
   if (is.null(shp_dt) && !is.null(survey_dt)) {
@@ -379,10 +388,14 @@ crop_and_clean_raster <- function(raster_obj, shp_dt = NULL, survey_dt = NULL) {
 
 
 # Generic function to convert data.table/data.frame to sf
-convert_to_sf <- function(survey_dt, geometry_col = "geometry", crs = 4326) {
+convert_to_sf <- function(survey_dt,
+                          geometry_col = "geometry",
+                          crs = 4326) {
   # Check if geometry column exists
   if (!geometry_col %in% colnames(survey_dt)) {
-    stop(paste("The column", geometry_col, "is not present in the input data.table/data.frame"))
+    stop(paste("The column",
+               geometry_col,
+               "is not present in the input data.table/data.frame"))
   }
 
   # Ensure the geometry column is properly formatted
@@ -401,7 +414,9 @@ convert_to_sf <- function(survey_dt, geometry_col = "geometry", crs = 4326) {
   if (is.list(survey_dt[[geometry_col]])) {
     tryCatch({
       # Convert each row's coordinates into an sf point
-      survey_dt[[geometry_col]] <- st_sfc(lapply(survey_dt[[geometry_col]], function(x) st_point(c(x[1], x[2]))))
+      survey_dt[[geometry_col]] <- st_sfc(lapply(survey_dt[[geometry_col]],
+                                                 function(x) st_point(c(x[1],
+                                                                        x[2]))))
       message("Geometry column converted from list of coordinates to sfc.")
     }, error = function(e) {
       stop("Error in converting list of coordinates to sfc:", e$message)

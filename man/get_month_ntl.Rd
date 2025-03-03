@@ -21,13 +21,15 @@ get_month_ntl(
 
 \item{version}{A string character, for now only "v10" is supported more to come later}
 
+\item{no_tile}{character, tile or not (see usage within the upstream NTL function)}
+
 \item{slc_type}{A character, adjustment type made to the NTL data either "vcmcfg" or
 "vcmslcfg"}
 
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
 "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"}
 
-\item{shp_dt}{A sf/dataframe object, a polygon shapefile}
+\item{link_base}{character, the base link to the EOG webpage/database}
 }
 \description{
 Functions to download night time lights data from NASA's Earth Observation

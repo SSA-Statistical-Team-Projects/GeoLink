@@ -6,12 +6,13 @@
 #'
 #' @param start_date A character, the starting date of interest
 #' @param end_date A character, the ending date of interest
-#' @param shp_dt A sf/dataframe object, a polygon shapefile
 #' @param version A string character, for now only "v10" is supported more to come later
 #' @param slc_type A character, adjustment type made to the NTL data either "vcmcfg" or
 #' "vcmslcfg"
 #' @param indicator A character, specifying the specific indicator of interest. Options are
 #' "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
+#' @param link_base character, the base link to the EOG webpage/database
+#' @param no_tile character, tile or not (see usage within the upstream NTL function)
 #'
 #' @import httr rvest data.table
 #'
@@ -121,7 +122,7 @@ get_month_ntl <- function(start_date,
 #' @param indicator A character, specifying the specific indicator of interest. Options are
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum"
-#' @param shp_dt A sf/dataframe object, a polygon shapefile
+#' @param link_base character, the link to the base website or database
 #' @import rvest
 #' @export
 #'

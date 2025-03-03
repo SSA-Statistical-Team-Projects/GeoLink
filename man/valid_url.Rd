@@ -8,6 +8,8 @@ valid_url(url, t = 2)
 }
 \arguments{
 \item{url}{character, the url}
+
+\item{t}{integer, timeout value}
 }
 \description{
 Check if the url actually works and contains data

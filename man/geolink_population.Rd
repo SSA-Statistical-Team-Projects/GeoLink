@@ -58,15 +58,14 @@ if use_survey is TRUE)}
 \item{survey_lon}{A character, longitude variable from survey (for STATA users only &
 if use survey is TRUE)}
 
+\item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
+
 \item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
 \item{survey_crs}{A numeric, the default is 4326}
 
 \item{file_location}{A path to the folder where the downloaded data should be stored.}
-
-\item{buffer_survey}{A logical, specify TRUE if interested in estimating a statistic based on distance
-from the survey location.}
 }
 \description{
 Download Population data from the World Pop dataset at annual intervals for a specified period
@@ -107,7 +106,7 @@ df <- geolink_population(start_year = 2018,
                            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                            grid_size = 1000,
                            extract_fun = "mean",
-                           file_location = "/Users/nikos/Documents/temp/nga_pop")
+                           file_location = tempdir())
 
 }
 }

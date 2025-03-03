@@ -17,11 +17,11 @@ get_annual_ntl(
 
 \item{version}{A string character, for now only "v10" is supported more to come later}
 
+\item{link_base}{character, the link to the base website or database}
+
 \item{indicator}{A character, specifying the specific indicator of interest. Options are
 "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 "median_masked" and "minimum"}
-
-\item{shp_dt}{A sf/dataframe object, a polygon shapefile}
 }
 \description{
 Functions to download night time lights data from NASA's Earth Observation

@@ -19,11 +19,6 @@ get_annual_chirps(
 \item{link_base}{the link to the daily chirps data (no need to change this)}
 
 \item{cores}{the number of PC cores to employ in pulling the data in parallel}
-
-\item{resolution}{A character, gridded resolution of the data (options area "p05" i.e.
-0.05 degree resolution and p25 for 0.25)}
-
-\item{dsn}{data source name (a local folder where the data is to be stored)}
 }
 \description{
 Pull rainfall data from the CHIRPS data at monthly intervals for a specified period
