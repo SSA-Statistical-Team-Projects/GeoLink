@@ -13,9 +13,9 @@ Description: The R package 'GeoLink' supports the download of high resolution
   spatial joining of geospatial data with unit level georeferenced data (such as household surveys).
 License: MIT + file LICENSE
 Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
 LazyData: true
 Imports:
-    crsuggest,
     data.table,
     doParallel,
     dplyr,
@@ -54,4 +54,3 @@ Config/testthat/edition: 3
 Config/reticulate:
     list(
         packages = c("numpy", "rasterio", "tqdm", "certifi"))
-    )
