@@ -36,13 +36,17 @@ jobs:
         with:
           python-version: '3.x'
           
-      # REPLACEMENT: Direct installation of dependencies instead of using setup-r-dependencies
+      # Fixed: Specify CRAN mirror when installing packages
       - name: Install dependencies manually
         run: |
-          install.packages(c("remotes", "rcmdcheck"))
+          # Set a CRAN mirror
+          options(repos = c(CRAN = "https://cloud.r-project.org"))
+          
+          # Install required packages for checking
+          install.packages(c("remotes", "rcmdcheck", "sessioninfo"))
+          
+          # Install package dependencies
           remotes::install_deps(dependencies = TRUE)
-          # Install any additional packages needed for checking
-          install.packages("sessioninfo")
         shell: Rscript {0}
       
       # Keep the check-r-package action
