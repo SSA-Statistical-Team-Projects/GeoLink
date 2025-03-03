@@ -13,6 +13,19 @@ create_query_bbox(
   osm_crs = 4326
 )
 }
+\arguments{
+\item{shp_dt}{`sf`, `data.frame`, a shapefile object with polygon geometry}
+
+\item{area_name}{character, the geographic name of the area of interest}
+
+\item{buffer_dist}{numeric, a numeric vector of length 4 for the distance from
+xmin, xmax, ymin and ymax to be added to the extent of `shp_dt`}
+
+\item{metric_crs}{logical, default is FALSE. If TRUE, `shp_dt` posseses a metric
+crs.}
+
+\item{osm_crs}{integer, the integer coordinate reference system for the OSM object}
+}
 \description{
 A function to create an osmdata package readable bounding box (bbox)
 with a buffer distance

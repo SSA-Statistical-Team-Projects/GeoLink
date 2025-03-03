@@ -5,7 +5,7 @@
 \title{Download and Merge monthly rainfall chirp data into geocoded surveys}
 \usage{
 geolink_chirps(
-  time_unit,
+  time_unit = NULL,
   start_date,
   end_date,
   shp_dt = NULL,

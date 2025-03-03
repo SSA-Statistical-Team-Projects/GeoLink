@@ -6,7 +6,9 @@ Version: 0.1.0
 Authors@R: c(
     person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = c("aut", "cre")),
     person("Diana", "Jaganjac", email = "djaganjac@worldbank.org", role = c("aut")),
-    person("Daylan", "Gomez", email = "dsalmerongomez@worldbank.org", role = c("aut"))
+    person("Daylan", "Gomez", email = "dsalmerongomez@worldbank.org", role = c("aut")),
+    person("David", "Newhouse",  email = "dnewhouse@worldbank.org", role = c("aut")), 
+    person("Timo", "Schmid",  email = "timo.schmid@fu-berlin.de", role = c("aut"))
 )
 Description: A comprehensive toolkit for downloading and processing various types of 
     geospatial data. Supports multiple data sources including CHIRPS rainfall data, 
@@ -21,9 +23,9 @@ LazyData: true
 Imports:
     data.table,
     doParallel,
+    dplyr,
     exactextractr,
     foreach,
-    fs,
     geodata,
     haven,
     httr,
@@ -31,7 +33,7 @@ Imports:
     lubridate,
     lwgeom,
     memoise,
-    methods,
+    methods, 
     ncdf4,
     osmdata,
     parallel,
@@ -48,9 +50,7 @@ Imports:
     tools,
     units
 Suggests:
-    testthat (>= 3.0.0),
-    crsuggest,
-    dbscan
+    testthat (>= 3.0.0)
 Depends: 
     R (>= 2.10)
 SystemRequirements: Python (>= 3.7)

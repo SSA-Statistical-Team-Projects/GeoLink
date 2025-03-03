@@ -26,5 +26,31 @@ hhgeo_dt <- as.data.table(hhgeo_dt)
 # saveRDS(hhgeo_dt, "data/hhsample.RDS")
 # saveRDS(shp_dt, "data/shapefile.RDS")
 
+# Define bounding box for Nigeria (approximate)
+xmin <- 2.69  # Westernmost longitude
+xmax <- 14.62 # Easternmost longitude
+ymin <- 4.27  # Southernmost latitude
+ymax <- 13.89 # Northernmost latitude
+
+# Generate 1000 random points within Nigeria's bounding box
+set.seed(123)  # For reproducibility
+n <- 1000
+longitude <- runif(n, xmin, xmax)
+latitude <- runif(n, ymin, ymax)
+
+# Create an sf data frame
+point_dt <- data.frame(
+  id = 1:n,
+  lon = longitude,
+  lat = latitude,
+  value = rnorm(n, mean = 50, sd = 10) # Some random variable
+) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326)  # WGS 84 CRS
+
+
 usethis::use_data(hhgeo_dt)
 usethis::use_data(shp_dt)
+usethis::use_data(point_dt)
+
+
+

@@ -67,10 +67,6 @@ if use survey is TRUE)}
 
 \item{survey_crs}{A numeric, the default is 4326
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
-
-\item{ego_username}{username for your eogdata account}
-
-\item{ego_password}{password for your egodata account}
 }
 \description{
 Download night lights luminosity at monthly/annual intervals for a specified period

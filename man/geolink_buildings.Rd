@@ -45,6 +45,8 @@ geolink_buildings(
 Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).}
 
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
+
+\item{indicators}{character, default = "ALL", the set of indicators of interest}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.

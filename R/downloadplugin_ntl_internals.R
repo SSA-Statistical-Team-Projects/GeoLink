@@ -1,7 +1,16 @@
 #' An deprecated function used to download NTL rasters from the EOG website
 #' This function was useful when EOG needed a username and password. Therefore
 #' this is not really in use anymore unless the opportunity necessitates
-
+#'
+#' @param username character, username for your eogdata account
+#' @param password character, password for your egodata account
+#' @param grant_type character, the grant type
+#' @param token_url character, the token url
+#' @param data_url character, the data url
+#' @param shp_dt `sf`, `data.frame`, the shapefile object
+#' @param client_id the client ID
+#' @param client_secret the client secret created on the website
+#'
 #' @import jsonlite
 
 ntl_downloader <- function(client_id,
@@ -120,6 +129,7 @@ construct_year_link <- function(year,
 #' Check if the url actually works and contains data
 #'
 #' @param url character, the url
+#' @param t integer, timeout value
 
 
 valid_url <- function(url,

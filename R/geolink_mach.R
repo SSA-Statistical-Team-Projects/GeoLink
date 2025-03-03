@@ -65,6 +65,7 @@
 
 
 
+
 geolink_chirps <- function(time_unit = NULL,
                            start_date,
                            end_date,
@@ -173,8 +174,6 @@ geolink_chirps <- function(time_unit = NULL,
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum" for annual data and "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
 #' for monthly data
-#' @param ego_username username for your eogdata account
-#' @param ego_password password for your egodata account
 #'
 #' @inheritParams get_annual_ntl
 #' @inheritParams get_month_ntl
@@ -386,7 +385,7 @@ geolink_ntl <- function(time_unit = "annual",
 #'                            shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                            grid_size = 1000,
 #'                            extract_fun = "mean",
-#'                            file_location = "/Users/nikos/Documents/temp/nga_pop")
+#'                            file_location = tempdir())
 #'
 #'}
 #'@export
@@ -689,6 +688,7 @@ geolink_elevation <- function(iso_code,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param indicators character, default = "ALL", the set of indicators of interest
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -1384,7 +1384,6 @@ geolink_terraclimate <- function(var,
   unlink(tempdir(), recursive = TRUE)
 }
 
-
 #' Download points of interest from OSM data using open street maps API.
 #'
 #' @param osm_key A character, refering to the osm key wiki page, please see details below
@@ -1960,5 +1959,3 @@ geolink_opencellid <- function(cell_tower_file,
 
   return(original_data)
 }
-
-

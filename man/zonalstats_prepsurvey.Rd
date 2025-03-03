@@ -26,6 +26,8 @@ zonalstats_prepsurvey(
 (STATA users only)}
 
 \item{buffer_size}{a numeric, radius of buffer for survey_dt (or survey_fn) units.}
+
+\item{survey_crs}{an integer or character, the CRS for the survey}
 }
 \description{
 A function to process raster downloads and compute zonal statistics for shapefiles
