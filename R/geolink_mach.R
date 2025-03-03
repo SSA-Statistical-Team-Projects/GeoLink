@@ -59,9 +59,9 @@
 #' }
 #'
 #' @export
-#' @import data.table parallel raster
+#' @importFrom raster raster stack brick crop projectRaster
 #' @importFrom haven read_dta
-#' @importFrom crsuggest suggest_crs
+#' @importFrom terra rast crs project ext
 
 
 
@@ -228,6 +228,13 @@ geolink_chirps <- function(time_unit = NULL,
 #' }
 #
 #' @export
+#' @import rstac stac
+#' @importFrom rstac stac items_sign
+#' @importFrom reticulate py_eval source_python
+#' @importFrom terra rast crs project ext
+#' @importFrom sf st_bbox st_transform st_as_sf st_geometry st_drop_geometry
+#' @importFrom raster projectRaster stack
+
 
 
 geolink_ntl <- function(time_unit = "annual",
@@ -360,7 +367,11 @@ geolink_ntl <- function(time_unit = "annual",
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#''@import rstac reticulate terra raster osmdata sf  geodata rvest httr
+#' @importFrom terra rast crs project ext
+#' @importFrom raster stack brick projectRaster
+#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
+#' @importFrom geodata elevation_30s
+#' @importFrom httr GET write_disk http_type
 #'
 #' @examples
 #'\donttest{
@@ -572,7 +583,10 @@ geolink_population <- function(start_year = NULL,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @import rstac terra raster osmdata sf httr geodata
+#' @importFrom terra rast crs project ext
+#' @importFrom sf st_bbox st_transform st_as_sf
+#' @importFrom geodata elevation_30s
+#'
 #' @examples
 #' \donttest{
 #'
@@ -679,7 +693,9 @@ geolink_elevation <- function(iso_code,
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata  sf httr geodata
+#' @importFrom terra rast crs project
+#' @importFrom raster projection projectRaster
+#' @importFrom sf st_transform st_as_sf st_bbox
 #'
 #' @examples
 #' \donttest{
@@ -834,8 +850,12 @@ geolink_buildings <- function(version,
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
+#' @import rstac stac
 #' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata sf httr geodata progress
+#' @importFrom rstac stac items_sign
+#' @importFrom terra rast crs project ext nlyr time tapp
+#' @importFrom sf st_bbox st_transform st_as_sf
+#' @importFrom progress progress_bar
 #'
 #' @examples
 #' \donttest{
@@ -847,9 +867,8 @@ geolink_buildings <- function(version,
 #'                    desired_models = "UKESM1-0-LL",
 #'                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                    grid_size = 1000)
-#'
-#'
 #' }
+#'
 #'@export
 
 geolink_CMIP6 <- function(start_date,
@@ -1039,9 +1058,10 @@ geolink_CMIP6 <- function(start_date,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast
-#' @importFrom httr GET http_type write_disk
-#' @import rstac terra raster osmdata  sf httr geodata
+#' @importFrom terra rast crs
+#' @importFrom sf st_transform
+#' @importFrom geodata cropland
+#' @importFrom httr GET write_disk
 #'
 #' @examples
 #' \donttest{
@@ -1125,9 +1145,9 @@ geolink_cropland <- function(source = "WorldCover",
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast
-#' @importFrom httr GET http_type write_disk
-#' @import rstac terra  sf httr geodata
+#' @importFrom terra rast crs nlyr
+#' @importFrom sf st_transform
+#' @importFrom geodata worldclim_country
 #'
 #' @examples
 #' \donttest{
@@ -1239,9 +1259,10 @@ geolink_worldclim <- function(iso_code,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast
-#' @importFrom httr GET http_type write_disk
-#' @import rstac reticulate terra raster osmdata sf geodata httr ncdf4
+#' @importFrom terra rast crs nlyr
+#' @importFrom sf st_bbox st_transform
+#' @importFrom httr GET http_type write_disk timeout http_status
+#' @importFrom ncdf4 nc_open nc_close
 #'
 #' @examples
 #' \donttest{
@@ -1363,341 +1384,6 @@ geolink_terraclimate <- function(var,
   unlink(tempdir(), recursive = TRUE)
 }
 
-#' Download and Merge Annual Land Use Land Cover data into geocoded surveys
-#'
-#' Download Land Use Land Cover data from the LULC dataset at annual intervals for a specified period
-#' The data is downloaded in raster format and combined with shapefile and/or survey data provided
-#' by the user. Source data: https://planetarycomputer.microsoft.com/dataset/io-lulc-annual-v02
-#'
-#' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
-#' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
-#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
-#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
-#' @param use_resampling An option to resample data to 1km squared if the resolution of the data is higher than this,
-#' this will speed up the processing of the code
-#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
-#' @param grid_size A numeric, the grid size to be used as a buffer around survey points.
-#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
-#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
-#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
-#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
-#'
-#'
-#' @examples
-#'
-#' \donttest{
-#'
-#' #loading the survey data and shapefile
-#'
-#' data("hhgeo_dt")
-#' data("shp_dt")
-#'
-#' #pull annual land use land cover and combine with household survey based on
-#' #grid tesselation of shapefile at 1000m
-#'
-#'df <- geolink_landcover(
-#                         start_date = "2020-01-01",
-#                         end_date = "2021-01-01",
-#                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
-#'
-#'
-#'
-#' surveyfn_df <- geolink_landcover(start_date = "2020-01-01",
-#'                              end_date = "2020-12-31",
-#'                              survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
-#'                              survey_lon = "x",
-#'                              survey_lat = "y",
-#'                              buffer_size = 1000,
-#'                              use_resampling = TRUE)
-#'
-#'
-#'
-#' df_survey <- geolink_landcover(
-#'                                start_date = "2020-01-01",
-#'                                end_date = "2020-12-31",
-#'                                survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
-#'                                buffer_size = 1000,
-#'                                use_resampling = TRUE)
-#' }
-#'
-#' @import  rstac reticulate terra raster osmdata sp sf geodata httr ncdf4 rgdal exactextractr parallel
-#'
-#'
-#'
-#'
-
-
-geolink_landcover <- function(start_date = NULL,
-                              end_date = NULL,
-                              shp_dt = NULL,
-                              shp_fn = NULL,
-                              survey_dt = NULL,
-                              survey_fn = NULL,
-                              survey_lat = NULL,
-                              survey_lon = NULL,
-                              buffer_size = NULL,
-                              survey_crs = 4326,
-                              grid_size = NULL,
-                              use_resampling = FALSE) {
-
-  start_date <- as.Date(start_date)
-  end_date <- as.Date(end_date)
-
-  # Set CRS to 4326 if data is provided as survey_dt
-  if (!is.null(survey_dt)) {
-    survey_dt <- ensure_crs_4326(survey_dt)
-  }
-
-  # Handle survey file input and projection
-  if (!is.null(survey_fn)) {
-    if (is.null(survey_lat) || is.null(survey_lon)) {
-      stop("Both survey_lat and survey_lon must be provided when using survey_fn")
-    }
-
-    # Read the survey file
-    tryCatch({
-      if (grepl("\\.dta$", survey_fn)) {
-        survey_dt <- haven::read_dta(survey_fn)
-      } else if (grepl("\\.csv$", survey_fn)) {
-        survey_dt <- read.csv(survey_fn)
-      } else {
-        stop("Unsupported file format. Please provide .dta or .csv file")
-      }
-    }, error = function(e) {
-      stop(sprintf("Error reading survey file: %s", e$message))
-    })
-
-    # Convert to sf object with specified projection
-    survey_dt <- st_as_sf(survey_dt,
-                          coords = c(survey_lon, survey_lat),
-                          crs = survey_crs)
-
-    # Transform to EPSG:4326 if needed
-    if (st_crs(survey_dt)$epsg != 4326) {
-      survey_dt <- st_transform(survey_dt, 4326)
-    }
-  }
-
-  # Process input data using helper functions
-  if (!is.null(shp_dt)) {
-    sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
-      ensure_crs_4326()
-  } else if (!is.null(shp_fn)) {
-    sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
-      ensure_crs_4326()
-  } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
-    sf_obj <- zonalstats_prepsurvey(
-      survey_dt = survey_dt,
-      survey_fn = survey_fn,
-      survey_lat = survey_lat,
-      survey_lon = survey_lon,
-      buffer_size = buffer_size,
-      survey_crs = survey_crs) %>%
-      ensure_crs_4326()
-  } else {
-    stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
-  }
-
-
-  # Clear existing Python config
-  Sys.unsetenv("RETICULATE_PYTHON")
-
-  # Set up virtual environment
-  venv_path <- file.path(system.file(package = "GeoLink"), "python", "virtual_env")
-  reticulate::use_virtualenv(venv_path, required = TRUE)
-
-  # Source Python utilities
-  python_utils_path <- system.file("python_scripts", "raster_utils.py", package = "GeoLink")
-  if (!file.exists(python_utils_path)) {
-    stop("Python utilities not found. Check package installation.")
-  }
-  reticulate::source_python(python_utils_path)
-
-  # Keep one filter_features function that checks both conditions
-  filter_features <- function(feature, start_date, end_date) {
-    # Check if it's a boundary tile
-    bbox <- feature$bbox
-    is_valid_bbox <- !any(bbox %in% c(180, -180))
-
-    # Check if dates represent a full calendar year
-    start_year <- format(as.Date(start_date), "%Y")
-    end_year <- format(as.Date(end_date), "%Y")
-    start_md <- format(as.Date(start_date), "%m-%d")
-    end_md <- format(as.Date(end_date), "%m-%d")
-
-    is_full_year <- start_year == end_year &&
-      start_md == "01-01" &&
-      end_md == "12-31"
-
-    if (is_full_year) {
-      # For full calendar year, create the pattern dynamically
-      year <- start_year
-      next_year <- as.character(as.numeric(year) + 1)
-      pattern <- paste0(year, "0101-", next_year, "0101")
-
-      # Check URL pattern
-      url <- feature$assets$data$href
-      is_correct_year <- grepl(pattern, url, fixed = TRUE)
-    } else {
-      # For other date ranges, check the feature date
-      feature_date <- as.Date(feature$properties$start_datetime)
-      is_correct_year <- feature_date >= start_date && feature_date <= end_date
-    }
-
-    # Return TRUE only if both conditions are met
-    return(is_valid_bbox && is_correct_year)
-  }
-
-  # STAC search
-  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
-
-  it_obj <- s_obj %>%
-    stac_search(
-      collections = "io-lulc-annual-v02",
-      bbox = sf::st_bbox(sf_obj),
-      datetime = paste(start_date, end_date, sep = "/")
-    ) %>%
-    get_request() %>%
-    items_sign(sign_fn = sign_planetary_computer())
-
-  # Apply filtering once with both conditions
-  it_obj$features <- it_obj$features[sapply(it_obj$features, function(feature) {
-    filter_features(feature, start_date, end_date)
-  })]
-
-  # Download and process rasters
-  temp_dir <- tempdir()
-  raster_year_map <- list()
-
-  for (i in seq_along(it_obj$features)) {
-    if (is.null(it_obj$features[[i]]$assets$data$href)) next
-
-    year <- format(as.Date(it_obj$features[[i]]$properties$start_datetime), "%Y")
-    url <- it_obj$features[[i]]$assets$data$href
-    raster_path <- file.path(temp_dir, paste0(year, "_", i, "_raster.tif"))
-
-    tryCatch({
-      download.file(url, raster_path, mode = "wb")
-      cat("Downloaded raster to:", raster_path, "\n")
-
-      if (!year %in% names(raster_year_map)) {
-        raster_year_map[[year]] <- list()
-      }
-      raster_year_map[[year]] <- append(raster_year_map[[year]], raster_path)
-    }, error = function(e) {
-      warning(paste("Could not download raster for year", year, ":", e$message))
-    })
-  }
-
-  # Process rasters
-  mosaicked_rasters <- list()
-
-  for (year in names(raster_year_map)) {
-    cat("Processing rasters for year:", year, "\n")
-
-    raster_paths <- raster_year_map[[year]]
-    raster_paths <- as.character(raster_paths)
-    raster_paths <- normalizePath(raster_paths)
-
-    if (!all(file.exists(raster_paths))) {
-      stop("Some raster files do not exist")
-    }
-
-
-    if (use_resampling) {
-      resampled_rasters <- resample_rasters(
-        input_files = raster_paths,
-        output_folder = file.path(temp_dir, "resampled", year),
-        target_resolution = 1000
-      )
-
-      mosaicked_path <- if (length(resampled_rasters) == 1) {
-        resampled_rasters[[1]]
-      } else {
-        mosaic_rasters(input_files = resampled_rasters)
-      }
-    } else {
-      # Skip resampling and directly mosaic if multiple rasters exist
-      mosaicked_path <- if (length(raster_paths) == 1) {
-        raster_paths[1]
-      } else {
-        mosaic_rasters(input_files = raster_paths)
-      }
-    }
-
-    mosaicked_raster <- terra::rast(mosaicked_path)
-
-    if (is.na(terra::crs(mosaicked_raster))) {
-      terra::crs(mosaicked_raster) <- "EPSG:4326"
-    } else if (terra::crs(mosaicked_raster, describe = TRUE)$code != "4326") {
-      mosaicked_raster <- terra::project(mosaicked_raster, "EPSG:4326")
-    }
-
-    mosaicked_rasters[[year]] <- mosaicked_raster
-  }
-
-  # Crop rasters to extent
-  cropped_rasters <- lapply(mosaicked_rasters, function(raster_obj) {
-    terra::crop(raster_obj, terra::ext(sf_obj))
-  })
-  names(cropped_rasters) <- names(mosaicked_rasters)
-
-  # Extract land cover proportions
-  file_values <- it_obj$features[[1]]$assets$data$`file:values`
-  class_values <- unlist(lapply(file_values, `[[`, "values"))
-  class_names <- tolower(gsub(" ", "_", unlist(lapply(file_values, `[[`, "summary"))))
-  all_column_names <- c(class_names, "no_data")
-
-  results_list <- list()
-
-  for (i in seq_along(cropped_rasters)) {
-    year <- names(cropped_rasters)[i]
-    raster <- cropped_rasters[[i]]
-
-    # Extract values using exactextractr
-    extracted_values <- exactextractr::exact_extract(raster, sf_obj, coverage_area = TRUE)
-
-    # Calculate proportions
-    polygon_proportions <- lapply(seq_along(extracted_values), function(j) {
-      ev <- extracted_values[[j]]
-      total_area <- sum(ev$coverage_area, na.rm = TRUE)
-
-      if (total_area == 0) {
-        proportions <- setNames(rep(NA, length(all_column_names)), all_column_names)
-      } else {
-        proportions <- setNames(sapply(class_values, function(class_val) {
-          class_area <- sum(ev$coverage_area[ev$value == class_val], na.rm = TRUE)
-          round((class_area / total_area) * 100, 2)
-        }), class_names)
-
-        remainder <- 100 - sum(proportions, na.rm = TRUE)
-        proportions["no_data"] <- round(max(0, remainder), 2)
-      }
-
-      return(proportions)
-    })
-
-    proportions_matrix <- do.call(rbind, polygon_proportions)
-
-    # Create results dataframe
-    year_results <- sf::st_drop_geometry(sf_obj)
-
-    for (col in all_column_names) {
-      year_results[[col]] <- proportions_matrix[, col]
-    }
-
-    year_results$year <- year
-    results_list[[year]] <- year_results
-  }
-
-  # Combine results and reattach geometry
-  final_result <- do.call(rbind, results_list)
-  final_result <- sf::st_sf(final_result, geometry = sf::st_geometry(sf_obj))
-
-  return(final_result)
-}
-
 
 #' Download points of interest from OSM data using open street maps API.
 #'
@@ -1717,7 +1403,8 @@ geolink_landcover <- function(start_date = NULL,
 #'
 #' Details for feature category and sub-category can be found here: https://wiki.openstreetmap.org/wiki/Map_features
 #'
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @importFrom osmdata available_features available_tags opq add_osm_feature osmdata_sf
+#' @importFrom sf st_bbox st_transform st_as_sf st_join st_geometry
 #'
 #' @examples
 #'\donttest{
@@ -1790,7 +1477,7 @@ geolink_get_poi <- function(osm_key,
       } else if (grepl("\\.csv$", survey_fn)) {
         survey_dt <- read.csv(survey_fn)
       } else {
-        stop("Unsupported file format. Please provide .dta or .csv file")
+        stop("Unsupported file format. Please provide .dta file")
       }
     }, error = function(e) {
       stop(sprintf("Error reading survey file: %s", e$message))
@@ -1937,7 +1624,12 @@ geolink_get_poi <- function(osm_key,
 #'
 #' Details for the dataset can be found here: https://hrea.isr.umich.edu/
 #'
-#' @import rstac terra raster osmdata sp sf httr geodata
+#' @import rstac stac
+#' @importFrom rstac stac items_sign
+#' @importFrom terra rast crs project ext
+#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
+#' @importFrom httr GET write_disk
+#' @importFrom lubridate year
 #'
 #' @examples
 #'\donttest{
@@ -1984,7 +1676,7 @@ geolink_electaccess <- function(
       } else if (grepl("\\.csv$", survey_fn)) {
         survey_dt <- read.csv(survey_fn)
       } else {
-        stop("Unsupported file format. Please provide .dta or .csv file")
+        stop("Unsupported file format. Please provide .dta file")
       }
     }, error = function(e) {
       stop(sprintf("Error reading survey file: %s", e$message))
@@ -2119,23 +1811,30 @@ geolink_electaccess <- function(
   return(dt)
 }
 
+
 #' Download OpenCellID data
 #'
 #' This function processes downloaded OpenCellID data, which provides information about cell towers and their coverage areas.
 #' The return dataframe gives data of the nearest cell tower to the shapefile polygon centroid.
 #'
 #' @param cell_tower_file A csv.gz file path downloaded from OpencellID.
-#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
+#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e. a household survey with latitude and longitude values.
 #' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE)
-#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
-#' @param grid_size A numeric, the grid size to be used in meters for analyzing the cell tower data. The maximum possible is 2000 meters.
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE)
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE)
+#' @param survey_crs A numeric, the default is 4326
+#' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
 #' @importFrom terra rast
 #' @importFrom httr GET timeout
-#' @import rstac terra raster osmdata sp sf httr geodata data.table geosphere
+#' @importFrom sf st_as_sf st_transform st_bbox st_intersects st_as_sfc
+#' @importFrom data.table as.data.table
+#' @importFrom memoise memoise
+#' @importFrom haven read_dta
 #'
 #' @examples
 #' \donttest{
@@ -2147,129 +1846,119 @@ geolink_electaccess <- function(
 #'
 
 
-# Combined function to calculate tower stats and return the nearest lat/lon for a polygon
-
 geolink_opencellid <- function(cell_tower_file,
                                shp_dt = NULL,
-                               survey_dt = NULL,
                                shp_fn = NULL,
+                               survey_dt = NULL,
                                survey_fn = NULL,
-                               grid_size = NULL) {
+                               survey_lat = NULL,
+                               survey_lon = NULL,
+                               buffer_size = NULL,
+                               survey_crs = 4326) {
 
-  # Convert data.table or data.frame to sf if needed
-  convert_to_sf <- function(dt) {
-    if ("geometry" %in% names(dt)) {
-      st_as_sf(dt, crs = 4326)
-    } else if ("lon" %in% names(dt) && "lat" %in% names(dt)) {
-      st_as_sf(dt, coords = c("lon", "lat"), crs = 4326)
-    } else {
-      stop("survey_dt must have a 'geometry' column or both 'lon' and 'lat' columns to convert to sf.")
-    }
-  }
+  # Create memoised version of the function
+  read_opencellid_data_cached <- memoise::memoise(read_opencellid_data)
 
-  # Check input type and ensure CRS is EPSG:4326
-  input_type <- NULL
+  # Process input geometry
+  if (!is.null(survey_dt)) {
+    if (!inherits(survey_dt, "sf")) {
+      # Check if there's a geometry column
+      if ("geometry" %in% names(survey_dt)) {
+        # Convert to sf object using existing geometry column
+        sf_obj <- st_as_sf(survey_dt)
+      } else if (!is.null(survey_lat) && !is.null(survey_lon)) {
+        # Convert using coordinate columns if provided
+        if (!(survey_lat %in% names(survey_dt)) || !(survey_lon %in% names(survey_dt))) {
+          stop(sprintf("Coordinate columns '%s' and '%s' not found in survey data",
+                       survey_lat, survey_lon))
+        }
 
-  if (!is.null(shp_dt)) {
-    input_type <- "shapefile"
-    if (is.character(shp_dt)) {
-      if (!file.exists(shp_dt)) {
-        stop("Shapefile not found at the specified path")
-      }
-      shp_dt <- st_read(shp_dt)
-    } else if (!inherits(shp_dt, "sf")) {
-      stop("shp_dt must be a file path or an sf object.")
-    }
-    shp_dt <- ensure_crs_4326(shp_dt)
-  } else if (!is.null(survey_dt)) {
-    input_type <- "survey"
-    if (inherits(survey_dt, c("data.table", "data.frame"))) {
-      survey_dt <- convert_to_sf(survey_dt)
-    } else if (!inherits(survey_dt, "sf")) {
-      stop("survey_dt must be an sf object, data.table, or data.frame.")
-    }
-    survey_dt <- ensure_crs_4326(survey_dt)
-  } else {
-    stop("Either shp_dt or survey_dt must be provided.")
-  }
-
-  if (is.null(shp_fn) == FALSE){
-    shp_dt <- sf::read_sf(shp_fn)}
-
-
-  # Load and prepare cell tower data
-  cell_towers <- read_opencellid_data(cell_tower_file)
-  cell_towers_sf <- st_as_sf(cell_towers, coords = c("lon", "lat"), crs = 4326)
-
-  # Helper function to find the nearest cell tower
-  find_nearest_tower <- function(geometry, cell_towers_sf) {
-    distances <- st_distance(geometry, cell_towers_sf, by_element = FALSE)
-    nearest_idx <- which.min(distances)
-    nearest_distance <- min(distances)
-    nearest_coordinates <- st_coordinates(cell_towers_sf)[nearest_idx, ]
-
-    list(
-      nearest_distance = nearest_distance,
-      nearest_lon = nearest_coordinates["X"],
-      nearest_lat = nearest_coordinates["Y"]
-    )
-  }
-
-  # Process based on input type
-  if (input_type == "shapefile") {
-    # Transform cell tower CRS to match shapefile
-    cell_towers_sf <- st_transform(cell_towers_sf, st_crs(shp_dt))
-
-    # Process each polygon
-    results <- lapply(1:nrow(shp_dt), function(i) {
-      polygon <- shp_dt[i, ]
-      towers_in_polygon <- st_within(cell_towers_sf, polygon, sparse = FALSE)
-      num_towers <- sum(towers_in_polygon)
-
-      if (num_towers > 0) {
-        towers_sf <- cell_towers_sf[towers_in_polygon, ]
-        nearest_tower <- find_nearest_tower(st_centroid(polygon), towers_sf)
+        # Convert to sf object efficiently
+        sf_obj <- st_as_sf(survey_dt,
+                           coords = c(survey_lon, survey_lat),
+                           crs = survey_crs,
+                           agr = "constant")
       } else {
-        nearest_tower <- list(nearest_distance = NA, nearest_lon = NA, nearest_lat = NA)
+        stop("Survey data must either have a geometry column or survey_lat/survey_lon must be provided")
       }
+      original_data <- as.data.table(st_drop_geometry(survey_dt))
+    } else {
+      sf_obj <- survey_dt
+      original_data <- as.data.table(st_drop_geometry(survey_dt))
+    }
+  } else if (!is.null(survey_fn)) {
+    if (is.null(survey_lat) || is.null(survey_lon)) {
+      stop("Both survey_lat and survey_lon column names must be provided when using survey_fn")
+    }
 
-      cbind(
-        as.data.frame(polygon),
-        data.frame(
-          polygon_id = i,
-          num_towers = num_towers,
-          nearest_distance = nearest_tower$nearest_distance,
-          nearest_lon = nearest_tower$nearest_lon,
-          nearest_lat = nearest_tower$nearest_lat
-        )
-      )
-    })
+    # Read survey file using appropriate method
+    original_data <- read_survey_data(survey_fn)
 
-    results_df <- do.call(rbind, results)
-    return(results_df)
+    # Check if coordinate columns exist
+    if (!(survey_lat %in% names(original_data)) || !(survey_lon %in% names(original_data))) {
+      stop(sprintf("Coordinate columns '%s' and '%s' not found in survey file",
+                   survey_lat, survey_lon))
+    }
+
+    # Convert to sf object efficiently
+    sf_obj <- st_as_sf(original_data,
+                       coords = c(survey_lon, survey_lat),
+                       crs = survey_crs,
+                       agr = "constant")
+  } else if (!is.null(shp_dt)) {
+    if (!inherits(shp_dt, "sf")) {
+      stop("Input shp_dt must be an sf object")
+    }
+    sf_obj <- shp_dt
+    original_data <- as.data.table(st_drop_geometry(shp_dt))
+  } else if (!is.null(shp_fn)) {
+    # Read shapefile
+    sf_obj <- st_read(shp_fn, quiet = TRUE)
+    original_data <- as.data.table(st_drop_geometry(sf_obj))
+  } else {
+    stop("Please provide either shapefile data or survey data with coordinate columns")
   }
 
-  if (input_type == "survey") {
-    # Transform cell tower CRS to match survey points
-    cell_towers_sf <- st_transform(cell_towers_sf, st_crs(survey_dt))
-
-    # Process each survey point
-    results <- lapply(1:nrow(survey_dt), function(i) {
-      point <- survey_dt[i, ]
-      nearest_tower <- find_nearest_tower(point, cell_towers_sf)
-
-      cbind(
-        as.data.frame(point),
-        data.frame(
-          nearest_distance = nearest_tower$nearest_distance,
-          nearest_lon = nearest_tower$nearest_lon,
-          nearest_lat = nearest_tower$nearest_lat
-        )
-      )
-    })
-
-    results_df <- do.call(rbind, results)
-    return(results_df)
+  # Handle buffering if needed
+  if (!is.null(buffer_size)) {
+    sf_obj <- st_transform(sf_obj, 3857) %>%
+      st_buffer(buffer_size) %>%
+      st_transform(4326)
   }
+
+  # Ensure CRS is 4326
+  if (st_crs(sf_obj)$epsg != 4326) {
+    sf_obj <- st_transform(sf_obj, 4326)
+  }
+
+  # Load cell tower data efficiently
+  cell_towers <- read_opencellid_data_cached(cell_tower_file)
+  sprintf("Read %d cell towers", nrow(cell_towers))
+
+  # Convert cell towers to sf object efficiently
+  cell_towers_sf <- st_as_sf(cell_towers,
+                             coords = c("lon", "lat"),
+                             crs = 4326,
+                             agr = "constant")
+
+  # Create spatial index for efficiency
+  cell_towers_sf <- st_sf(cell_towers_sf)
+
+  # Get bounding box of input geometries
+  bbox <- st_bbox(sf_obj)
+
+  # Filter cell towers by bounding box first
+  cell_towers_filtered <- cell_towers_sf[st_intersects(
+    cell_towers_sf,
+    st_as_sfc(bbox),
+    sparse = FALSE
+  )[,1], ]
+
+  # Count towers per geometry using filtered dataset
+  num_towers <- lengths(st_intersects(sf_obj, cell_towers_filtered, sparse = TRUE))
+
+  # Add tower counts to original data
+  original_data[, num_towers := num_towers]
+
+  return(original_data)
 }
-

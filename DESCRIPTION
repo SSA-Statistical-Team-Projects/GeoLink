@@ -3,58 +3,54 @@ Type: Package
 Title: An R package for downloading, extracting and combining geospatial/remotely 
   sensed data with geocoded unit level data 
 Version: 0.1.0
-Author: c(person("Ifeanyi", "Edochie", role = c("aut", "cre"), email = "iedochie@worldbank.org"))
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: The R package 'GeoLink' supports the download of high resolution 
-  geospatial/remote sensing data, zonal statistics computation, shapefile tesselation as well as 
-  spatial joining of geospatial data with unit level georeferenced data (such as household surveys).
-License: What license is it under?
+Authors@R: 
+    person("Daylan", "Gomez", "dsalmerongomez@worldbank.org", role = c("aut", "cre"))
+    person("Diana", "Jaganjac", "djaganjac@worldbank.org", role = c("aut", "cre"))
+    person("Ifeanyi", "Edochie", "iedochie@worldbank.org", role = c("aut", "cre"))
+Maintainer: The package maintainer <"djaganjac@worldbank.org">
+Description: A comprehensive toolkit for downloading and processing various types of 
+    geospatial data. Supports multiple data sources including CHIRPS rainfall data, 
+    night time lights, population data, elevation data, building footprints, CMIP6 
+    climate model data, land use/land cover data, OpenStreetMap points of interest, 
+    OpencellID cell tower data and electrification access data. Provides tools for 
+    integrating this data with shapefiles and survey data for spatial analysis.
+License: MIT + file LICENSE
 Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
 LazyData: true
 Imports:
-    crsuggest,
     data.table,
-    dbscan,
     doParallel,
-    dplyr,
-    dtplyr,
     exactextractr,
     foreach,
-    furrr,
-    future,
+    fs,
     geodata,
-    geosphere,
     haven,
     httr,
     jsonlite,
     lubridate,
     lwgeom,
-    methods, 
+    memoise,
+    methods,
     ncdf4,
     osmdata,
     parallel,
     parallelMap,
-    progressr,
     progress,
     R.utils,
     raster,
-    RCurl,
     reticulate,
-    rlang,
-    roxygen2,
     rstac,
     rvest,
     sf,
-    stats,
     stringr,
-    svDialogs,
     terra,
-    testthat,
-    tidyterra,
     tools,
-    units,
-    XML
+    units
 Suggests:
+    testthat (>= 3.0.0),
+    crsuggest,
+    dbscan
 Depends: 
     R (>= 2.10)
 SystemRequirements: Python (>= 3.7)
@@ -62,5 +58,4 @@ RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Config/reticulate:
     list(
-        packages = c("numpy", "rasterio", "tqdm", "certifi")
-    )
+        packages = c("numpy", "rasterio", "tqdm", "certifi"))

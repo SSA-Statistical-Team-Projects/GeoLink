@@ -249,25 +249,49 @@ download_files_worldpop <- function(file_urls, UN_adjst, file_location) {  # Add
     }}}
 
 
-# Function to read OpenCellID data and assign column names
+# Helper function to read OpenCellID data with caching and spatial indexing
 read_opencellid_data <- function(file_path) {
-  # Read the compressed CSV file
-  cell_towers <- fread(file_path, sep = ",", header = FALSE)
+  if (!grepl("\\.csv$|\\.csv\\.gz$", file_path)) {
+    stop("Unsupported file format. Please provide a CSV file (plain or gzipped)")
+  }
+
+  # Read data without headers
+  cell_towers <- fread(file_path, header = FALSE)
 
   # Assign proper column names
   colnames(cell_towers) <- c("radio", "mcc", "net", "area", "cell", "unit",
                              "lon", "lat", "range", "samples", "changeable",
                              "created", "updated", "averageSignal")
 
-  # Convert lon and lat to numeric (to handle any non-numeric values)
-  cell_towers$lon <- as.numeric(cell_towers$lon)
-  cell_towers$lat <- as.numeric(cell_towers$lat)
+  # Ensure lon and lat are numeric
+  cell_towers[, `:=`(
+    lon = as.numeric(lon),
+    lat = as.numeric(lat)
+  )]
 
-  # Remove rows with missing or invalid values in lon or lat
-  cell_towers <- cell_towers[!is.na(cell_towers$lon) & !is.na(cell_towers$lat), ]
+  # Filter invalid coordinates
+  cell_towers <- cell_towers[!is.na(lon) & !is.na(lat) &
+                               lon >= -180 & lon <= 180 &
+                               lat >= -90 & lat <= 90]
 
   return(cell_towers)
 }
+
+
+# Helper function to read survey data
+read_survey_data <- function(file_path) {
+  if (grepl("\\.dta$", file_path)) {
+    # Read Stata file
+    dt <- as.data.table(haven::read_dta(file_path))
+  } else if (grepl("\\.csv$", file_path)) {
+    # Read CSV file
+    dt <- fread(file_path)
+  } else {
+    stop("Unsupported file format. Please provide .dta or .csv file")
+  }
+  return(dt)
+}
+
 
 ensure_crs_4326 <- function(gdf) {
   # Check if input is NULL or NA
