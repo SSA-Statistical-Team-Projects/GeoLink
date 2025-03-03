@@ -1,7 +1,6 @@
 Package: GeoLink
 Type: Package
-Title: An R package for downloading, extracting and combining geospatial/remotely 
-  sensed data with geocoded unit level data 
+Title: An R Package for Downloading, Extracting and Combining Geospatial Data
 Version: 0.1.0
 Authors@R: c(
     person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = c("aut", "cre")),
