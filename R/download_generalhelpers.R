@@ -234,24 +234,6 @@ try_download <- function(url) {
   return(file_urls)
 }
 
-# Function to download files from a list of URLs
-download_files_worldpop <- function(file_urls, UN_adjst, file_location) {  # Added file_location argument
-  for (file_url in file_urls) {
-    if (!is.null(UN_adjst) && UN_adjst == "Y") {
-      # Download only files containing 'UNadj'
-      if (grepl("UNadj", basename(file_url))) {
-        destfile <- file.path(file_location, basename(file_url))  # Save to specified location
-        download.file(url = file_url, destfile = destfile, mode = "wb")
-      }
-    } else {
-      # Download all files except those containing 'UNadj'
-      if (!grepl("UNadj", basename(file_url))) {
-        destfile <- file.path(file_location, basename(file_url))  # Save to specified location
-        download.file(url = file_url, destfile = destfile, mode = "wb")
-      }
-    }}}
-
-
 # Helper function to read OpenCellID data with caching and spatial indexing
 read_opencellid_data <- function(file_path) {
   if (!grepl("\\.csv$|\\.csv\\.gz$", file_path)) {

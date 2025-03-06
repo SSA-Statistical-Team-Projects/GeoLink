@@ -7,7 +7,7 @@
 point_sf_to_raster(point_sf, crs = "EPSG:4326", resolution, agg_fun = sum)
 }
 \arguments{
-\item{point_sf}{`sf`, `data.frame` object with point geometries, the first
+\item{point_sf}{\code{sf}, \code{data.frame} object with point geometries, the first
 column is assumed contain the intended raster's field value.}
 
 \item{crs}{integer or crs projection string, default is EPSG:4326}
@@ -20,14 +20,14 @@ column is assumed contain the intended raster's field value.}
 A function convert point data to raster
 }
 \details{
-Ensure, the `sf`, `data.frame` object contains the field value first and
-then the geometry and `resolution` of `point_dt` is in the same units as `crs`.
-i.e. a degree resolution only works correctly if `point_dt` has a `crs` in
+Ensure, the \code{sf}, \code{data.frame} object contains the field value first and
+then the geometry and \code{resolution} of \code{point_dt} is in the same units as \code{crs}.
+i.e. a degree resolution only works correctly if \code{point_dt} has a \code{crs} in
 degrees and likewise for a metric resolution. In addition, if the point_dt
-comes as a `data.frame` object with latitude and longitude, it must be
-converted into an `sf`, `data.frame` by using the `sf::st_as_sf()` function.
+comes as a \code{data.frame} object with latitude and longitude, it must be
+converted into an \code{sf}, \code{data.frame} by using the \code{sf::st_as_sf()} function.
 See help(sf::st_as_sf) for more details on the conversion process. In
-specifying the `crs`, simply using the 4 digit number will provide an error.
+specifying the \code{crs}, simply using the 4 digit number will provide an error.
 See default for example.
 }
 \examples{

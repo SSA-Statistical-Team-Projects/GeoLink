@@ -46,7 +46,7 @@ if use_survey is TRUE)}
 \item{survey_lon}{A character, longitude variable from survey (for STATA users only &
 if use survey is TRUE)}
 
-\item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
+\item{buffer_size}{A numeric, the size of the buffer for \code{survey_dt} or \code{survey_fn} in meters.}
 
 \item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
@@ -69,24 +69,34 @@ permitted final output. However, a geocoded survey with rainfall estimates are t
 if the user also chooses. The function will merge shapefile polygons (either gridded or
 native polygons) with the location of the survey units i.e. rainfall estimates for the
 locations of the units within the survey will be returned. The function is also set up for
-stata users and allows the user to pass file paths for the household survey `survey_fn`
-(with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
-a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
-to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
-`sf::read_sf()` function.
+stata users and allows the user to pass file paths for the household survey \code{survey_fn}
+(with the lat and long variable names \code{survey_lon} and \code{survey_lat}) as well. This is requires
+a .dta file which is read in with \code{haven::read_dta()} package. Likewise, the user is permitted
+to pass a filepath for the location of the shapefile \code{shp_fn} which is read in with the
+\code{sf::read_sf()} function.
 }
 \examples{
 
 \donttest{
 
 
-#quick example
+#examples
 df <- geolink_chirps(time_unit = "month",
                      start_date = "2020-01-01",
                      end_date = "2020-03-01",
                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                      grid_size = 1000,
                      survey_dt = hhgeo_dt,
+                     extract_fun = "mean")
+
+
+df <- geolink_chirps(time_unit = "month",
+                     start_date = "2020-01-01",
+                     end_date = "2020-02-01",
+                     survey_fn = "testdata/xy_hhgeo_dt.dta",
+                     survey_lat = "y",
+                     survey_lon = "x",
+                     buffer_size = 1000,
                      extract_fun = "mean")
 
 }

@@ -5,15 +5,15 @@
 \alias{shp_dt}
 \title{Boundary Shapefile for Nigeria}
 \format{
-A `sf` and `data.frame` object with 774 feature polygon geometries and 6 fields:
+A \code{sf} and \code{data.frame} object with 774 feature polygon geometries and 6 fields:
 \describe{
-  \item{ADM0_EN}{Country Name, i.e. Nigeria}
-  \item{ADM0_PCODE}{Two-letter country code}
-  \item{ADM1_EN}{Administrative Division 1 names, i.e. State names}
-  \item{ADM1_PCODE}{Administrative Division 1 codes, i.e. State codes}
-  \item{ADM2_EN}{Admin 2 division names, i.e. Local Government Area names}
-  \item{ADM2_PCODE}{Admin 2 codes, i.e. Local Government Area codes}
-  \item{geometry}{Polygon geometry features}
+\item{ADM0_EN}{Country Name, i.e. Nigeria}
+\item{ADM0_PCODE}{Two-letter country code}
+\item{ADM1_EN}{Administrative Division 1 names, i.e. State names}
+\item{ADM1_PCODE}{Administrative Division 1 codes, i.e. State codes}
+\item{ADM2_EN}{Admin 2 division names, i.e. Local Government Area names}
+\item{ADM2_PCODE}{Admin 2 codes, i.e. Local Government Area codes}
+\item{geometry}{Polygon geometry features}
 }
 }
 \source{

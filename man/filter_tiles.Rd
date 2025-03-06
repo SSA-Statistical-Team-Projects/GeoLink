@@ -9,7 +9,7 @@ filter_tiles(raster_objs, dt = shp_dt, numCores = NULL)
 \arguments{
 \item{raster_objs}{a list of rasters (typically the tiles that were read in)}
 
-\item{dt}{the shapefile `sf` object}
+\item{dt}{the shapefile \code{sf} object}
 
 \item{numCores}{the number of cores to be used, set to NULL if only 1 raster}
 }

@@ -7,10 +7,10 @@
 parallel_zonalstats(x, y, fun, numCores)
 }
 \arguments{
-\item{x}{a `RasterLayer`, `RasterStack`, `RasterBrick`, or `SpatRaster` with data
+\item{x}{a \code{RasterLayer}, \code{RasterStack}, \code{RasterBrick}, or \code{SpatRaster} with data
 to be extracted from}
 
-\item{y}{a `sf`, `sfc`, `SpatialPolygonsDataFrame`, or `SpatialPolygons` object
+\item{y}{a \code{sf}, \code{sfc}, \code{SpatialPolygonsDataFrame}, or \code{SpatialPolygons} object
 with polygonal geometries to be extracted into}
 
 \item{fun}{the function to be used compute zonal statistics}
