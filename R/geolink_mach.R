@@ -1558,7 +1558,218 @@ geolink_vegindex <- function(
   print("Process Complete!!!")
 
   return(dt)
+}
+
+
+
+
+
+#' Download pollution data
+#'
+#' This function downloads pollution data at the monthly level. It allows for the extraction of five separate pollution indicators.
+#'
+#' @param start_date A character object with the start date; it must be specified as "yyyy-mm-dd"
+#' @param end_date A character object with the end date; it must be specified as "yyyy-mm-dd"
+#' @param indicator A character object with the pollution data to be used; it must be one of "aer-ai", "hcho", "no2", "o3", "so2".
+#' @param shp_dt An object of class 'sf', which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param resolution A numeric, the resolution to be used in meters for extracting the vegetation index data.
+#' @param grid_size A numeric, the grid size to be used to extract the data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame based on the input parameters and downloaded data.
+#'
+#' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
+#'
+#' @examples
+#' \donttest{
+#'
+#'  #example usage
+#' df <- geolink_vegindex(shp_dt = shp_dt,
+#'                              start_date = "2019-01-01",
+#'                              end_date = "2019-12-31",
+#'                              extract_fun = "mean",
+#'                              buffer_size = 1000,
+#'                              survey_crs = 4326)
+#'
+#'
+#' }
+#'@export
+
+
+
+geolink_pollution <- function(
+  start_date,
+  end_date,
+  indicator = NULL,
+  shp_dt = NULL,
+  shp_fn = NULL,
+  resolution = 5000,
+  grid_size = 5000,
+  survey_dt = NULL,
+  survey_fn = NULL,
+  survey_lat = NULL,
+  survey_lon = NULL,
+  buffer_size = NULL,
+  extract_fun = "mean",
+  survey_crs = 4326
+  ){
+
+  # checks
+  if (is.null(indicator)==TRUE){
+    stop("You must specify an indicator: aer-ai, hcho, no2, o3, so2")
+  } else if ((indicator %in% c("aer-ai", "hcho", "no2", "o3", "so2"))==FALSE){
+    stop("You must specify one of the following indicators: aer-ai, hcho, no2, o3, so2")
   }
 
+
+  if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
+
+  } else if (!is.null(survey_dt)) {
+    sf_obj <- ensure_crs_4326(survey_dt)
+
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else if (!is.null(survey_fn)) { # Changed condition to survey_fn
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
+      sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else {
+    stop("Input a valid sf object or geosurvey")
+    sf_obj <- NULL # Optional: Define a default value to avoid potential errors
+  }
+
+  # check dates are valid
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+  if (start_date<as.Date("2018-05-01")){
+    stop("Start date must be 2018-05-01 or later.")
+  }
+  if (end_date>=as.Date(Sys.Date())){
+    stop("End date must before today.")
+  }
+  if (end_date<start_date){
+    stop("End date must be after start date.")
+  }
+
+  # get the months we need
+  allmonths <- seq.Date(start_date, end_date, by = "month")
+  allmonths <- data.table::data.table(allmonths)
+  allmonths <- allmonths[, .(year = year(allmonths), month = month(allmonths), day = 1)]
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  print("Collection of monthly links started.")
+
+  # this will collect the features we need to download for the variable of interest
+  # all months
+  url_list <- c()
+  bboxes <- c()
+  for (x in 1:nrow(allmonths)){
+    start_date_ind <- as.Date(paste0(allmonths[x, .(year)], "-", allmonths[x, .(month)], "-01"))
+    end_date_ind <- start_date_ind + months(1) - days(1)
+    it_obj <- s_obj %>%
+      stac_search(collections = "sentinel-5p-l2-netcdf",
+                  bbox = sf::st_bbox(sf_obj),
+                  datetime = paste(start_date_ind, end_date_ind, sep = "/"),
+                  limit = 1000) %>%
+      get_request() %>%
+      items_sign(sign_fn = sign_planetary_computer())
+    # now collect what we need
+    features_month <- c()
+    dates_month <- c()
+    bboxes_month <- c()
+    features <- c()
+    for (i in 1:length(it_obj$features)){
+      if (names(it_obj$features[[i]]$assets)==paste0(indicator)){
+        # there are some that cover only a small area; ignore these
+        # only keep those that are ENTIRE globe
+        if ((it_obj$features[[i]]$bbox[3]-it_obj$features[[i]]$bbox[1])==360 & 
+          (it_obj$features[[i]]$bbox[4]-it_obj$features[[i]]$bbox[2])>170){
+          features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
+          dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
+          bboxes_month <- c(bboxes_month, list(it_obj$features[[i]]$bbox))
+          features <- c(features, list(it_obj$features[[i]]))
+        }
+      }
+    }
+    # this keeps the LAST raster for each month
+    # there are issues trying to mosaik multiple rasters. They all seem to have slightly different extents and resolutions
+    features_month <- features_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+    bboxes_month <- bboxes_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+    features <- features[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+
+    url_list <- c(url_list, list(features_month))
+    bboxes <- c(bboxes, list(bboxes_month))
+  }
+
+  print("Pollution raster download started. This may take some time.")
+
+  # right layer name depending on the indicator
+  layer <- dplyr::case_match(
+    indicator,
+    "aer-ai" ~ "aerosol_index_340_380",
+    "ch4" ~ "methane_strong_twoband_total_column",
+    "co" ~ "carbonmonoxide_total_column",
+    "hcho" ~ "formaldehyde_tropospheric_vertical_column",
+    "no2" ~ "nitrogendioxide_tropospheric_column",
+    "o3" ~ "ozone_total_vertical_column",
+    "so2" ~ "sulfurdioxide_total_vertical_column"
+  )
+
+  # The rasters do not have the appropriate extent and CRS
+  # We have saved the bbox from the metadata and will use it to transform the raster
+  raster_objs <- c()
+  for (i in 1:length(url_list)){
+    # get bbox for this raster
+    bb <- as.vector(bboxes[[i]][[1]])
+    # load raster
+    rall <- rast(url_list[[i]][[1]])
+    # set extent using bbox from the metadata
+    ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
+    # it's lon/lat, will be 4326
+    crs(rall) <- "EPSG:4326"
+    raster_objs <- c(raster_objs, rall[[layer]])
+    print(paste0("Month ", i, " of ", length(url_list), " completed."))
+  }
+
+  date_list <- as_date(paste0(allmonths$year, "-", allmonths$month, "-01"))
+  name_set <- paste0(indicator, "_", "y", allmonths$year, "_m", allmonths$month)
+
+  print("Pollution Rasters Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+    raster_objs = raster_objs,
+    shp_fn = shp_fn,
+    grid_size = grid_size,
+    survey_dt = survey_dt,
+    survey_fn = survey_fn,
+    survey_lat = survey_lat,
+    survey_lon = survey_lon,
+    extract_fun = extract_fun,
+    buffer_size = buffer_size,
+    survey_crs = survey_crs,
+    name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)
+}
 
 
