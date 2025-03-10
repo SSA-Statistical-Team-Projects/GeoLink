@@ -1406,20 +1406,22 @@ geolink_terraclimate <- function(var,
 #'@export
 
 
-geolink_vegindex <- function(start_date,
-                          end_date,
-                          indicator = "NDVI",
-                          shp_dt = NULL,
-                          shp_fn = NULL,
-                          resolution = 5000,
-                          grid_size = 5000,
-                          survey_dt = NULL,
-                          survey_fn = NULL,
-                          survey_lat = NULL,
-                          survey_lon = NULL,
-                          buffer_size = NULL,
-                          extract_fun = "mean",
-                          survey_crs = 4326){
+geolink_vegindex <- function(
+  start_date,
+  end_date,
+  indicator = "NDVI",
+  shp_dt = NULL,
+  shp_fn = NULL,
+  resolution = 5000,
+  grid_size = 5000,
+  survey_dt = NULL,
+  survey_fn = NULL,
+  survey_lat = NULL,
+  survey_lon = NULL,
+  buffer_size = NULL,
+  extract_fun = "mean",
+  survey_crs = 4326
+  ){
 
   if (indicator != "NDVI" & indicator != "EVI"){
     stop("Indicator must be either 'NDVI' or 'EVI'")
@@ -1557,7 +1559,6 @@ geolink_vegindex <- function(start_date,
 
   return(dt)
   }
-
 
 
 
