@@ -1489,7 +1489,20 @@ geolink_vegindex <- function(
     })
 
   date_list <- data.table::data.table(do.call(rbind, date_list))
-  date_list <- date_list[, .SD[1], by = .(year, month)]
+  # just keep what we want
+  it_obj$features <- it_obj$features[date_list[,as.Date(paste0(year, "-", month, "-", day))]<end_date]
+  date_list <- date_list[date_list[,as.Date(paste0(year, "-", month, "-", day))]<end_date]
+  date_list$date <- as.Date(paste0(date_list$year, "-", date_list$month, "-", date_list$day))
+  date_list$date <- format(date_list$date, "%Y-%m")
+  # create indicator for FIRST day uin each month
+  date_list <- date_list[, id := seq_len(.N), by = .(year, month)]
+  date_list <- date_list[, id := (day==min(day)), by = .(year, month)]
+  it_obj$features <- it_obj$features[date_list$id==1]
+  date_list <- date_list[date_list$id==1]  # Keep only entries with id == 1
+
+  
+  # it_obj$features <- it_obj$features[date_list$id==1]
+  # date_list <- date_list[date_list$id==1]  # Keep only entries with id == 1
 
   features_todl <- lapply(1:nrow(date_list),
     function(x){
@@ -1507,38 +1520,39 @@ geolink_vegindex <- function(
     })
 
 
-
   url_list <- lapply(1:length(features_todl),
     function(x){
       url <- c()
       for (i in features_todl[x][[1]]){
         url <- c(url, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
       }
-
-
       return(url)
-
     })
 
-  print("NDVI/EVI raster download started. This may take some time.")
+  print("NDVI/EVI raster download started. This may take some time, especially for large areas.")
 
+  # get list of months and yaers
+  unique_months <- unique(date_list$date)
+  
   raster_objs <- c()
-  num <- 1
-  for (x in url_list){
-    rall <- terra::rast(unlist(x)[[1]])
-    for (i in 2:length(unlist(x))){
-      r <- terra::rast(unlist(x)[[i]])
-      rall <- terra::mosaic(r, rall, fun = "max")
+  for (i in 1:length(unique_months)){
+    dls <- url_list[date_list[,date==unique_months[i]]]
+    for (j in 1:length(unlist(dls))){
+      if (j==1){
+        rall <- terra::rast(unlist(dls)[[1]])
+      } else{
+        r <- terra::rast(unlist(dls)[[j]])
+        rall <- terra::mosaic(r, rall, fun = "max")
+      }
     }
-    raster::crs(rall) <- "EPSG:3857"
-    rall <- terra::project(rall, crs(sf_obj))
     rall <- rall/100000000
     raster_objs <- c(raster_objs, rall)
-    print(paste0("Month ", num, " of ", length(url_list), " completed."))
-    num <- num + 1
+    print(paste0("Month ", i, " of ", length(unique_months), " completed."))
   }
-
-  name_set <- paste0("ndvi_", "y", date_list$year, "_m", date_list$month)
+  # make sure they are 4326 (lon/lat)
+  raster_objs <- lapply(raster_objs, function(x) terra::project(x, "EPSG:4326"))
+  unique_months <- as.Date(paste0(unique_months, "-01"))
+  name_set <- paste0("ndvi_", "y", format(unique_months, "%Y"), "_m", format(unique_months, "%m"))
 
   print("NDVI Raster Downloaded")
 
@@ -1559,6 +1573,8 @@ geolink_vegindex <- function(
 
   return(dt)
 }
+
+
 
 
 
