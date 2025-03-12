@@ -1561,8 +1561,10 @@ geolink_get_poi <- function(osm_key,
                             survey_lon = NULL,
                             buffer_size = NULL,
                             survey_crs = NULL,
-                            grid_size = NULL) {
+                            grid_size = NULL,
+                            extract_fun = "mean") {
 
+  resolution = 1000
   max_retries = 3
   timeout = 300
   area_threshold = 1
@@ -1582,7 +1584,6 @@ geolink_get_poi <- function(osm_key,
   if (!is.null(survey_dt)) {
     survey_dt <- ensure_crs_4326(survey_dt)
   }
-
 
   # Handle survey file input and projection
   if (!is.null(survey_fn)) {
@@ -1632,6 +1633,9 @@ geolink_get_poi <- function(osm_key,
     stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
   }
 
+  # Keep original sf object
+  original_sf_obj <- sf_obj
+
   # Validate input data
   if (nrow(sf_obj) == 0) {
     stop("Input data is empty after filtering")
@@ -1650,6 +1654,7 @@ geolink_get_poi <- function(osm_key,
   bbox_area <- (bbox["xmax"] - bbox["xmin"]) * (bbox["ymax"] - bbox["ymin"])
 
   # Process based on area size
+  message("Fetching POI data...")
   if (bbox_area > area_threshold) {
     message("Large area detected. Splitting into quadrants...")
 
@@ -1692,35 +1697,107 @@ geolink_get_poi <- function(osm_key,
     })
 
     # Combine results
-    results <- do.call(rbind, results_list)
+    poi_data <- do.call(rbind, results_list)
+
+    # Remove any quadrant identifier columns
+    quadrant_cols <- grep("^q[1-4]\\.", names(poi_data), value = TRUE)
+    if (length(quadrant_cols) > 0) {
+      poi_data <- poi_data[, !names(poi_data) %in% quadrant_cols]
+    }
 
   } else {
     message("Processing area as single unit...")
     features <- get_osm_data(bbox, osm_key, osm_value, max_retries, timeout)
-    results <- features$osm_points %>%
+
+    if (is.null(features) || is.null(features$osm_points) || nrow(features$osm_points) == 0) {
+      message("No POI data found in the specified area")
+      return(NULL)
+    }
+
+    poi_data <- features$osm_points %>%
       filter(if_any(-c(osm_id, geometry), ~ !is.na(.x)))
   }
 
   # Check if results exist
-  if (is.null(results)) {
+  if (is.null(poi_data) || nrow(poi_data) == 0) {
+    message("No points of interest found in the specified area")
     return(NULL)
   }
 
-  # Join results with input geometries
-  query_dt <- st_join(results, sf_obj, left = FALSE)
+  message(sprintf("Found %d points of interest", nrow(poi_data)))
+
+  # Store the original POI data
+  original_poi_data <- poi_data
+
+  # Process with point_sf_to_raster and postdownload_processor
+  message("Converting POI points to raster...")
+
+  # Add poi_count column for rasterization
+  poi_data$poi_count <- 1
+
+  # Convert POI points to raster
+  tryCatch({
+    poi_raster <- point_sf_to_raster(
+      point_sf = poi_data,
+      crs = "EPSG:4326",
+      resolution = resolution,
+      agg_fun = sum
+    )
+
+    # Create raster objects list for postdownload_processor
+    name_set <- "poi_density"
+    raster_objs <- list(poi_raster)
+    names(raster_objs) <- name_set
+
+    # Process with postdownload_processor
+    message("Processing with postdownload_processor...")
+    processed_result <- postdownload_processor(
+      raster_objs = raster_objs,
+      survey_dt = NULL,
+      survey_fn = NULL,
+      survey_lat = NULL,
+      survey_lon = NULL,
+      extract_fun = extract_fun,
+      buffer_size = buffer_size,
+      survey_crs = ifelse(is.null(survey_crs), 4326, survey_crs),
+      name_set = name_set,
+      shp_dt = original_sf_obj,
+      shp_fn = NULL,
+      grid_size = grid_size
+    )
+
+    message("Raster processing complete.")
+  }, error = function(e) {
+    warning(paste("Error in raster processing:", e$message))
+    processed_result <- NULL
+  })
+
+  # Join original POI data with input geometries regardless of raster processing
+  query_dt <- st_join(original_poi_data, sf_obj, left = FALSE)
 
   # Check results
   if (nrow(query_dt) == 0) {
     message("No points of interest found in the specified area")
+    return(NULL)
   } else {
-    message(sprintf("Found %d points of interest", nrow(query_dt)))
+    message(sprintf("Retained %d points of interest after spatial join", nrow(query_dt)))
   }
 
-  message("OpenStreetMap data download complete!")
+  # Clean up column names
+  cols_to_remove <- c("quadrant", "id", "poi_count")
+  for (col in cols_to_remove) {
+    if (col %in% names(query_dt)) {
+      query_dt[[col]] <- NULL
+    }
+  }
 
+  # Final cleanup of any quadrant-related columns
+  cols_to_keep <- names(query_dt)[!grepl("^q[1-4]\\.", names(query_dt))]
+  query_dt <- query_dt[, cols_to_keep]
+
+  message("OpenStreetMap data download complete!")
   return(query_dt)
 }
-
 
 #' Download high resolution electrification access data from HREA
 #'
