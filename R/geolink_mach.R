@@ -2011,7 +2011,6 @@ geolink_electaccess <- function(
 #' }
 #'
 
-
 geolink_opencellid <- function(cell_tower_file,
                                shp_dt = NULL,
                                shp_fn = NULL,
@@ -2020,7 +2019,12 @@ geolink_opencellid <- function(cell_tower_file,
                                survey_lat = NULL,
                                survey_lon = NULL,
                                buffer_size = NULL,
-                               survey_crs = 4326) {
+                               survey_crs = 4326,
+                               extract_fun = "mean",
+                               grid_size = 1000) {
+
+  resolution = 1000
+  name_set = "cell_towers"
 
   # Create memoised version of the function
   read_opencellid_data_cached <- memoise::memoise(read_opencellid_data)
@@ -2085,6 +2089,9 @@ geolink_opencellid <- function(cell_tower_file,
     stop("Please provide either shapefile data or survey data with coordinate columns")
   }
 
+  # Keep a copy of original geometry without any transformation
+  original_sf_obj <- sf_obj
+
   # Handle buffering if needed
   if (!is.null(buffer_size)) {
     sf_obj <- st_transform(sf_obj, 3857) %>%
@@ -2098,8 +2105,9 @@ geolink_opencellid <- function(cell_tower_file,
   }
 
   # Load cell tower data efficiently
+  message("Reading cell tower data...")
   cell_towers <- read_opencellid_data_cached(cell_tower_file)
-  sprintf("Read %d cell towers", nrow(cell_towers))
+  message(sprintf("Read %d cell towers", nrow(cell_towers)))
 
   # Convert cell towers to sf object efficiently
   cell_towers_sf <- st_as_sf(cell_towers,
@@ -2120,13 +2128,66 @@ geolink_opencellid <- function(cell_tower_file,
     sparse = FALSE
   )[,1], ]
 
-  # Count towers per geometry using filtered dataset
-  num_towers <- lengths(st_intersects(sf_obj, cell_towers_filtered, sparse = TRUE))
+  if (nrow(cell_towers_filtered) == 0) {
+    warning("No cell towers found in the area enclosed by the bounding box.")
+    # Directly count towers (will all be zero)
+    num_towers <- rep(0, nrow(original_sf_obj))
+  } else {
+    message(sprintf("Found %d cell towers within bounding box", nrow(cell_towers_filtered)))
+
+    # Try using the raster-based approach
+    tryCatch({
+      # Add count column to cell_towers_filtered
+      cell_towers_filtered$tower_count <- 1
+
+      # Convert cell tower points to raster
+      cell_towers_raster <- point_sf_to_raster(
+        point_sf = cell_towers_filtered,
+        resolution = resolution,
+        agg_fun = sum
+      )
+
+      # Create a list of rasters to pass to postdownload_processor
+      raster_objs <- list(cell_towers_raster)
+      names(raster_objs) <- name_set
+
+      # Process rasters using postdownload_processor
+      result <- postdownload_processor(
+        raster_objs = raster_objs,
+        survey_dt = NULL,  # Don't pass survey_dt to avoid confusion
+        survey_fn = NULL,
+        survey_lat = NULL,
+        survey_lon = NULL,
+        extract_fun = extract_fun,
+        buffer_size = buffer_size,
+        survey_crs = survey_crs,
+        name_set = name_set,
+        shp_dt = original_sf_obj,  # Use the original sf object
+        shp_fn = NULL,
+        grid_size = grid_size
+      )
+
+      if (!is.null(result) && !is.data.frame(result)) {
+        result <- NULL
+      }
+
+      if (!is.null(result) && name_set %in% colnames(result)) {
+        # Extract the results and return
+        original_data[[name_set]] <- result[[name_set]]
+        return(original_data)
+      } else {
+        warning("Failed to extract raster values")
+      }
+    }, error = function(e) {
+      warning(paste("Error in raster processing:", e$message))
+    })
+
+    # If we're here, we need to fall back to direct counting
+    num_towers <- lengths(st_intersects(original_sf_obj, cell_towers_filtered, sparse = TRUE))
+  }
 
   # Add tower counts to original data
-  original_data[, num_towers := num_towers]
+  original_data[[name_set]] <- num_towers
 
   return(original_data)
 }
-
-
