@@ -99,7 +99,7 @@ ggplot(rainfall_map) +
     )
 ```
 
-![Rainfall Map Example](assets/images/rainfall_map.png)
+![](assets/images/rainfall_map.png)
 
 ### 2. Night Time Lights Analysis
 
@@ -136,7 +136,7 @@ ggplot(ntl_map) +
     )
 ```
 
-![Night Time Lights Map](assets/images/ntl_map.png)
+![](assets/images/ntl_map.png)
 
 ### 3. Interactive Population Density
 
@@ -177,7 +177,7 @@ leaflet(pop_data) %>%
     )
 ```
 
-![Population Density Map](assets/images/population_map.html)
+![](assets/images/population_map.png)
 
 ### 4. Elevation Profile with Cropland Overlay
 
@@ -214,7 +214,7 @@ ggplot(elevation_data) +
   )
 ```
 
-![Elevation and Cropland Map](assets/images/elevation_cropland_map.png)
+![](assets/images/elevation_cropland_map.png)
 
 ## 📝 Basic Usage Examples
 
