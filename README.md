@@ -75,7 +75,7 @@ rainfall_map <- geolink_chirps(
     time_unit = "month",
     start_date = "2020-01-01",
     end_date = "2020-01-31",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Abia",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
     grid_size = 1000
 )
 
@@ -111,7 +111,7 @@ ntl_map <- geolink_ntl(
     time_unit = "annual",
     start_date = "2020-01-01",
     end_date = "2020-12-31",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Lagos",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",],
     indicator = "average_masked",
     grid_size = 1000
 )
@@ -153,7 +153,7 @@ pop_data <- geolink_population(
     start_year = 2020,
     end_year = 2020,
     iso_code = "NGA",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Kano",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Kano",],
     grid_size = 1000
 )
 
@@ -191,12 +191,12 @@ alt="Population Density Map" />
 # Combine elevation and cropland data
 elevation_data <- geolink_elevation(
     iso_code = "NGA",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Plateau",],
     grid_size = 1000
 )
 
 cropland_data <- geolink_cropland(
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Plateau",],
     grid_size = 1000
 )
 
