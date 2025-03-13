@@ -1,28 +1,3 @@
-GeoLink: Easy Access to Geospatial Datasets
-================
-
-- [GeoLink 🌍](#geolink-)
-  - [📋 Table of Contents](#-table-of-contents)
-  - [✨ Features](#-features)
-  - [🚀 Installation](#-installation)
-  - [📊 Usage](#-usage)
-  - [🗺️ Data Visualization Examples](#️-data-visualization-examples)
-    - [1. Rainfall Visualization](#1-rainfall-visualization)
-    - [2. Night Time Lights Analysis](#2-night-time-lights-analysis)
-    - [3. Interactive Population
-      Density](#3-interactive-population-density)
-    - [4. Elevation Profile with Cropland
-      Overlay](#4-elevation-profile-with-cropland-overlay)
-  - [📝 Basic Usage Examples](#-basic-usage-examples)
-    - [Rainfall Data (CHIRPS)](#rainfall-data-chirps)
-    - [Night Time Lights](#night-time-lights)
-    - [Population Data](#population-data)
-  - [📚 Documentation](#-documentation)
-    - [Memory Considerations](#memory-considerations)
-    - [Error Handling](#error-handling)
-  - [🤝 Contributing](#-contributing)
-  - [📄 License](#-license)
-  - [📫 Contact](#-contact)
 
 # GeoLink 🌍
 
@@ -33,6 +8,7 @@ GeoLink: Easy Access to Geospatial Datasets
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub
 issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geolink)](https://github.com/SSA-Statistical-Team-Projects/geolink/issues)
+
 <!-- badges: end -->
 
 GeoLink is an R package that provides easy access to various geospatial
@@ -114,7 +90,10 @@ ggplot(rainfall_map) +
     )
 ```
 
-<img src="man/figures/rainfall-example-1.png" width="100%" />
+<figure>
+<img src="assets/images/rainfall_map.png" alt="Rainfall Map Example" />
+<figcaption aria-hidden="true">Rainfall Map Example</figcaption>
+</figure>
 
 ### 2. Night Time Lights Analysis
 
@@ -151,7 +130,10 @@ ggplot(ntl_map) +
     )
 ```
 
-<img src="man/figures/ntl-example-1.png" width="100%" />
+<figure>
+<img src="assets/images/ntl_map.png" alt="Night Time Lights Map" />
+<figcaption aria-hidden="true">Night Time Lights Map</figcaption>
+</figure>
 
 ### 3. Interactive Population Density
 
@@ -160,36 +142,42 @@ library(leaflet)
 
 # Get population data
 pop_data <- geolink_population(
-    start_year = 2020,
-    end_year = 2020,
-    iso_code = "NGA",
-    shp_dt = shp_dt[shp_dt$ADM1_EN == "Kano",],
-    grid_size = 1000
+  start_year = 2018,
+  end_year = 2018,
+  iso_code = "NGA",
+  constrained = 'N',
+  UN_adjst = 'N',
+  shp_dt = shp_dt[shp_dt$ADM1_EN == "Kano",],
+  grid_size = 1000,
+  extract_fun = "mean"
 )
 
 # Create interactive population map
 leaflet(pop_data) %>%
     addProviderTiles(providers$CartoDB.DarkMatter) %>%
     addPolygons(
-        fillColor = ~colorQuantile("YlOrRd", population_2020)(population_2020),
+        fillColor = ~colorQuantile("YlOrRd", population_2018)(population_2018),
         fillOpacity = 0.7,
         weight = 1,
         color = "#666",
         popup = ~paste(
             "<strong>Area:</strong>", 
-            "<br>Population:", round(population_2020),
-            "<br>Density:", round(population_2020/st_area(geometry))
+            "<br>Population:", round(population_2018),
+            "<br>Density:", round(population_2018/st_area(geometry))
         )
     ) %>%
     addLegend(
         "bottomright",
         title = "Population Density",
-        pal = colorQuantile("YlOrRd", pop_data$population_2020),
-        values = ~population_2020
+        pal = colorQuantile("YlOrRd", pop_data$population_2018),
+        values = ~population_2018
     )
 ```
 
-<img src="man/figures/population-example-1.png" width="100%" />
+<figure>
+<embed src="assets/images/population_map.html" />
+<figcaption aria-hidden="true">Population Density Map</figcaption>
+</figure>
 
 ### 4. Elevation Profile with Cropland Overlay
 
@@ -206,26 +194,31 @@ cropland_data <- geolink_cropland(
     grid_size = 1000
 )
 
+
 # Create combined visualization
 ggplot(elevation_data) +
-    geom_sf(aes(fill = elevation)) +
-    geom_sf(data = cropland_data, aes(alpha = cropland), fill = "darkgreen") +
-    scale_fill_gradient2(
-        low = "darkgreen",
-        mid = "yellowgreen",
-        high = "brown",
-        midpoint = median(elevation_data$elevation),
-        name = "Elevation (m)"
-    ) +
-    scale_alpha_continuous(name = "Cropland Density") +
-    theme_minimal() +
-    labs(
-        title = "Elevation Profile with Cropland Overlay",
-        subtitle = "Plateau State, Nigeria"
-    )
+  geom_sf(aes(fill = NGA_elv_msk)) +
+  geom_sf(data = cropland_data, aes(alpha = cropland), fill = "darkgreen") +
+  scale_fill_gradient2(
+    low = "darkgreen",
+    mid = "yellowgreen",
+    high = "brown",
+    midpoint = median(elevation_data$NGA_elv_msk),
+    name = "Elevation (m)"
+  ) +
+  scale_alpha_continuous(name = "Cropland Density") +
+  theme_minimal() +
+  labs(
+    title = "Elevation Profile with Cropland Overlay",
+    subtitle = "Plateau State, Nigeria"
+  )
 ```
 
-<img src="man/figures/elevation-example-1.png" width="100%" />
+<figure>
+<img src="assets/images/elevation_cropland_map.png"
+alt="Elevation and Cropland Map" />
+<figcaption aria-hidden="true">Elevation and Cropland Map</figcaption>
+</figure>
 
 ## 📝 Basic Usage Examples
 
