@@ -1,28 +1,3 @@
-GeoLink: Easy Access to Geospatial Datasets
-================
-
-- [GeoLink 🌍](#geolink-)
-  - [📋 Table of Contents](#-table-of-contents)
-  - [✨ Features](#-features)
-  - [🚀 Installation](#-installation)
-  - [📊 Usage](#-usage)
-  - [🗺️ Data Visualization Examples](#️-data-visualization-examples)
-    - [1. Rainfall Visualization](#1-rainfall-visualization)
-    - [2. Night Time Lights Analysis](#2-night-time-lights-analysis)
-    - [3. Interactive Population
-      Density](#3-interactive-population-density)
-    - [4. Elevation Profile with Cropland
-      Overlay](#4-elevation-profile-with-cropland-overlay)
-  - [📝 Basic Usage Examples](#-basic-usage-examples)
-    - [Rainfall Data (CHIRPS)](#rainfall-data-chirps)
-    - [Night Time Lights](#night-time-lights)
-    - [Population Data](#population-data)
-  - [📚 Documentation](#-documentation)
-    - [Memory Considerations](#memory-considerations)
-    - [Error Handling](#error-handling)
-  - [🤝 Contributing](#-contributing)
-  - [📄 License](#-license)
-  - [📫 Contact](#-contact)
 
 # GeoLink 🌍
 
