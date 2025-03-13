@@ -1,8 +1,12 @@
 # GeoLink 🌍
 
-[![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)]()
+
+<!-- badges: start -->
+
+[![R-CMD-check](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub issues](https://img.shields.io/github/issues/your-username/geolink)]()
+[![GitHub issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geolink)]()
 
 GeoLink is an R package that provides easy access to various geospatial datasets, allowing seamless integration with your spatial data or household surveys.
 
@@ -43,7 +47,7 @@ install.packages("devtools")
 install.packages(c("ggplot2", "sf", "leaflet", "viridis"))
 
 # Install GeoLink
-devtools::install_github("your-username/GeoLink")
+devtools::install_github("SSA-Statistical-Team-Projects/GeoLink")
 
 # Load the package
 library(GeoLink)
@@ -282,4 +286,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 Project Link: [https://github.com/SSA-Statistical-Team-Projects/GeoLink](https://github.com/SSA-Statistical-Team-Projects/GeoLink)
 
 ---
-Made with ❤️ by [DECCS]
+Made with ❤️ by [The World Bank Group & The University of Southampton]
