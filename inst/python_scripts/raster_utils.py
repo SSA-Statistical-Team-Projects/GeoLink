@@ -527,3 +527,92 @@ def mosaic_rasters(input_files, output_path=None, chunk_size=1000, target_resolu
                 os.rmdir(str(temp_dir))
         except Exception as cleanup_error:
             print(f"Could not remove temp directory {temp_dir}: {cleanup_error}")
+            
+def crop_raster_with_shapefile(raster_path, shapefile_path, output_path=None, all_touched=False):
+    """
+    Crop a raster using a shapefile boundary.
+    
+    :param raster_path: Path to the input raster file
+    :param shapefile_path: Path to the shapefile used for cropping
+    :param output_path: Path for the output cropped raster (if None, uses input name with _cropped suffix)
+    :param all_touched: If True, all pixels touched by geometry features are included; if False, only pixels with centers within the geometry
+    :return: Path to the cropped raster file
+    """
+    import rasterio
+    import rasterio.mask
+    import geopandas as gpd
+    from pathlib import Path
+    
+    try:
+        # Validate input paths
+        raster_path = Path(raster_path).resolve()
+        shapefile_path = Path(shapefile_path).resolve()
+        
+        if not raster_path.exists():
+            raise FileNotFoundError(f"Input raster not found: {raster_path}")
+        
+        if not shapefile_path.exists():
+            raise FileNotFoundError(f"Input shapefile not found: {shapefile_path}")
+        
+        # Set output path if not provided
+        if output_path is None:
+            output_path = raster_path.parent / f"{raster_path.stem}_cropped{raster_path.suffix}"
+        else:
+            output_path = Path(output_path).resolve()
+        
+        # Create output directory if it doesn't exist
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Read the shapefile
+        print(f"Reading shapefile: {shapefile_path}")
+        gdf = gpd.read_file(str(shapefile_path))
+        
+        # Check if CRS is defined and reproject if needed
+        if gdf.crs is None:
+            print("Warning: Shapefile has no CRS defined. Assuming EPSG:4326")
+        elif gdf.crs != "EPSG:4326":
+            print(f"Reprojecting shapefile from {gdf.crs} to EPSG:4326")
+            gdf = gdf.to_crs("EPSG:4326")
+        
+        # Get geometry features for masking
+        shapes = [feature for feature in gdf.geometry]
+        
+        if not shapes:
+            raise ValueError("No valid geometries found in the shapefile")
+        
+        # Open raster and crop
+        with rasterio.open(str(raster_path)) as src:
+            # Check if raster CRS matches shapefile (should be EPSG:4326 from previous processing)
+            if src.crs != "EPSG:4326":
+                raise ValueError(f"Raster CRS ({src.crs}) does not match EPSG:4326. Please ensure the raster is in EPSG:4326.")
+            
+            # Perform the mask/crop operation
+            print(f"Cropping raster with shapefile (all_touched={all_touched})")
+            out_image, out_transform = rasterio.mask.mask(
+                src,
+                shapes,
+                crop=True,
+                all_touched=all_touched,
+                nodata=src.nodata
+            )
+            
+            # Copy metadata
+            out_meta = src.meta.copy()
+            out_meta.update({
+                "driver": "GTiff",
+                "height": out_image.shape[1],
+                "width": out_image.shape[2],
+                "transform": out_transform
+            })
+            
+            # Write cropped raster
+            with rasterio.open(str(output_path), "w", **out_meta) as dest:
+                dest.write(out_image)
+            
+            print(f"Successfully cropped raster to: {output_path}")
+            return str(output_path)
+            
+    except Exception as e:
+        print(f"Error cropping raster with shapefile: {e}")
+        raise
+

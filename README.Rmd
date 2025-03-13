@@ -1,12 +1,3 @@
----
-title: "GeoLink: Easy Access to Geospatial Datasets"
-output: 
-  github_document:
-    toc: true
-    toc_depth: 3
-    fig_width: 8
-    fig_height: 6
----
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
@@ -84,7 +75,7 @@ rainfall_map <- geolink_chirps(
     time_unit = "month",
     start_date = "2020-01-01",
     end_date = "2020-01-31",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Abia",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
     grid_size = 1000
 )
 
@@ -107,7 +98,7 @@ ggplot(rainfall_map) +
     )
 ```
 
-![Rainfall Map Example](/assets/images/rainfall_map.png)
+![Rainfall Map Example](assets/images/rainfall_map.png)
 
 ### 2. Night Time Lights Analysis
 ```{r}
@@ -116,7 +107,7 @@ ntl_map <- geolink_ntl(
     time_unit = "annual",
     start_date = "2020-01-01",
     end_date = "2020-12-31",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Lagos",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",],
     indicator = "average_masked",
     grid_size = 1000
 )
@@ -143,7 +134,7 @@ ggplot(ntl_map) +
     )
 ```
 
-![Night Time Lights Map](/assets/images/ntl_map.png)
+![Night Time Lights Map](assets/images/ntl_map.png)
 
 ### 3. Interactive Population Density
 ```{r}
@@ -151,71 +142,75 @@ library(leaflet)
 
 # Get population data
 pop_data <- geolink_population(
-    start_year = 2020,
-    end_year = 2020,
-    iso_code = "NGA",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Kano",],
-    grid_size = 1000
+  start_year = 2018,
+  end_year = 2018,
+  iso_code = "NGA",
+  constrained = 'N',
+  UN_adjst = 'N',
+  shp_dt = shp_dt[shp_dt$ADM1_EN == "Kano",],
+  grid_size = 1000,
+  extract_fun = "mean"
 )
 
 # Create interactive population map
 leaflet(pop_data) %>%
     addProviderTiles(providers$CartoDB.DarkMatter) %>%
     addPolygons(
-        fillColor = ~colorQuantile("YlOrRd", population_2020)(population_2020),
+        fillColor = ~colorQuantile("YlOrRd", population_2018)(population_2018),
         fillOpacity = 0.7,
         weight = 1,
         color = "#666",
         popup = ~paste(
             "<strong>Area:</strong>", 
-            "<br>Population:", round(population_2020),
-            "<br>Density:", round(population_2020/st_area(geometry))
+            "<br>Population:", round(population_2018),
+            "<br>Density:", round(population_2018/st_area(geometry))
         )
     ) %>%
     addLegend(
         "bottomright",
         title = "Population Density",
-        pal = colorQuantile("YlOrRd", pop_data$population_2020),
-        values = ~population_2020
+        pal = colorQuantile("YlOrRd", pop_data$population_2018),
+        values = ~population_2018
     )
 ```
 
-![Population Density Map](/assets/images/population_map.png)
+![Population Density Map](assets/images/population_map.html)
 
 ### 4. Elevation Profile with Cropland Overlay
 ```{r}
 # Combine elevation and cropland data
 elevation_data <- geolink_elevation(
     iso_code = "NGA",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Plateau",],
     grid_size = 1000
 )
 
 cropland_data <- geolink_cropland(
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Plateau",],
     grid_size = 1000
 )
 
+
 # Create combined visualization
 ggplot(elevation_data) +
-    geom_sf(aes(fill = elevation)) +
-    geom_sf(data = cropland_data, aes(alpha = cropland), fill = "darkgreen") +
-    scale_fill_gradient2(
-        low = "darkgreen",
-        mid = "yellowgreen",
-        high = "brown",
-        midpoint = median(elevation_data$elevation),
-        name = "Elevation (m)"
-    ) +
-    scale_alpha_continuous(name = "Cropland Density") +
-    theme_minimal() +
-    labs(
-        title = "Elevation Profile with Cropland Overlay",
-        subtitle = "Plateau State, Nigeria"
-    )
+  geom_sf(aes(fill = NGA_elv_msk)) +
+  geom_sf(data = cropland_data, aes(alpha = cropland), fill = "darkgreen") +
+  scale_fill_gradient2(
+    low = "darkgreen",
+    mid = "yellowgreen",
+    high = "brown",
+    midpoint = median(elevation_data$NGA_elv_msk),
+    name = "Elevation (m)"
+  ) +
+  scale_alpha_continuous(name = "Cropland Density") +
+  theme_minimal() +
+  labs(
+    title = "Elevation Profile with Cropland Overlay",
+    subtitle = "Plateau State, Nigeria"
+  )
 ```
 
-![Elevation and Cropland Map](/assets/images/elevation_cropland_map.png)
+![Elevation and Cropland Map](assets/images/elevation_cropland_map.png)
 
 ## 📝 Basic Usage Examples
 

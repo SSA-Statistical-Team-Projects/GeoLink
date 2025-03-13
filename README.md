@@ -1,3 +1,28 @@
+GeoLink: Easy Access to Geospatial Datasets
+================
+
+- [GeoLink 🌍](#geolink-)
+  - [📋 Table of Contents](#-table-of-contents)
+  - [✨ Features](#-features)
+  - [🚀 Installation](#-installation)
+  - [📊 Usage](#-usage)
+  - [🗺️ Data Visualization Examples](#️-data-visualization-examples)
+    - [1. Rainfall Visualization](#1-rainfall-visualization)
+    - [2. Night Time Lights Analysis](#2-night-time-lights-analysis)
+    - [3. Interactive Population
+      Density](#3-interactive-population-density)
+    - [4. Elevation Profile with Cropland
+      Overlay](#4-elevation-profile-with-cropland-overlay)
+  - [📝 Basic Usage Examples](#-basic-usage-examples)
+    - [Rainfall Data (CHIRPS)](#rainfall-data-chirps)
+    - [Night Time Lights](#night-time-lights)
+    - [Population Data](#population-data)
+  - [📚 Documentation](#-documentation)
+    - [Memory Considerations](#memory-considerations)
+    - [Error Handling](#error-handling)
+  - [🤝 Contributing](#-contributing)
+  - [📄 License](#-license)
+  - [📫 Contact](#-contact)
 
 # GeoLink 🌍
 
@@ -11,7 +36,8 @@ issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geoli
 <!-- badges: end -->
 
 GeoLink is an R package that provides easy access to various geospatial
-datasets, allowing seamless integration with your spatial data or surveys.
+datasets, allowing seamless integration with your spatial data or
+household surveys.
 
 ## 📋 Table of Contents
 
@@ -26,22 +52,12 @@ datasets, allowing seamless integration with your spatial data or surveys.
 
 ## ✨ Features
 
-Download and process: 
-- CHIRPS rainfall data
-- Night Time Light (NTL) data
-- Population data (WorldPop)
-- Elevation data
-- Building data (WorldPop)
-- CMIP6 climate model data
-- Cropland data
-- WorldClim climate data
-- Terraclimate data
-- Land Use Land Cover data
-- Points of Interest (OpenStreetMap)
-- Electrification access data (HREA)
-- OpenCellID data
-- Pollution
-- Vegetation Index
+Download and process: - CHIRPS rainfall data - Night Time Light (NTL)
+data - Population data (WorldPop) - Elevation data - Building data
+(WorldPop) - CMIP6 climate model data - Cropland data - WorldClim
+climate data - Terraclimate data - Land Use Land Cover data - Points of
+Interest (OpenStreetMap) - Electrification access data (HREA) -
+OpenCellID data - Pollution - Vegetation Index
 
 ## 🚀 Installation
 
@@ -98,10 +114,7 @@ ggplot(rainfall_map) +
     )
 ```
 
-<figure>
-<img src="/assets/images/rainfall_map.png" alt="Rainfall Map Example" />
-<figcaption aria-hidden="true">Rainfall Map Example</figcaption>
-</figure>
+<img src="man/figures/rainfall-example-1.png" width="100%" />
 
 ### 2. Night Time Lights Analysis
 
@@ -138,10 +151,7 @@ ggplot(ntl_map) +
     )
 ```
 
-<figure>
-<img src="/assets/images/ntl_map.png" alt="Night Time Lights Map" />
-<figcaption aria-hidden="true">Night Time Lights Map</figcaption>
-</figure>
+<img src="man/figures/ntl-example-1.png" width="100%" />
 
 ### 3. Interactive Population Density
 
@@ -179,11 +189,7 @@ leaflet(pop_data) %>%
     )
 ```
 
-<figure>
-<img src="/assets/images/population_map.png"
-alt="Population Density Map" />
-<figcaption aria-hidden="true">Population Density Map</figcaption>
-</figure>
+<img src="man/figures/population-example-1.png" width="100%" />
 
 ### 4. Elevation Profile with Cropland Overlay
 
@@ -219,11 +225,7 @@ ggplot(elevation_data) +
     )
 ```
 
-<figure>
-<img src="/assets/images/elevation_cropland_map.png"
-alt="Elevation and Cropland Map" />
-<figcaption aria-hidden="true">Elevation and Cropland Map</figcaption>
-</figure>
+<img src="man/figures/elevation-example-1.png" width="100%" />
 
 ## 📝 Basic Usage Examples
 
