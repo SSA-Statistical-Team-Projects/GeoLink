@@ -27,12 +27,22 @@ household surveys.
 
 ## ✨ Features
 
-Download and process: - CHIRPS rainfall data - Night Time Light (NTL)
-data - Population data (WorldPop) - Elevation data - Building data
-(WorldPop) - CMIP6 climate model data - Cropland data - WorldClim
-climate data - Terraclimate data - Land Use Land Cover data - Points of
-Interest (OpenStreetMap) - Electrification access data (HREA) -
-OpenCellID data - Pollution - Vegetation Index
+Download and process: 
+- CHIRPS rainfall data
+- Night Time Light (NTL) data
+- Population data (WorldPop)
+- Elevation data
+- Building data (WorldPop)
+- CMIP6 climate model data
+- Cropland data
+- WorldClim climate data
+- Terraclimate data
+- Land Use Land Cover data
+- Points of Interest (OpenStreetMap)
+- Electrification access data (HREA)
+- OpenCellID data
+- Pollution
+- Vegetation Index
 
 ## 🚀 Installation
 
