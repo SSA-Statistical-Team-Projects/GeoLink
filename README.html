@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style type="text/css">
+@font-face {
+font-family: octicons-link;
+src: url(data:font/woff;charset=utf-8;base64,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) format('woff');
+}
+body {
+-webkit-text-size-adjust: 100%;
+text-size-adjust: 100%;
+color: #333;
+font-family: "Helvetica Neue", Helvetica, "Segoe UI", Arial, freesans, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+font-size: 16px;
+line-height: 1.6;
+word-wrap: break-word;
+}
+a {
+background-color: transparent;
+}
+a:active,
+a:hover {
+outline: 0;
+}
+strong {
+font-weight: bold;
+}
+h1 {
+font-size: 2em;
+margin: 0.67em 0;
+}
+img {
+border: 0;
+}
+hr {
+box-sizing: content-box;
+height: 0;
+}
+pre {
+overflow: auto;
+}
+code,
+kbd,
+pre {
+font-family: monospace, monospace;
+font-size: 1em;
+}
+input {
+color: inherit;
+font: inherit;
+margin: 0;
+}
+html input[disabled] {
+cursor: default;
+}
+input {
+line-height: normal;
+}
+input[type="checkbox"] {
+box-sizing: border-box;
+padding: 0;
+}
+table {
+border-collapse: collapse;
+border-spacing: 0;
+}
+td,
+th {
+padding: 0;
+}
+* {
+box-sizing: border-box;
+}
+input {
+font: 13px / 1.4 Helvetica, arial, nimbussansl, liberationsans, freesans, clean, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+}
+a {
+color: #4078c0;
+text-decoration: none;
+}
+a:hover,
+a:active {
+text-decoration: underline;
+}
+hr {
+height: 0;
+margin: 15px 0;
+overflow: hidden;
+background: transparent;
+border: 0;
+border-bottom: 1px solid #ddd;
+}
+hr:before {
+display: table;
+content: "";
+}
+hr:after {
+display: table;
+clear: both;
+content: "";
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+margin-top: 15px;
+margin-bottom: 15px;
+line-height: 1.1;
+}
+h1 {
+font-size: 30px;
+}
+h2 {
+font-size: 21px;
+}
+h3 {
+font-size: 16px;
+}
+h4 {
+font-size: 14px;
+}
+h5 {
+font-size: 12px;
+}
+h6 {
+font-size: 11px;
+}
+blockquote {
+margin: 0;
+}
+ul,
+ol {
+padding: 0;
+margin-top: 0;
+margin-bottom: 0;
+}
+ol ol,
+ul ol {
+list-style-type: lower-roman;
+}
+ul ul ol,
+ul ol ol,
+ol ul ol,
+ol ol ol {
+list-style-type: lower-alpha;
+}
+dd {
+margin-left: 0;
+}
+code {
+font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
+font-size: 12px;
+}
+pre {
+margin-top: 0;
+margin-bottom: 0;
+font: 12px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+}
+.select::-ms-expand {
+opacity: 0;
+}
+.octicon {
+font: normal normal normal 16px/1 octicons-link;
+display: inline-block;
+text-decoration: none;
+text-rendering: auto;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+user-select: none;
+}
+.octicon-link:before {
+content: '\f05c';
+}
+.markdown-body:before {
+display: table;
+content: "";
+}
+.markdown-body:after {
+display: table;
+clear: both;
+content: "";
+}
+.markdown-body>*:first-child {
+margin-top: 0 !important;
+}
+.markdown-body>*:last-child {
+margin-bottom: 0 !important;
+}
+a:not([href]) {
+color: inherit;
+text-decoration: none;
+}
+.anchor {
+display: inline-block;
+padding-right: 2px;
+margin-left: -18px;
+}
+.anchor:focus {
+outline: none;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+margin-top: 1em;
+margin-bottom: 16px;
+font-weight: bold;
+line-height: 1.4;
+}
+h1 .octicon-link,
+h2 .octicon-link,
+h3 .octicon-link,
+h4 .octicon-link,
+h5 .octicon-link,
+h6 .octicon-link {
+color: #000;
+vertical-align: middle;
+visibility: hidden;
+}
+h1:hover .anchor,
+h2:hover .anchor,
+h3:hover .anchor,
+h4:hover .anchor,
+h5:hover .anchor,
+h6:hover .anchor {
+text-decoration: none;
+}
+h1:hover .anchor .octicon-link,
+h2:hover .anchor .octicon-link,
+h3:hover .anchor .octicon-link,
+h4:hover .anchor .octicon-link,
+h5:hover .anchor .octicon-link,
+h6:hover .anchor .octicon-link {
+visibility: visible;
+}
+h1 {
+padding-bottom: 0.3em;
+font-size: 2.25em;
+line-height: 1.2;
+border-bottom: 1px solid #eee;
+}
+h1 .anchor {
+line-height: 1;
+}
+h2 {
+padding-bottom: 0.3em;
+font-size: 1.75em;
+line-height: 1.225;
+border-bottom: 1px solid #eee;
+}
+h2 .anchor {
+line-height: 1;
+}
+h3 {
+font-size: 1.5em;
+line-height: 1.43;
+}
+h3 .anchor {
+line-height: 1.2;
+}
+h4 {
+font-size: 1.25em;
+}
+h4 .anchor {
+line-height: 1.2;
+}
+h5 {
+font-size: 1em;
+}
+h5 .anchor {
+line-height: 1.1;
+}
+h6 {
+font-size: 1em;
+color: #777;
+}
+h6 .anchor {
+line-height: 1.1;
+}
+p,
+blockquote,
+ul,
+ol,
+dl,
+table,
+pre {
+margin-top: 0;
+margin-bottom: 16px;
+}
+hr {
+height: 4px;
+padding: 0;
+margin: 16px 0;
+background-color: #e7e7e7;
+border: 0 none;
+}
+ul,
+ol {
+padding-left: 2em;
+}
+ul ul,
+ul ol,
+ol ol,
+ol ul {
+margin-top: 0;
+margin-bottom: 0;
+}
+li>p {
+margin-top: 16px;
+}
+dl {
+padding: 0;
+}
+dl dt {
+padding: 0;
+margin-top: 16px;
+font-size: 1em;
+font-style: italic;
+font-weight: bold;
+}
+dl dd {
+padding: 0 16px;
+margin-bottom: 16px;
+}
+blockquote {
+padding: 0 15px;
+color: #777;
+border-left: 4px solid #ddd;
+}
+blockquote>:first-child {
+margin-top: 0;
+}
+blockquote>:last-child {
+margin-bottom: 0;
+}
+table {
+display: block;
+width: 100%;
+overflow: auto;
+word-break: normal;
+word-break: keep-all;
+}
+table th {
+font-weight: bold;
+}
+table th,
+table td {
+padding: 6px 13px;
+border: 1px solid #ddd;
+}
+table tr {
+background-color: #fff;
+border-top: 1px solid #ccc;
+}
+table tr:nth-child(2n) {
+background-color: #f8f8f8;
+}
+img {
+max-width: 100%;
+box-sizing: content-box;
+background-color: #fff;
+}
+code {
+padding: 0;
+padding-top: 0.2em;
+padding-bottom: 0.2em;
+margin: 0;
+font-size: 85%;
+background-color: rgba(0,0,0,0.04);
+border-radius: 3px;
+}
+code:before,
+code:after {
+letter-spacing: -0.2em;
+content: "\00a0";
+}
+pre>code {
+padding: 0;
+margin: 0;
+font-size: 100%;
+word-break: normal;
+white-space: pre;
+background: transparent;
+border: 0;
+}
+.highlight {
+margin-bottom: 16px;
+}
+.highlight pre,
+pre {
+padding: 16px;
+overflow: auto;
+font-size: 85%;
+line-height: 1.45;
+background-color: #f7f7f7;
+border-radius: 3px;
+}
+.highlight pre {
+margin-bottom: 0;
+word-break: normal;
+}
+pre {
+word-wrap: normal;
+}
+pre code {
+display: inline;
+max-width: initial;
+padding: 0;
+margin: 0;
+overflow: initial;
+line-height: inherit;
+word-wrap: normal;
+background-color: transparent;
+border: 0;
+}
+pre code:before,
+pre code:after {
+content: normal;
+}
+kbd {
+display: inline-block;
+padding: 3px 5px;
+font-size: 11px;
+line-height: 10px;
+color: #555;
+vertical-align: middle;
+background-color: #fcfcfc;
+border: solid 1px #ccc;
+border-bottom-color: #bbb;
+border-radius: 3px;
+box-shadow: inset 0 -1px 0 #bbb;
+}
+.pl-c {
+color: #969896;
+}
+.pl-c1,
+.pl-s .pl-v {
+color: #0086b3;
+}
+.pl-e,
+.pl-en {
+color: #795da3;
+}
+.pl-s .pl-s1,
+.pl-smi {
+color: #333;
+}
+.pl-ent {
+color: #63a35c;
+}
+.pl-k {
+color: #a71d5d;
+}
+.pl-pds,
+.pl-s,
+.pl-s .pl-pse .pl-s1,
+.pl-sr,
+.pl-sr .pl-cce,
+.pl-sr .pl-sra,
+.pl-sr .pl-sre {
+color: #183691;
+}
+.pl-v {
+color: #ed6a43;
+}
+.pl-id {
+color: #b52a1d;
+}
+.pl-ii {
+background-color: #b52a1d;
+color: #f8f8f8;
+}
+.pl-sr .pl-cce {
+color: #63a35c;
+font-weight: bold;
+}
+.pl-ml {
+color: #693a17;
+}
+.pl-mh,
+.pl-mh .pl-en,
+.pl-ms {
+color: #1d3e81;
+font-weight: bold;
+}
+.pl-mq {
+color: #008080;
+}
+.pl-mi {
+color: #333;
+font-style: italic;
+}
+.pl-mb {
+color: #333;
+font-weight: bold;
+}
+.pl-md {
+background-color: #ffecec;
+color: #bd2c00;
+}
+.pl-mi1 {
+background-color: #eaffea;
+color: #55a532;
+}
+.pl-mdr {
+color: #795da3;
+font-weight: bold;
+}
+.pl-mo {
+color: #1d3e81;
+}
+kbd {
+display: inline-block;
+padding: 3px 5px;
+font: 11px Consolas, "Liberation Mono", Menlo, Courier, monospace;
+line-height: 10px;
+color: #555;
+vertical-align: middle;
+background-color: #fcfcfc;
+border: solid 1px #ccc;
+border-bottom-color: #bbb;
+border-radius: 3px;
+box-shadow: inset 0 -1px 0 #bbb;
+}
+.task-list-item {
+list-style-type: none;
+}
+.task-list-item+.task-list-item {
+margin-top: 3px;
+}
+.task-list-item input {
+margin: 0 0.35em 0.25em -1.6em;
+vertical-align: middle;
+}
+:checked+.radio-label {
+z-index: 1;
+position: relative;
+border-color: #4078c0;
+}
+.sourceLine {
+display: inline-block;
+}
+code .kw { color: #000000; }
+code .dt { color: #ed6a43; }
+code .dv { color: #009999; }
+code .bn { color: #009999; }
+code .fl { color: #009999; }
+code .ch { color: #009999; }
+code .st { color: #183691; }
+code .co { color: #969896; }
+code .ot { color: #0086b3; }
+code .al { color: #a61717; }
+code .fu { color: #63a35c; }
+code .er { color: #a61717; background-color: #e3d2d2; }
+code .wa { color: #000000; }
+code .cn { color: #008080; }
+code .sc { color: #008080; }
+code .vs { color: #183691; }
+code .ss { color: #183691; }
+code .im { color: #000000; }
+code .va {color: #008080; }
+code .cf { color: #000000; }
+code .op { color: #000000; }
+code .bu { color: #000000; }
+code .ex { color: #000000; }
+code .pp { color: #999999; }
+code .at { color: #008080; }
+code .do { color: #969896; }
+code .an { color: #008080; }
+code .cv { color: #008080; }
+code .in { color: #008080; }
+</style>
+<style>
+body {
+box-sizing: border-box;
+min-width: 200px;
+max-width: 980px;
+margin: 0 auto;
+padding: 45px;
+padding-top: 0px;
+}
+</style>
+
+
+</head>
+
+<body>
+
+<h1 id="geolink-easy-access-to-geospatial-datasets">GeoLink: Easy Access
+to Geospatial Datasets</h1>
+<ul>
+<li><a href="#geolink-">GeoLink 🌍</a>
+<ul>
+<li><a href="#id_-table-of-contents">📋 Table of Contents</a></li>
+<li><a href="#id_-features">✨ Features</a></li>
+<li><a href="#id_-installation">🚀 Installation</a></li>
+<li><a href="#id_-usage">📊 Usage</a></li>
+<li><a href="#id_️-data-visualization-examples">🗺️ Data Visualization
+Examples</a>
+<ul>
+<li><a href="#id_1-rainfall-visualization">1. Rainfall
+Visualization</a></li>
+<li><a href="#id_2-night-time-lights-analysis">2. Night Time Lights
+Analysis</a></li>
+<li><a href="#id_3-interactive-population-density">3. Interactive
+Population Density</a></li>
+<li><a href="#id_4-elevation-profile-with-cropland-overlay">4. Elevation
+Profile with Cropland Overlay</a></li>
+</ul></li>
+<li><a href="#id_-basic-usage-examples">📝 Basic Usage Examples</a>
+<ul>
+<li><a href="#rainfall-data-chirps">Rainfall Data (CHIRPS)</a></li>
+<li><a href="#night-time-lights">Night Time Lights</a></li>
+<li><a href="#population-data">Population Data</a></li>
+</ul></li>
+<li><a href="#id_-documentation">📚 Documentation</a>
+<ul>
+<li><a href="#memory-considerations">Memory Considerations</a></li>
+<li><a href="#error-handling">Error Handling</a></li>
+</ul></li>
+<li><a href="#id_-contributing">🤝 Contributing</a></li>
+<li><a href="#id_-license">📄 License</a></li>
+<li><a href="#id_-contact">📫 Contact</a></li>
+</ul></li>
+</ul>
+<h1 id="geolink-">GeoLink 🌍</h1>
+<!-- badges: start -->
+
+<p><a href="https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml"><img src="data:image/svg+xml; charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNzUiIGhlaWdodD0iMjAiPgogIDx0aXRsZT5SLUNNRC1jaGVjay55YW1sIC0gZmFpbGluZzwvdGl0bGU+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9IndvcmtmbG93LWZpbGwiIHgxPSI1MCUiIHkxPSIwJSIgeDI9IjUwJSIgeTI9IjEwMCUiPgogICAgICA8c3RvcCBzdG9wLWNvbG9yPSIjNDQ0RDU2IiBvZmZzZXQ9IjAlIj48L3N0b3A+CiAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiMyNDI5MkUiIG9mZnNldD0iMTAwJSI+PC9zdG9wPgogICAgPC9saW5lYXJHcmFkaWVudD4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ic3RhdGUtZmlsbCIgeDE9IjUwJSIgeTE9IjAlIiB4Mj0iNTAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIHN0b3AtY29sb3I9IiNENzNBNDkiIG9mZnNldD0iMCUiPjwvc3RvcD4KICAgICAgPHN0b3Agc3RvcC1jb2xvcj0iI0NCMjQzMSIgb2Zmc2V0PSIxMDAlIj48L3N0b3A+CiAgICA8L2xpbmVhckdyYWRpZW50PgogIDwvZGVmcz4KICA8ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPgogICAgPGcgZm9udC1mYW1pbHk9IiYjMzk7RGVqYVZ1IFNhbnMmIzM5OyxWZXJkYW5hLEdlbmV2YSxzYW5zLXNlcmlmIiBmb250LXNpemU9IjExIj4KICAgICAgPHBhdGggaWQ9IndvcmtmbG93LWJnIiBkPSJNMCwzIEMwLDEuMzQzMSAxLjM1NTIsMCAzLjAyNzAyNzAzLDAgTDEzMiwwIEwxMzIsMjAgTDMuMDI3MDI3MDMsMjAgQzEuMzU1MiwyMCAwLDE4LjY1NjkgMCwxNyBMMCwzIFoiIGZpbGw9InVybCgjd29ya2Zsb3ctZmlsbCkiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICA8dGV4dCBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIj4KICAgICAgICA8dHNwYW4geD0iMjIuMTk4MTk4MiIgeT0iMTUiIGFyaWEtaGlkZGVuPSJ0cnVlIj5SLUNNRC1jaGVjay55YW1sPC90c3Bhbj4KICAgICAgPC90ZXh0PgogICAgICA8dGV4dCBmaWxsPSIjRkZGRkZGIj4KICAgICAgICA8dHNwYW4geD0iMjIuMTk4MTk4MiIgeT0iMTQiPlItQ01ELWNoZWNrLnlhbWw8L3RzcGFuPgogICAgICA8L3RleHQ+CiAgICA8L2c+CiAgICA8ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMzIpIiBmb250LWZhbWlseT0iJiMzOTtEZWphVnUgU2FucyYjMzk7LFZlcmRhbmEsR2VuZXZhLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTEiPgogICAgICA8cGF0aCBkPSJNMCAwaDQwLjQ3QzQxLjg2OSAwIDQzIDEuMzQzIDQzIDN2MTRjMCAxLjY1Ny0xLjEzMiAzLTIuNTMgM0gwVjB6IiBpZD0ic3RhdGUtYmciIGZpbGw9InVybCgjc3RhdGUtZmlsbCkiIGZpbGwtcnVsZT0ibm9uemVybyI+PC9wYXRoPgogICAgICA8dGV4dCBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIiBhcmlhLWhpZGRlbj0idHJ1ZSI+CiAgICAgICAgPHRzcGFuIHg9IjUiIHk9IjE1Ij5mYWlsaW5nPC90c3Bhbj4KICAgICAgPC90ZXh0PgogICAgICA8dGV4dCBmaWxsPSIjRkZGRkZGIj4KICAgICAgICA8dHNwYW4geD0iNSIgeT0iMTQiPmZhaWxpbmc8L3RzcGFuPgogICAgICA8L3RleHQ+CiAgICA8L2c+CiAgICA8cGF0aCBmaWxsPSIjOTU5REE1IiBkPSJNMTEgM2MtMy44NjggMC03IDMuMTMyLTcgN2E2Ljk5NiA2Ljk5NiAwIDAgMCA0Ljc4NiA2LjY0MWMuMzUuMDYyLjQ4Mi0uMTQ4LjQ4Mi0uMzMyIDAtLjE2Ni0uMDEtLjcxOC0uMDEtMS4zMDQtMS43NTguMzI0LTIuMjEzLS40MjktMi4zNTMtLjgyMi0uMDc5LS4yMDItLjQyLS44MjMtLjcxNy0uOTktLjI0NS0uMTMtLjU5NS0uNDU0LS4wMS0uNDYzLjU1Mi0uMDA5Ljk0Ni41MDggMS4wNzcuNzE4LjYzIDEuMDU4IDEuNjM2Ljc2IDIuMDM5LjU3Ny4wNjEtLjQ1NS4yNDUtLjc2MS40NDYtLjkzNi0xLjU1Ny0uMTc1LTMuMTg1LS43NzktMy4xODUtMy40NTYgMC0uNzYyLjI3MS0xLjM5Mi43MTgtMS44ODItLjA3LS4xNzUtLjMxNS0uODkyLjA3LTEuODU1IDAgMCAuNTg2LS4xODMgMS45MjUuNzE4YTYuNSA2LjUgMCAwIDEgMS43NS0uMjM2IDYuNSA2LjUgMCAwIDEgMS43NS4yMzZjMS4zMzgtLjkxIDEuOTI1LS43MTggMS45MjUtLjcxOC4zODUuOTYzLjE0IDEuNjguMDcgMS44NTUuNDQ2LjQ5LjcxNyAxLjExMi43MTcgMS44ODIgMCAyLjY4Ni0xLjYzNiAzLjI4LTMuMTk0IDMuNDU2LjI1NC4yMTkuNDczLjYzOS40NzMgMS4yOTUgMCAuOTM2LS4wMDkgMS42ODktLjAwOSAxLjkyNSAwIC4xODQuMTMxLjQwMi40ODEuMzMyQTcuMDExIDcuMDExIDAgMCAwIDE4IDEwYzAtMy44NjctMy4xMzMtNy03LTd6Ij48L3BhdGg+CiAgPC9nPgo8L3N2Zz4KCg==" alt="R-CMD-check" /></a> <a href="https://opensource.org/licenses/MIT"><img src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MiIgaGVpZ2h0PSIyMCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJMaWNlbnNlOiBNSVQiPjx0aXRsZT5MaWNlbnNlOiBNSVQ8L3RpdGxlPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDI9IjAiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiYmIiIHN0b3Atb3BhY2l0eT0iLjEiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3Atb3BhY2l0eT0iLjEiLz48L2xpbmVhckdyYWRpZW50PjxjbGlwUGF0aCBpZD0iciI+PHJlY3Qgd2lkdGg9IjgyIiBoZWlnaHQ9IjIwIiByeD0iMyIgZmlsbD0iI2ZmZiIvPjwvY2xpcFBhdGg+PGcgY2xpcC1wYXRoPSJ1cmwoI3IpIj48cmVjdCB3aWR0aD0iNTEiIGhlaWdodD0iMjAiIGZpbGw9IiM1NTUiLz48cmVjdCB4PSI1MSIgd2lkdGg9IjMxIiBoZWlnaHQ9IjIwIiBmaWxsPSIjZGZiMzE3Ii8+PHJlY3Qgd2lkdGg9IjgyIiBoZWlnaHQ9IjIwIiBmaWxsPSJ1cmwoI3MpIi8+PC9nPjxnIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJWZXJkYW5hLEdlbmV2YSxEZWphVnUgU2FucyxzYW5zLXNlcmlmIiB0ZXh0LXJlbmRlcmluZz0iZ2VvbWV0cmljUHJlY2lzaW9uIiBmb250LXNpemU9IjExMCI+PHRleHQgYXJpYS1oaWRkZW49InRydWUiIHg9IjI2NSIgeT0iMTUwIiBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgdGV4dExlbmd0aD0iNDEwIj5MaWNlbnNlPC90ZXh0Pjx0ZXh0IHg9IjI2NSIgeT0iMTQwIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgZmlsbD0iI2ZmZiIgdGV4dExlbmd0aD0iNDEwIj5MaWNlbnNlPC90ZXh0Pjx0ZXh0IGFyaWEtaGlkZGVuPSJ0cnVlIiB4PSI2NTUiIHk9IjE1MCIgZmlsbD0iIzAxMDEwMSIgZmlsbC1vcGFjaXR5PSIuMyIgdHJhbnNmb3JtPSJzY2FsZSguMSkiIHRleHRMZW5ndGg9IjIxMCI+TUlUPC90ZXh0Pjx0ZXh0IHg9IjY1NSIgeT0iMTQwIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgZmlsbD0iI2ZmZiIgdGV4dExlbmd0aD0iMjEwIj5NSVQ8L3RleHQ+PC9nPjwvc3ZnPg==" alt="License: MIT" /></a> <a href="https://github.com/SSA-Statistical-Team-Projects/geolink/issues"><img src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI5OCIgaGVpZ2h0PSIyMCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJpc3N1ZXM6IDI1IG9wZW4iPjx0aXRsZT5pc3N1ZXM6IDI1IG9wZW48L3RpdGxlPjxsaW5lYXJHcmFkaWVudCBpZD0icyIgeDI9IjAiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNiYmIiIHN0b3Atb3BhY2l0eT0iLjEiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3Atb3BhY2l0eT0iLjEiLz48L2xpbmVhckdyYWRpZW50PjxjbGlwUGF0aCBpZD0iciI+PHJlY3Qgd2lkdGg9Ijk4IiBoZWlnaHQ9IjIwIiByeD0iMyIgZmlsbD0iI2ZmZiIvPjwvY2xpcFBhdGg+PGcgY2xpcC1wYXRoPSJ1cmwoI3IpIj48cmVjdCB3aWR0aD0iNDMiIGhlaWdodD0iMjAiIGZpbGw9IiM1NTUiLz48cmVjdCB4PSI0MyIgd2lkdGg9IjU1IiBoZWlnaHQ9IjIwIiBmaWxsPSIjZGZiMzE3Ii8+PHJlY3Qgd2lkdGg9Ijk4IiBoZWlnaHQ9IjIwIiBmaWxsPSJ1cmwoI3MpIi8+PC9nPjxnIGZpbGw9IiNmZmYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJWZXJkYW5hLEdlbmV2YSxEZWphVnUgU2FucyxzYW5zLXNlcmlmIiB0ZXh0LXJlbmRlcmluZz0iZ2VvbWV0cmljUHJlY2lzaW9uIiBmb250LXNpemU9IjExMCI+PHRleHQgYXJpYS1oaWRkZW49InRydWUiIHg9IjIyNSIgeT0iMTUwIiBmaWxsPSIjMDEwMTAxIiBmaWxsLW9wYWNpdHk9Ii4zIiB0cmFuc2Zvcm09InNjYWxlKC4xKSIgdGV4dExlbmd0aD0iMzMwIj5pc3N1ZXM8L3RleHQ+PHRleHQgeD0iMjI1IiB5PSIxNDAiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiBmaWxsPSIjZmZmIiB0ZXh0TGVuZ3RoPSIzMzAiPmlzc3VlczwvdGV4dD48dGV4dCBhcmlhLWhpZGRlbj0idHJ1ZSIgeD0iNjk1IiB5PSIxNTAiIGZpbGw9IiMwMTAxMDEiIGZpbGwtb3BhY2l0eT0iLjMiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiB0ZXh0TGVuZ3RoPSI0NTAiPjI1IG9wZW48L3RleHQ+PHRleHQgeD0iNjk1IiB5PSIxNDAiIHRyYW5zZm9ybT0ic2NhbGUoLjEpIiBmaWxsPSIjZmZmIiB0ZXh0TGVuZ3RoPSI0NTAiPjI1IG9wZW48L3RleHQ+PC9nPjwvc3ZnPg==" alt="GitHub issues" /></a></p>
+<!-- badges: end -->
+
+<p>GeoLink is an R package that provides easy access to various
+geospatial datasets, allowing seamless integration with your spatial
+data or household surveys.</p>
+<h2 id="id_-table-of-contents">📋 Table of Contents</h2>
+<ul>
+<li><a href="#id_-features">Features</a></li>
+<li><a href="#id_-installation">Installation</a></li>
+<li><a href="#id_-usage">Usage</a></li>
+<li><a href="#id_️-data-visualization-examples">Data Visualization
+Examples</a></li>
+<li><a href="#id_-basic-usage-examples">Basic Usage Examples</a></li>
+<li><a href="#id_-documentation">Documentation</a></li>
+<li><a href="#id_-contributing">Contributing</a></li>
+<li><a href="#id_-license">License</a></li>
+</ul>
+<h2 id="id_-features">✨ Features</h2>
+<p>Download and process: - CHIRPS rainfall data - Night Time Light (NTL)
+data - Population data (WorldPop) - Elevation data - Building data
+(WorldPop) - CMIP6 climate model data - Cropland data - WorldClim
+climate data - Terraclimate data - Land Use Land Cover data - Points of
+Interest (OpenStreetMap) - Electrification access data (HREA) -
+OpenCellID data - Pollution - Vegetation Index</p>
+<h2 id="id_-installation">🚀 Installation</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="co"># Install devtools if you haven&#39;t already</span></span>
+<span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">install.packages</span>(<span class="st">&quot;devtools&quot;</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a><span class="co"># Install GeoLink</span></span>
+<span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a>devtools<span class="sc">::</span><span class="fu">install_github</span>(<span class="st">&quot;SSA-Statistical-Team-Projects/GeoLink&quot;</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="co"># Load the package</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="fu">library</span>(GeoLink)</span></code></pre></div>
+<h2 id="id_-usage">📊 Usage</h2>
+<p>Most functions require either: - A shapefile (<code>shp_dt</code> or
+<code>shp_fn</code>) - OR a household survey dataset
+(<code>survey_dt</code> or <code>survey_fn</code>) with coordinates</p>
+<h2 id="id_️-data-visualization-examples">🗺️ Data Visualization
+Examples</h2>
+<h3 id="id_1-rainfall-visualization">1. Rainfall Visualization</h3>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="fu">library</span>(viridis)</span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="co"># Get rainfall data</span></span>
+<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>rainfall_map <span class="ot">&lt;-</span> <span class="fu">geolink_chirps</span>(</span>
+<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a>    <span class="at">time_unit =</span> <span class="st">&quot;month&quot;</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a>    <span class="at">start_date =</span> <span class="st">&quot;2020-01-01&quot;</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a>    <span class="at">end_date =</span> <span class="st">&quot;2020-01-31&quot;</span>,</span>
+<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a>    <span class="at">shp_dt =</span> nigeria_states[nigeria_states<span class="sc">$</span>ADM1_EN <span class="sc">==</span> <span class="st">&quot;Abia&quot;</span>,],</span>
+<span id="cb2-11"><a href="#cb2-11" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb2-12"><a href="#cb2-12" tabindex="-1"></a>)</span>
+<span id="cb2-13"><a href="#cb2-13" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="co"># Create beautiful rainfall map</span></span>
+<span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="fu">ggplot</span>(rainfall_map) <span class="sc">+</span></span>
+<span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> rainfall_month1)) <span class="sc">+</span></span>
+<span id="cb2-17"><a href="#cb2-17" tabindex="-1"></a>    <span class="fu">scale_fill_viridis_c</span>(</span>
+<span id="cb2-18"><a href="#cb2-18" tabindex="-1"></a>        <span class="at">name =</span> <span class="st">&quot;Rainfall (mm)&quot;</span>,</span>
+<span id="cb2-19"><a href="#cb2-19" tabindex="-1"></a>        <span class="at">option =</span> <span class="st">&quot;plasma&quot;</span></span>
+<span id="cb2-20"><a href="#cb2-20" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb2-21"><a href="#cb2-21" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb2-22"><a href="#cb2-22" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb2-23"><a href="#cb2-23" tabindex="-1"></a>        <span class="at">title =</span> <span class="st">&quot;January 2020 Rainfall Distribution&quot;</span>,</span>
+<span id="cb2-24"><a href="#cb2-24" tabindex="-1"></a>        <span class="at">subtitle =</span> <span class="st">&quot;Abia State, Nigeria&quot;</span>,</span>
+<span id="cb2-25"><a href="#cb2-25" tabindex="-1"></a>        <span class="at">caption =</span> <span class="st">&quot;Data source: CHIRPS&quot;</span></span>
+<span id="cb2-26"><a href="#cb2-26" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb2-27"><a href="#cb2-27" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
+<span id="cb2-28"><a href="#cb2-28" tabindex="-1"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">face =</span> <span class="st">&quot;bold&quot;</span>),</span>
+<span id="cb2-29"><a href="#cb2-29" tabindex="-1"></a>        <span class="at">legend.position =</span> <span class="st">&quot;right&quot;</span></span>
+<span id="cb2-30"><a href="#cb2-30" tabindex="-1"></a>    )</span></code></pre></div>
+<figure>
+<img src="/assets/images/rainfall_map.png" alt="Rainfall Map Example" />
+<figcaption aria-hidden="true">Rainfall Map Example</figcaption>
+</figure>
+
+<h3 id="id_2-night-time-lights-analysis">2. Night Time Lights
+Analysis</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># Get night time lights data</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>ntl_map <span class="ot">&lt;-</span> <span class="fu">geolink_ntl</span>(</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>    <span class="at">time_unit =</span> <span class="st">&quot;annual&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>    <span class="at">start_date =</span> <span class="st">&quot;2020-01-01&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a>    <span class="at">end_date =</span> <span class="st">&quot;2020-12-31&quot;</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a>    <span class="at">shp_dt =</span> nigeria_states[nigeria_states<span class="sc">$</span>ADM1_EN <span class="sc">==</span> <span class="st">&quot;Lagos&quot;</span>,],</span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a>    <span class="at">indicator =</span> <span class="st">&quot;average_masked&quot;</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>)</span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a><span class="co"># Create illuminating visualization</span></span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a><span class="fu">ggplot</span>(ntl_map) <span class="sc">+</span></span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> ntl_annual1average_masked)) <span class="sc">+</span></span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>    <span class="fu">scale_fill_gradient</span>(</span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>        <span class="at">low =</span> <span class="st">&quot;navy&quot;</span>,</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a>        <span class="at">high =</span> <span class="st">&quot;yellow&quot;</span>,</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a>        <span class="at">name =</span> <span class="st">&quot;Light Intensity&quot;</span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb3-19"><a href="#cb3-19" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb3-20"><a href="#cb3-20" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb3-21"><a href="#cb3-21" tabindex="-1"></a>        <span class="at">title =</span> <span class="st">&quot;2020 Night Time Light Intensity&quot;</span>,</span>
+<span id="cb3-22"><a href="#cb3-22" tabindex="-1"></a>        <span class="at">subtitle =</span> <span class="st">&quot;Lagos State, Nigeria&quot;</span>,</span>
+<span id="cb3-23"><a href="#cb3-23" tabindex="-1"></a>        <span class="at">caption =</span> <span class="st">&quot;Data source: NASA Black Marble&quot;</span></span>
+<span id="cb3-24"><a href="#cb3-24" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb3-25"><a href="#cb3-25" tabindex="-1"></a>    <span class="fu">theme</span>(</span>
+<span id="cb3-26"><a href="#cb3-26" tabindex="-1"></a>        <span class="at">panel.background =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">&quot;black&quot;</span>),</span>
+<span id="cb3-27"><a href="#cb3-27" tabindex="-1"></a>        <span class="at">plot.background =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="st">&quot;black&quot;</span>),</span>
+<span id="cb3-28"><a href="#cb3-28" tabindex="-1"></a>        <span class="at">text =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">&quot;white&quot;</span>),</span>
+<span id="cb3-29"><a href="#cb3-29" tabindex="-1"></a>        <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">color =</span> <span class="st">&quot;white&quot;</span>, <span class="at">size =</span> <span class="dv">16</span>, <span class="at">face =</span> <span class="st">&quot;bold&quot;</span>)</span>
+<span id="cb3-30"><a href="#cb3-30" tabindex="-1"></a>    )</span></code></pre></div>
+<figure>
+<img src="/assets/images/ntl_map.png" alt="Night Time Lights Map" />
+<figcaption aria-hidden="true">Night Time Lights Map</figcaption>
+</figure>
+
+<h3 id="id_3-interactive-population-density">3. Interactive Population
+Density</h3>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">library</span>(leaflet)</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co"># Get population data</span></span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>pop_data <span class="ot">&lt;-</span> <span class="fu">geolink_population</span>(</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>    <span class="at">start_year =</span> <span class="dv">2020</span>,</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>    <span class="at">end_year =</span> <span class="dv">2020</span>,</span>
+<span id="cb4-7"><a href="#cb4-7" tabindex="-1"></a>    <span class="at">iso_code =</span> <span class="st">&quot;NGA&quot;</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" tabindex="-1"></a>    <span class="at">shp_dt =</span> nigeria_states[nigeria_states<span class="sc">$</span>ADM1_EN <span class="sc">==</span> <span class="st">&quot;Kano&quot;</span>,],</span>
+<span id="cb4-9"><a href="#cb4-9" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb4-10"><a href="#cb4-10" tabindex="-1"></a>)</span>
+<span id="cb4-11"><a href="#cb4-11" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" tabindex="-1"></a><span class="co"># Create interactive population map</span></span>
+<span id="cb4-13"><a href="#cb4-13" tabindex="-1"></a><span class="fu">leaflet</span>(pop_data) <span class="sc">%&gt;%</span></span>
+<span id="cb4-14"><a href="#cb4-14" tabindex="-1"></a>    <span class="fu">addProviderTiles</span>(providers<span class="sc">$</span>CartoDB.DarkMatter) <span class="sc">%&gt;%</span></span>
+<span id="cb4-15"><a href="#cb4-15" tabindex="-1"></a>    <span class="fu">addPolygons</span>(</span>
+<span id="cb4-16"><a href="#cb4-16" tabindex="-1"></a>        <span class="at">fillColor =</span> <span class="sc">~</span><span class="fu">colorQuantile</span>(<span class="st">&quot;YlOrRd&quot;</span>, population_2020)(population_2020),</span>
+<span id="cb4-17"><a href="#cb4-17" tabindex="-1"></a>        <span class="at">fillOpacity =</span> <span class="fl">0.7</span>,</span>
+<span id="cb4-18"><a href="#cb4-18" tabindex="-1"></a>        <span class="at">weight =</span> <span class="dv">1</span>,</span>
+<span id="cb4-19"><a href="#cb4-19" tabindex="-1"></a>        <span class="at">color =</span> <span class="st">&quot;#666&quot;</span>,</span>
+<span id="cb4-20"><a href="#cb4-20" tabindex="-1"></a>        <span class="at">popup =</span> <span class="sc">~</span><span class="fu">paste</span>(</span>
+<span id="cb4-21"><a href="#cb4-21" tabindex="-1"></a>            <span class="st">&quot;&lt;strong&gt;Area:&lt;/strong&gt;&quot;</span>, </span>
+<span id="cb4-22"><a href="#cb4-22" tabindex="-1"></a>            <span class="st">&quot;&lt;br&gt;Population:&quot;</span>, <span class="fu">round</span>(population_2020),</span>
+<span id="cb4-23"><a href="#cb4-23" tabindex="-1"></a>            <span class="st">&quot;&lt;br&gt;Density:&quot;</span>, <span class="fu">round</span>(population_2020<span class="sc">/</span><span class="fu">st_area</span>(geometry))</span>
+<span id="cb4-24"><a href="#cb4-24" tabindex="-1"></a>        )</span>
+<span id="cb4-25"><a href="#cb4-25" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span></span>
+<span id="cb4-26"><a href="#cb4-26" tabindex="-1"></a>    <span class="fu">addLegend</span>(</span>
+<span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a>        <span class="st">&quot;bottomright&quot;</span>,</span>
+<span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a>        <span class="at">title =</span> <span class="st">&quot;Population Density&quot;</span>,</span>
+<span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a>        <span class="at">pal =</span> <span class="fu">colorQuantile</span>(<span class="st">&quot;YlOrRd&quot;</span>, pop_data<span class="sc">$</span>population_2020),</span>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a>        <span class="at">values =</span> <span class="sc">~</span>population_2020</span>
+<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a>    )</span></code></pre></div>
+<figure>
+<img src="/assets/images/population_map.png" alt="Population Density Map" />
+<figcaption aria-hidden="true">Population Density Map</figcaption>
+</figure>
+
+<h3 id="id_4-elevation-profile-with-cropland-overlay">4. Elevation
+Profile with Cropland Overlay</h3>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># Combine elevation and cropland data</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>elevation_data <span class="ot">&lt;-</span> <span class="fu">geolink_elevation</span>(</span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>    <span class="at">iso_code =</span> <span class="st">&quot;NGA&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>    <span class="at">shp_dt =</span> nigeria_states[nigeria_states<span class="sc">$</span>ADM1_EN <span class="sc">==</span> <span class="st">&quot;Plateau&quot;</span>,],</span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>)</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>cropland_data <span class="ot">&lt;-</span> <span class="fu">geolink_cropland</span>(</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>    <span class="at">shp_dt =</span> nigeria_states[nigeria_states<span class="sc">$</span>ADM1_EN <span class="sc">==</span> <span class="st">&quot;Plateau&quot;</span>,],</span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>)</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a><span class="co"># Create combined visualization</span></span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a><span class="fu">ggplot</span>(elevation_data) <span class="sc">+</span></span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="fu">aes</span>(<span class="at">fill =</span> elevation)) <span class="sc">+</span></span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>    <span class="fu">geom_sf</span>(<span class="at">data =</span> cropland_data, <span class="fu">aes</span>(<span class="at">alpha =</span> cropland), <span class="at">fill =</span> <span class="st">&quot;darkgreen&quot;</span>) <span class="sc">+</span></span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a>    <span class="fu">scale_fill_gradient2</span>(</span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a>        <span class="at">low =</span> <span class="st">&quot;darkgreen&quot;</span>,</span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a>        <span class="at">mid =</span> <span class="st">&quot;yellowgreen&quot;</span>,</span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a>        <span class="at">high =</span> <span class="st">&quot;brown&quot;</span>,</span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a>        <span class="at">midpoint =</span> <span class="fu">median</span>(elevation_data<span class="sc">$</span>elevation),</span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a>        <span class="at">name =</span> <span class="st">&quot;Elevation (m)&quot;</span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a>    ) <span class="sc">+</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a>    <span class="fu">scale_alpha_continuous</span>(<span class="at">name =</span> <span class="st">&quot;Cropland Density&quot;</span>) <span class="sc">+</span></span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a>    <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a>    <span class="fu">labs</span>(</span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a>        <span class="at">title =</span> <span class="st">&quot;Elevation Profile with Cropland Overlay&quot;</span>,</span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a>        <span class="at">subtitle =</span> <span class="st">&quot;Plateau State, Nigeria&quot;</span></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a>    )</span></code></pre></div>
+<figure>
+<img src="/assets/images/elevation_cropland_map.png" alt="Elevation and Cropland Map" />
+<figcaption aria-hidden="true">Elevation and Cropland Map</figcaption>
+</figure>
+
+<h2 id="id_-basic-usage-examples">📝 Basic Usage Examples</h2>
+<h3 id="rainfall-data-chirps">Rainfall Data (CHIRPS)</h3>
+<div class="sourceCode" id="cb6"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">geolink_chirps</span>(</span>
+<span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a>    <span class="at">time_unit =</span> <span class="st">&quot;month&quot;</span>,</span>
+<span id="cb6-3"><a href="#cb6-3" tabindex="-1"></a>    <span class="at">start_date =</span> <span class="st">&quot;2020-01-01&quot;</span>,</span>
+<span id="cb6-4"><a href="#cb6-4" tabindex="-1"></a>    <span class="at">end_date =</span> <span class="st">&quot;2020-03-01&quot;</span>,</span>
+<span id="cb6-5"><a href="#cb6-5" tabindex="-1"></a>    <span class="at">shp_dt =</span> shp_dt[shp_dt<span class="sc">$</span>ADM1_PCODE <span class="sc">==</span> <span class="st">&quot;NG001&quot;</span>,],</span>
+<span id="cb6-6"><a href="#cb6-6" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb6-7"><a href="#cb6-7" tabindex="-1"></a>)</span></code></pre></div>
+<h3 id="night-time-lights">Night Time Lights</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">geolink_ntl</span>(</span>
+<span id="cb7-2"><a href="#cb7-2" tabindex="-1"></a>    <span class="at">time_unit =</span> <span class="st">&quot;month&quot;</span>,</span>
+<span id="cb7-3"><a href="#cb7-3" tabindex="-1"></a>    <span class="at">start_date =</span> <span class="st">&quot;2020-01-01&quot;</span>,</span>
+<span id="cb7-4"><a href="#cb7-4" tabindex="-1"></a>    <span class="at">end_date =</span> <span class="st">&quot;2020-03-01&quot;</span>,</span>
+<span id="cb7-5"><a href="#cb7-5" tabindex="-1"></a>    <span class="at">shp_dt =</span> shp_dt[shp_dt<span class="sc">$</span>ADM1_PCODE <span class="sc">==</span> <span class="st">&quot;NG001&quot;</span>,],</span>
+<span id="cb7-6"><a href="#cb7-6" tabindex="-1"></a>    <span class="at">indicator =</span> <span class="st">&quot;avg_rade9h&quot;</span>,</span>
+<span id="cb7-7"><a href="#cb7-7" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb7-8"><a href="#cb7-8" tabindex="-1"></a>)</span></code></pre></div>
+<h3 id="population-data">Population Data</h3>
+<div class="sourceCode" id="cb8"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">geolink_population</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a>    <span class="at">start_year =</span> <span class="dv">2018</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a>    <span class="at">end_year =</span> <span class="dv">2019</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a>    <span class="at">iso_code =</span> <span class="st">&quot;NGA&quot;</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a>    <span class="at">shp_dt =</span> shp_dt[shp_dt<span class="sc">$</span>ADM1_EN <span class="sc">==</span> <span class="st">&quot;Abia&quot;</span>,],</span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a>    <span class="at">grid_size =</span> <span class="dv">1000</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a>)</span></code></pre></div>
+<h2 id="id_-documentation">📚 Documentation</h2>
+<p>For detailed documentation of each function, use R’s help system:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a>?geolink_chirps</span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a>?geolink_ntl</span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>?geolink_population</span></code></pre></div>
+<h3 id="memory-considerations">Memory Considerations</h3>
+<p>When working with geospatial data, memory management is crucial,
+especially on laptops:</p>
+<ul>
+<li><strong>Large raster operations</strong>: Many GeoLink functions
+process large raster files that can consume significant RAM</li>
+<li><strong>Geographic chunking</strong>: Consider processing large
+areas by dividing them into smaller regions</li>
+<li><strong>Grid size adjustment</strong>: Increase
+<code>grid_size</code> parameter to reduce resolution and memory
+requirements</li>
+<li><strong>Temporary file cleanup</strong>: Use
+<code>raster::removeTmpFiles(h=0)</code> periodically to clean up temp
+files</li>
+</ul>
+<h4 id="optimizing-r-memory-on-laptops">Optimizing R Memory on
+Laptops</h4>
+<p>To maximize available memory for GeoLink on your laptop:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="co"># Increase R&#39;s memory limit (Windows)</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="fu">memory.limit</span>(<span class="at">size=</span><span class="dv">10000</span>)  <span class="co"># Set to 10GB if available</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="co"># Clear R environment before large operations</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="fu">rm</span>(<span class="at">list =</span> <span class="fu">ls</span>())</span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="fu">gc</span>()</span>
+<span id="cb10-7"><a href="#cb10-7" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" tabindex="-1"></a><span class="co"># Configure raster package to use disk instead of RAM</span></span>
+<span id="cb10-9"><a href="#cb10-9" tabindex="-1"></a>raster<span class="sc">::</span><span class="fu">rasterOptions</span>(<span class="at">maxmemory =</span> <span class="fl">1e9</span>)  <span class="co"># 1GB RAM limit</span></span>
+<span id="cb10-10"><a href="#cb10-10" tabindex="-1"></a>raster<span class="sc">::</span><span class="fu">rasterOptions</span>(<span class="at">tmpdir =</span> <span class="st">&quot;C:/R_temp&quot;</span>)  <span class="co"># Custom temp directory</span></span>
+<span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="co"># Monitor memory usage</span></span>
+<span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a>mem_used <span class="ot">&lt;-</span> pryr<span class="sc">::</span><span class="fu">mem_used</span>()  <span class="co"># Requires &#39;pryr&#39; package</span></span>
+<span id="cb10-14"><a href="#cb10-14" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste0</span>(<span class="st">&quot;Current memory usage: &quot;</span>, <span class="fu">round</span>(mem_used<span class="sc">/</span><span class="fl">1e6</span>, <span class="dv">2</span>), <span class="st">&quot; MB&quot;</span>))</span>
+<span id="cb10-15"><a href="#cb10-15" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" tabindex="-1"></a><span class="co"># Close other applications and disable memory-intensive R features</span></span>
+<span id="cb10-17"><a href="#cb10-17" tabindex="-1"></a><span class="fu">options</span>(<span class="at">device.ask.default =</span> <span class="cn">FALSE</span>)  <span class="co"># Disable interactive graphics prompts</span></span></code></pre></div>
+<h4 id="handling-very-large-datasets">Handling Very Large Datasets</h4>
+<p>For extremely large geospatial operations:</p>
+<ul>
+<li>Use <code>terra</code> package instead of <code>raster</code> for
+more efficient memory usage</li>
+<li>Consider parallel processing with <code>parallel</code> or
+<code>future</code> packages</li>
+<li>Pre-filter your area of interest to the smallest necessary
+extent</li>
+<li>Export intermediate results to disk using
+<code>sf::write_sf()</code> or <code>terra::writeRaster()</code></li>
+<li>Consider cloud-based computation for nationwide or continental
+analyses</li>
+</ul>
+<h3 id="error-handling">Error Handling</h3>
+<p>GeoLink implements robust error handling to gracefully manage common
+issues when working with geospatial data:</p>
+<h4 id="input-validation">Input Validation</h4>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="co"># Invalid file format detection</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">geolink_population</span>(<span class="at">survey_fn =</span> <span class="st">&quot;invalid.txt&quot;</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co"># Error: &quot;Unsupported file format. Please provide .dta file&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="co"># Missing required parameters</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">geolink_chirps</span>()</span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="co"># Error: &quot;start_date and end_date must be specified&quot;</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="co"># Invalid parameter values</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">geolink_ntl</span>(<span class="at">time_unit =</span> <span class="st">&quot;weekly&quot;</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="co"># Error: &quot;Time unit should either be month or annual&quot;</span></span></code></pre></div>
+<h4 id="coordinate-reference-system-crs-management">Coordinate Reference
+System (CRS) Management</h4>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="co"># Automatic CRS detection and reprojection</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>df <span class="ot">&lt;-</span> <span class="fu">geolink_chirps</span>(<span class="at">shp_dt =</span> invalid_crs_data)</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="co"># Message: &quot;Reprojecting from XXXX to EPSG:4326&quot;</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a><span class="co"># All GeoLink functions use ensure_crs_4326() internally to handle CRS issues</span></span></code></pre></div>
+<h4 id="temporary-file-management">Temporary File Management</h4>
+<div class="sourceCode" id="cb13"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="co"># Proper resource allocation and deallocation</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="fu">on.exit</span>(raster<span class="sc">::</span><span class="fu">removeTmpFiles</span>(<span class="at">h=</span><span class="dv">0</span>))</span></code></pre></div>
+<h4 id="large-area-processing">Large Area Processing</h4>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="co"># Intelligent splitting of large areas into manageable chunks</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="co"># For OpenStreetMap data:</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="cf">if</span> (bbox_area <span class="sc">&gt;</span> area_threshold) {</span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">&quot;Large area detected. Splitting into quadrants...&quot;</span>)</span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a>  <span class="co"># Process quadrants separately and combine results</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a>}</span></code></pre></div>
+<h4 id="common-error-solutions">Common Error Solutions</h4>
+<p>If you encounter errors, try these common solutions:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Memory errors</strong>: Increase grid size or use
+resampling</li>
+<li><strong>Connection timeouts</strong>: Check internet connection</li>
+<li><strong>Missing data</strong>: Verify date ranges are valid for the
+selected dataset</li>
+<li><strong>Invalid geometries</strong>: Clean your shapefile using
+<code>sf::st_make_valid()</code></li>
+<li><strong>Projection errors</strong>: Ensure input data has defined
+coordinate systems</li>
+</ol>
+<h2 id="id_-contributing">🤝 Contributing</h2>
+<p>Contributions are welcome! Please feel free to submit a Pull Request.
+For major changes, please open an issue first to discuss what you would
+like to change.</p>
+<ol style="list-style-type: decimal">
+<li>Fork the Project</li>
+<li>Create your Feature Branch
+(<code>git checkout -b feature/AmazingFeature</code>)</li>
+<li>Commit your Changes
+(<code>git commit -m &#39;Add some AmazingFeature&#39;</code>)</li>
+<li>Push to the Branch
+(<code>git push origin feature/AmazingFeature</code>)</li>
+<li>Open a Pull Request</li>
+</ol>
+<h2 id="id_-license">📄 License</h2>
+<p>This project is licensed under the MIT License - see the <a href="LICENSE.md">LICENSE.md</a> file for details.</p>
+<h2 id="id_-contact">📫 Contact</h2>
+<p>Project Link: <a href="https://github.com/SSA-Statistical-Team-Projects/GeoLink">https://github.com/SSA-Statistical-Team-Projects/GeoLink</a></p>
+<hr />
+<p>Made with ❤️ by [The World Bank Group &amp; The University of
+Southampton]</p>
+
+</body>
+</html>

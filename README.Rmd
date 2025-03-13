@@ -49,15 +49,14 @@ Download and process:
 - Points of Interest (OpenStreetMap)
 - Electrification access data (HREA)
 - OpenCellID data
+- Pollution
+- Vegetation Index
 
 ## 🚀 Installation
 
 ```{r}
 # Install devtools if you haven't already
 install.packages("devtools")
-
-# Install required visualization packages
-install.packages(c("ggplot2", "sf", "leaflet", "viridis"))
 
 # Install GeoLink
 devtools::install_github("SSA-Statistical-Team-Projects/GeoLink")
@@ -268,7 +267,6 @@ For detailed documentation of each function, use R's help system:
 When working with geospatial data, memory management is crucial, especially on laptops:
 
 - **Large raster operations**: Many GeoLink functions process large raster files that can consume significant RAM
-- **Resampling option**: Use `use_resampling = TRUE` for large areas to reduce memory footprint
 - **Geographic chunking**: Consider processing large areas by dividing them into smaller regions
 - **Grid size adjustment**: Increase `grid_size` parameter to reduce resolution and memory requirements
 - **Temporary file cleanup**: Use `raster::removeTmpFiles(h=0)` periodically to clean up temp files
@@ -335,30 +333,8 @@ df <- geolink_chirps(shp_dt = invalid_crs_data)
 # All GeoLink functions use ensure_crs_4326() internally to handle CRS issues
 ```
 
-#### API and Download Resilience
-```{r}
-# Connection retry logic for unstable connections
-# Built-in timeout controls for slow services
-# Fallback URL strategies for WorldPop and other data sources
-```
-
-#### Missing Data Handling
-```{r}
-# Automatic replacement of no-data values
-raster_objs <- lapply(raster_objs, function(raster_obj) {
-  raster_obj[raster_obj == -9999.9999] <- NA
-  return(raster_obj)
-})
-
-# Graceful handling of partially available data
-# For example, if only some months are available in a date range
-```
-
 #### Temporary File Management
 ```{r}
-# Automatic cleanup of temporary files
-unlink(tempdir(), recursive = TRUE)
-
 # Proper resource allocation and deallocation
 on.exit(raster::removeTmpFiles(h=0))
 ```
@@ -378,7 +354,7 @@ if (bbox_area > area_threshold) {
 If you encounter errors, try these common solutions:
 
 1. **Memory errors**: Increase grid size or use resampling
-2. **Connection timeouts**: Check internet connection and try again later
+2. **Connection timeouts**: Check internet connection 
 3. **Missing data**: Verify date ranges are valid for the selected dataset
 4. **Invalid geometries**: Clean your shapefile using `sf::st_make_valid()`
 5. **Projection errors**: Ensure input data has defined coordinate systems
