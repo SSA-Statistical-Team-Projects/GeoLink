@@ -11,8 +11,7 @@ issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geoli
 <!-- badges: end -->
 
 GeoLink is an R package that provides easy access to various geospatial
-datasets, allowing seamless integration with your spatial data or
-household surveys.
+datasets, allowing seamless integration with your spatial data or surveys.
 
 ## 📋 Table of Contents
 
