@@ -1,6 +1,6 @@
 # GeoLink 🌍
 
-[![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)]()
+[![R-CMD-check](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub issues](https://img.shields.io/github/issues/your-username/geolink)]()
 
