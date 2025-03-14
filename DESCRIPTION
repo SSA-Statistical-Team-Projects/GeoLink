@@ -42,11 +42,11 @@ Imports:
     stringr,
     terra,
     tools,
-    units
-Suggests:
-    testthat (>= 3.0.0),
+    units,
     crsuggest,
     dbscan
+Suggests:
+    testthat (>= 3.0.0)
 Depends: 
     R (>= 2.10)
 SystemRequirements: Python (>= 3.7)
