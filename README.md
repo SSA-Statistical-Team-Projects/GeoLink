@@ -43,8 +43,8 @@ Download and process:
 - Points of Interest (OpenStreetMap)
 - Electrification access data (HREA)
 - OpenCellID data
-- Pollution
-- Vegetation Index
+- Pollution data
+- Vegetation Index data
 
 ## 🚀 Installation
 
