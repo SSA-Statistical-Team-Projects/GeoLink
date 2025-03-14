@@ -2026,24 +2026,18 @@ geolink_opencellid <- function(cell_tower_file,
   resolution = 1000
   name_set = "cell_towers"
 
-  # Create memoised version of the function
   read_opencellid_data_cached <- memoise::memoise(read_opencellid_data)
 
-  # Process input geometry
   if (!is.null(survey_dt)) {
     if (!inherits(survey_dt, "sf")) {
-      # Check if there's a geometry column
       if ("geometry" %in% names(survey_dt)) {
-        # Convert to sf object using existing geometry column
         sf_obj <- st_as_sf(survey_dt)
       } else if (!is.null(survey_lat) && !is.null(survey_lon)) {
-        # Convert using coordinate columns if provided
         if (!(survey_lat %in% names(survey_dt)) || !(survey_lon %in% names(survey_dt))) {
           stop(sprintf("Coordinate columns '%s' and '%s' not found in survey data",
                        survey_lat, survey_lon))
         }
 
-        # Convert to sf object efficiently
         sf_obj <- st_as_sf(survey_dt,
                            coords = c(survey_lon, survey_lat),
                            crs = survey_crs,
@@ -2061,16 +2055,13 @@ geolink_opencellid <- function(cell_tower_file,
       stop("Both survey_lat and survey_lon column names must be provided when using survey_fn")
     }
 
-    # Read survey file using appropriate method
     original_data <- read_survey_data(survey_fn)
 
-    # Check if coordinate columns exist
     if (!(survey_lat %in% names(original_data)) || !(survey_lon %in% names(original_data))) {
       stop(sprintf("Coordinate columns '%s' and '%s' not found in survey file",
                    survey_lat, survey_lon))
     }
 
-    # Convert to sf object efficiently
     sf_obj <- st_as_sf(original_data,
                        coords = c(survey_lon, survey_lat),
                        crs = survey_crs,
@@ -2082,8 +2073,8 @@ geolink_opencellid <- function(cell_tower_file,
     sf_obj <- shp_dt
     original_data <- as.data.table(st_drop_geometry(shp_dt))
   } else if (!is.null(shp_fn)) {
-    # Read shapefile
-    sf_obj <- st_read(shp_fn, quiet = TRUE)
+
+        sf_obj <- st_read(shp_fn, quiet = TRUE)
     original_data <- as.data.table(st_drop_geometry(sf_obj))
   } else {
     stop("Please provide either shapefile data or survey data with coordinate columns")
@@ -2092,24 +2083,21 @@ geolink_opencellid <- function(cell_tower_file,
   # Keep a copy of original geometry without any transformation
   original_sf_obj <- sf_obj
 
-  # Handle buffering if needed
+  # Use 3857 for buffering (metric) then convert to 4326 (degrees)
   if (!is.null(buffer_size)) {
     sf_obj <- st_transform(sf_obj, 3857) %>%
       st_buffer(buffer_size) %>%
       st_transform(4326)
   }
 
-  # Ensure CRS is 4326
   if (st_crs(sf_obj)$epsg != 4326) {
     sf_obj <- st_transform(sf_obj, 4326)
   }
 
-  # Load cell tower data efficiently
   message("Reading cell tower data...")
   cell_towers <- read_opencellid_data_cached(cell_tower_file)
   message(sprintf("Read %d cell towers", nrow(cell_towers)))
 
-  # Convert cell towers to sf object efficiently
   cell_towers_sf <- st_as_sf(cell_towers,
                              coords = c("lon", "lat"),
                              crs = 4326,
@@ -2118,10 +2106,8 @@ geolink_opencellid <- function(cell_tower_file,
   # Create spatial index for efficiency
   cell_towers_sf <- st_sf(cell_towers_sf)
 
-  # Get bounding box of input geometries
   bbox <- st_bbox(sf_obj)
 
-  # Filter cell towers by bounding box first
   cell_towers_filtered <- cell_towers_sf[st_intersects(
     cell_towers_sf,
     st_as_sfc(bbox),
@@ -2130,14 +2116,10 @@ geolink_opencellid <- function(cell_tower_file,
 
   if (nrow(cell_towers_filtered) == 0) {
     warning("No cell towers found in the area enclosed by the bounding box.")
-    # Directly count towers (will all be zero)
     num_towers <- rep(0, nrow(original_sf_obj))
   } else {
     message(sprintf("Found %d cell towers within bounding box", nrow(cell_towers_filtered)))
-
-    # Try using the raster-based approach
     tryCatch({
-      # Add count column to cell_towers_filtered
       cell_towers_filtered$tower_count <- 1
 
       # Convert cell tower points to raster
@@ -2147,14 +2129,12 @@ geolink_opencellid <- function(cell_tower_file,
         agg_fun = sum
       )
 
-      # Create a list of rasters to pass to postdownload_processor
       raster_objs <- list(cell_towers_raster)
       names(raster_objs) <- name_set
 
-      # Process rasters using postdownload_processor
       result <- postdownload_processor(
         raster_objs = raster_objs,
-        survey_dt = NULL,  # Don't pass survey_dt to avoid confusion
+        survey_dt = NULL,
         survey_fn = NULL,
         survey_lat = NULL,
         survey_lon = NULL,
@@ -2162,7 +2142,7 @@ geolink_opencellid <- function(cell_tower_file,
         buffer_size = buffer_size,
         survey_crs = survey_crs,
         name_set = name_set,
-        shp_dt = original_sf_obj,  # Use the original sf object
+        shp_dt = original_sf_obj,
         shp_fn = NULL,
         grid_size = grid_size
       )
@@ -2172,7 +2152,6 @@ geolink_opencellid <- function(cell_tower_file,
       }
 
       if (!is.null(result) && name_set %in% colnames(result)) {
-        # Extract the results and return
         original_data[[name_set]] <- result[[name_set]]
         return(original_data)
       } else {
@@ -2182,11 +2161,9 @@ geolink_opencellid <- function(cell_tower_file,
       warning(paste("Error in raster processing:", e$message))
     })
 
-    # If we're here, we need to fall back to direct counting
     num_towers <- lengths(st_intersects(original_sf_obj, cell_towers_filtered, sparse = TRUE))
   }
 
-  # Add tower counts to original data
   original_data[[name_set]] <- num_towers
 
   return(original_data)
