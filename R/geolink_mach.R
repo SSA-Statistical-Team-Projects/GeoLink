@@ -1551,6 +1551,7 @@ geolink_terraclimate <- function(var,
 #'
 
 # Main function
+
 geolink_get_poi <- function(osm_key,
                             osm_value = NULL,
                             shp_dt = NULL,
@@ -1569,7 +1570,6 @@ geolink_get_poi <- function(osm_key,
   timeout = 300
   area_threshold = 1
 
-  # Validate OSM key-value pairs
   if (!osm_key %in% available_features()) {
     stop(sprintf("'%s' is not a valid OSM key", osm_key))
   }
@@ -1580,18 +1580,15 @@ geolink_get_poi <- function(osm_key,
     }
   }
 
-  # Set CRS to 4326 if data is provided as survey_dt
   if (!is.null(survey_dt)) {
     survey_dt <- ensure_crs_4326(survey_dt)
   }
 
-  # Handle survey file input and projection
   if (!is.null(survey_fn)) {
     if (is.null(survey_lat) || is.null(survey_lon)) {
       stop("Both survey_lat and survey_lon must be provided when using survey_fn")
     }
 
-    # Read the survey file
     tryCatch({
       if (grepl("\\.dta$", survey_fn)) {
         survey_dt <- haven::read_dta(survey_fn)
@@ -1602,18 +1599,15 @@ geolink_get_poi <- function(osm_key,
       stop(sprintf("Error reading survey file: %s", e$message))
     })
 
-    # Convert to sf object with specified projection
     survey_dt <- st_as_sf(survey_dt,
                           coords = c(survey_lon, survey_lat),
                           crs = survey_crs)
 
-    # Transform to EPSG:4326 if needed
     if (st_crs(survey_dt)$epsg != 4326) {
       survey_dt <- st_transform(survey_dt, 4326)
     }
   }
 
-  # Process input data using helper functions
   if (!is.null(shp_dt)) {
     sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
       ensure_crs_4326()
@@ -1636,7 +1630,6 @@ geolink_get_poi <- function(osm_key,
   # Keep original sf object
   original_sf_obj <- sf_obj
 
-  # Validate input data
   if (nrow(sf_obj) == 0) {
     stop("Input data is empty after filtering")
   }
@@ -1649,7 +1642,6 @@ geolink_get_poi <- function(osm_key,
   options(warn = -1)
   on.exit(options(warn = oldw))
 
-  # Get bounding box
   bbox <- st_bbox(sf_obj)
   bbox_area <- (bbox["xmax"] - bbox["xmin"]) * (bbox["ymax"] - bbox["ymin"])
 
@@ -1674,15 +1666,7 @@ geolink_get_poi <- function(osm_key,
       process_bbox_quadrant(quad_bbox, osm_key, osm_value)
     })
 
-    # Remove NULL results
-    results_list <- results_list[!sapply(results_list, is.null)]
 
-    if (length(results_list) == 0) {
-      message("No results found in any quadrant")
-      return(NULL)
-    }
-
-    # Get union of all column names
     all_cols <- unique(unlist(lapply(results_list, names)))
 
     # Ensure all data frames have the same columns
@@ -1696,7 +1680,6 @@ geolink_get_poi <- function(osm_key,
       return(df[, all_cols])
     })
 
-    # Combine results
     poi_data <- do.call(rbind, results_list)
 
     # Remove any quadrant identifier columns
@@ -1718,7 +1701,6 @@ geolink_get_poi <- function(osm_key,
       filter(if_any(-c(osm_id, geometry), ~ !is.na(.x)))
   }
 
-  # Check if results exist
   if (is.null(poi_data) || nrow(poi_data) == 0) {
     message("No points of interest found in the specified area")
     return(NULL)
@@ -1726,16 +1708,12 @@ geolink_get_poi <- function(osm_key,
 
   message(sprintf("Found %d points of interest", nrow(poi_data)))
 
-  # Store the original POI data
   original_poi_data <- poi_data
 
-  # Process with point_sf_to_raster and postdownload_processor
   message("Converting POI points to raster...")
 
-  # Add poi_count column for rasterization
   poi_data$poi_count <- 1
 
-  # Convert POI points to raster
   tryCatch({
     poi_raster <- point_sf_to_raster(
       point_sf = poi_data,
@@ -1744,13 +1722,10 @@ geolink_get_poi <- function(osm_key,
       agg_fun = sum
     )
 
-    # Create raster objects list for postdownload_processor
     name_set <- "poi_density"
     raster_objs <- list(poi_raster)
     names(raster_objs) <- name_set
 
-    # Process with postdownload_processor
-    message("Processing with postdownload_processor...")
     processed_result <- postdownload_processor(
       raster_objs = raster_objs,
       survey_dt = NULL,
@@ -1772,10 +1747,8 @@ geolink_get_poi <- function(osm_key,
     processed_result <- NULL
   })
 
-  # Join original POI data with input geometries regardless of raster processing
   query_dt <- st_join(original_poi_data, sf_obj, left = FALSE)
 
-  # Check results
   if (nrow(query_dt) == 0) {
     message("No points of interest found in the specified area")
     return(NULL)
@@ -1783,7 +1756,6 @@ geolink_get_poi <- function(osm_key,
     message(sprintf("Retained %d points of interest after spatial join", nrow(query_dt)))
   }
 
-  # Clean up column names
   cols_to_remove <- c("quadrant", "id", "poi_count")
   for (col in cols_to_remove) {
     if (col %in% names(query_dt)) {
@@ -1791,7 +1763,6 @@ geolink_get_poi <- function(osm_key,
     }
   }
 
-  # Final cleanup of any quadrant-related columns
   cols_to_keep <- names(query_dt)[!grepl("^q[1-4]\\.", names(query_dt))]
   query_dt <- query_dt[, cols_to_keep]
 
