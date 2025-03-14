@@ -45,8 +45,7 @@ Imports:
     units,
     crsuggest,
     dbscan,
-    dplyr,
-    stac
+    dplyr
 Suggests:
     testthat (>= 3.0.0)
 Depends: 

@@ -237,7 +237,7 @@ geolink_chirps <- function(time_unit = NULL,
 #' }
 #
 #' @export
-#' @import rstac stac
+#' @import rstac
 #' @importFrom rstac stac items_sign
 #' @importFrom reticulate py_eval source_python
 #' @importFrom terra rast crs project ext
@@ -941,7 +941,7 @@ geolink_buildings <- function(version,
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
-#' @import rstac stac
+#' @import rstac
 #' @importFrom httr GET http_type write_disk
 #' @importFrom rstac stac items_sign
 #' @importFrom terra rast crs project ext nlyr time tapp
@@ -1754,7 +1754,7 @@ geolink_get_poi <- function(osm_key,
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#' @import rstac stac
+#' @import rstac
 #' @importFrom rstac stac items_sign
 #' @importFrom terra rast crs project ext
 #' @importFrom sf st_bbox st_transform st_as_sf st_geometry
