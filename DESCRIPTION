@@ -44,7 +44,9 @@ Imports:
     tools,
     units,
     crsuggest,
-    dbscan
+    dbscan,
+    dplyr,
+    stac
 Suggests:
     testthat (>= 3.0.0)
 Depends: 
