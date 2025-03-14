@@ -65,21 +65,6 @@ run_geolink <- function(
         survey_crs = 4326
       )
     ),
-    "landcover" = list(
-      description = "Download annual land use land cover data",
-      required = c("start_date", "end_date", "shp_dt"),
-      optional = list(
-        use_resampling = FALSE,
-        grid_size = 1000,
-        survey_dt = NULL,
-        survey_fn = NULL,
-        survey_lat = NULL,
-        survey_lon = NULL,
-        buffer_size = NULL,
-        survey_crs = 4326,
-        shp_fn = NULL
-      )
-    ),
     "population" = list(
       description = "Download population data from WorldPop",
       required = c("iso_code", "shp_dt"),
@@ -263,7 +248,6 @@ run_geolink <- function(
   data_functions <- list(
     "rainfall" = geolink_chirps,
     "nightlight" = geolink_ntl,
-    "landcover" = geolink_landcover,
     "population" = geolink_population,
     "poi" = geolink_get_poi,
     "electaccess" = geolink_electaccess,
