@@ -9,7 +9,7 @@ download_reader(url, ...)
 \arguments{
 \item{url}{a link URL}
 
-\item{...}{additional arguments to be used in `download.file()`}
+\item{...}{additional arguments to be used in \code{download.file()}}
 }
 \description{
 A function to download and read in a file from the internet

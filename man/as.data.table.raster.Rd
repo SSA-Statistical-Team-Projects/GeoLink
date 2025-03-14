@@ -14,15 +14,15 @@
 )
 }
 \arguments{
-\item{x}{an object of class `raster`.}
+\item{x}{an object of class \code{raster}.}
 
 \item{row.names}{(optional) Names for the rows.}
 
-\item{optional}{(optional) Logical. If `TRUE`, setting row names in the output is optional.}
+\item{optional}{(optional) Logical. If \code{TRUE}, setting row names in the output is optional.}
 
-\item{xy}{(optional) Logical. If `TRUE`, include coordinates of raster cells in the output.}
+\item{xy}{(optional) Logical. If \code{TRUE}, include coordinates of raster cells in the output.}
 
-\item{inmem}{(optional) Logical. If `TRUE`, process the raster in memory. Default is determined by `raster::canProcessInMemory()`.}
+\item{inmem}{(optional) Logical. If \code{TRUE}, process the raster in memory. Default is determined by \code{raster::canProcessInMemory()}.}
 
 \item{...}{Additional arguments (none)}
 }

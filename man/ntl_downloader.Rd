@@ -32,7 +32,7 @@ ntl_downloader(
 
 \item{data_url}{character, the data url}
 
-\item{shp_dt}{`sf`, `data.frame`, the shapefile object}
+\item{shp_dt}{\code{sf}, \code{data.frame}, the shapefile object}
 }
 \description{
 An deprecated function used to download NTL rasters from the EOG website

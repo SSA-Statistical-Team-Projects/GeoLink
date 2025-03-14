@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub issues](https://img.shields.io/github/issues/your-username/geolink)]()
 
-GeoLink is an R package that provides easy access to various geospatial datasets, allowing seamless integration with your spatial data or surveys.
+GeoLink is an R package that provides easy access to various geospatial datasets, allowing seamless integration with your spatial data or household surveys.
 
 ## 📋 Table of Contents
 - [Features](#features)
@@ -53,7 +53,7 @@ library(GeoLink)
 
 Most functions require either:
 - A shapefile (`shp_dt` or `shp_fn`)
-- OR a survey dataset (`survey_dt` or `survey_fn`) with coordinates
+- OR a household survey dataset (`survey_dt` or `survey_fn`) with coordinates
 
 ## 🗺️ Data Visualization Examples
 
@@ -282,4 +282,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 Project Link: [https://github.com/SSA-Statistical-Team-Projects/GeoLink](https://github.com/SSA-Statistical-Team-Projects/GeoLink)
 
 ---
-Made with ❤️ by [Your Name/Organization]
+Made with ❤️ by [DECCS]

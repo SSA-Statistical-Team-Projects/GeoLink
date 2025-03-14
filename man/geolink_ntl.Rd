@@ -63,7 +63,7 @@ if use survey is TRUE)}
 
 \item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.}
 
-\item{buffer_size}{A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.}
+\item{buffer_size}{A numeric, the size of the buffer for \code{survey_dt} or \code{survey_fn} in meters.}
 
 \item{survey_crs}{A numeric, the default is 4326
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
@@ -75,17 +75,17 @@ by the user
 }
 \details{
 NTL data is sourced from the NASA's Earth Observation Group database.
-The data is extracted into `shp_dt` shapefile object. An added service for tesselating/gridding
-the `shp_dt` is also provided if `grid_size` is specified for further analytics that require
+The data is extracted into \code{shp_dt} shapefile object. An added service for tesselating/gridding
+the \code{shp_dt} is also provided if \code{grid_size} is specified for further analytics that require
 equal specified area zonal statistics. Shapefile estimates at the grid or native polygon level is a
-permitted final output. Also, if `survey_dt` is not NULL, the user may compute luminosity within
-neighborhood of a household given a specified `buffer_size`. The function draw polygons around
-household locations of `buffer_size` with zonal statistics computed as formerly described.
+permitted final output. Also, if \code{survey_dt} is not NULL, the user may compute luminosity within
+neighborhood of a household given a specified \code{buffer_size}. The function draw polygons around
+household locations of \code{buffer_size} with zonal statistics computed as formerly described.
 The function is also set up for stata users and allows the user to pass file paths for the
-household survey `survey_fn` (with the lat and long variable names `survey_lon` and `survey_lat`)
-as well. This is requires a .dta file which is read in with `haven::read_dta()` package.
-Likewise, the user is permitted to pass a filepath for the location of the shapefile `shp_fn`
-which is read in with the `sf::read_sf()` function.
+household survey \code{survey_fn} (with the lat and long variable names \code{survey_lon} and \code{survey_lat})
+as well. This is requires a .dta file which is read in with \code{haven::read_dta()} package.
+Likewise, the user is permitted to pass a filepath for the location of the shapefile \code{shp_fn}
+which is read in with the \code{sf::read_sf()} function.
 }
 \examples{
 

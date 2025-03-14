@@ -11,6 +11,13 @@
 #' @export
 #' @import sf
 #' @importFrom methods is
+#'
+#' #' @examples
+#' \donttest{
+#'
+#'  #example usage
+
+#' }
 
 run_geolink <- function(
     data_type,
@@ -99,10 +106,14 @@ run_geolink <- function(
       required = c("osm_key", "shp_dt"),
       optional = list(
         osm_value = NULL,
-        buffer = NULL,
+        shp_fn = NULL,
         survey_dt = NULL,
         survey_fn = NULL,
-        stata = FALSE
+        survey_lat = NULL,
+        survey_lon = NULL,
+        buffer_size = NULL,
+        survey_crs = NULL,
+        grid_size = NULL
       )
     ),
     "electaccess" = list(
@@ -201,9 +212,13 @@ run_geolink <- function(
       description = "Download cell tower data from OpenCellID",
       required = c("cell_tower_file", "shp_dt"),
       optional = list(
-        grid_size = 1000,
+        shp_fn = NULL,
         survey_dt = NULL,
-        survey_fn = NULL
+        survey_fn = NULL,
+        survey_lat = NULL,
+        survey_lon = NULL,
+        buffer_size = NULL,
+        survey_crs = 4326
       )
     ),
     "terraclimate" = list(

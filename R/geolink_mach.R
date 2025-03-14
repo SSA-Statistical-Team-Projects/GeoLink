@@ -47,13 +47,23 @@
 #' \donttest{
 #'
 #'
-#' #quick example
+#' #examples
 #' df <- geolink_chirps(time_unit = "month",
 #'                      start_date = "2020-01-01",
 #'                      end_date = "2020-03-01",
 #'                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
 #'                      grid_size = 1000,
 #'                      survey_dt = hhgeo_dt,
+#'                      extract_fun = "mean")
+#'
+#'
+#' df <- geolink_chirps(time_unit = "month",
+#'                      start_date = "2020-01-01",
+#'                      end_date = "2020-02-01",
+#'                      survey_fn = "testdata/xy_hhgeo_dt.dta",
+#'                      survey_lat = "y",
+#'                      survey_lon = "x",
+#'                      buffer_size = 1000,
 #'                      extract_fun = "mean")
 #'
 #' }
@@ -372,6 +382,12 @@ geolink_ntl <- function(time_unit = "annual",
 #' @importFrom geodata elevation_30s
 #' @importFrom httr GET write_disk http_type
 #'
+#' @import terra
+#' @import raster
+#' @import sf
+#' @import geodata
+#' @import httr
+#'
 #' @examples
 #'\donttest{
 #'
@@ -409,7 +425,14 @@ geolink_population <- function(start_year = NULL,
                                survey_crs = 4326,
                                file_location = tempdir()) {
 
+  clear_temp = TRUE
 
+  # Clear temporary directory if requested and if it's the default tempdir()
+  if (clear_temp && file_location == tempdir()) {
+    message("Clearing temporary directory...")
+    temp_files <- list.files(tempdir(), full.names = TRUE)
+    unlink(temp_files, recursive = TRUE, force = TRUE)
+  }
 
   if (!dir.exists(file_location)) {
     dir.create(file_location, recursive = TRUE)
@@ -451,16 +474,16 @@ geolink_population <- function(start_year = NULL,
       url1 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/BSGM/", iso_code, "/")
       url2 <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020_Constrained/2020/maxar_v1/", iso_code, "/")
 
-      file_urls <- try_download(url1)
+      file_urls <- try_download(url1, UN_adjst)
       if (is.null(file_urls)) {
-        file_urls <- try_download(url2)
+        file_urls <- try_download(url2, UN_adjst)
       }
 
       file_urls <- file_urls[grepl(iso_code, file_urls, ignore.case = TRUE) &
                                grepl("ppp", file_urls, ignore.case = TRUE) &
                                grepl(year_pattern, file_urls)]
       if (!is.null(file_urls)) {
-        download_files_worldpop(file_urls, UN_adjst, file_location)
+        download_files_worldpop(file_urls, file_location)
       } else {
         warning("No files found at both URLs.")
       }
@@ -469,18 +492,46 @@ geolink_population <- function(start_year = NULL,
         url <- paste0("https://data.worldpop.org/repo/wopr/", iso_code,
                       "/population/v", version, "/", iso_code, "_population_v",
                       gsub("\\.", "_", version), "_mastergrid.tif")
-        download.file(url, file.path(file_location, basename(url)))
+
+        # Use httr_download instead of download.file
+        dest_file <- file.path(file_location, basename(url))
+        download_status <- httr_download(url, dest_file)
+
+        if (!download_status) {
+          warning(paste("Failed to download file from URL:", url))
+        }
       } else {
         if (!is.null(start_year) && !is.null(end_year)) {
           for (year in years) {
             url <- paste0("https://data.worldpop.org/GIS/Population/Global_2000_2020/", year, "/", iso_code, "/")
 
-            file_urls <- try_download(url)
+            # Pass UN_adjst parameter to try_download to filter files appropriately
+            file_urls <- try_download(url, UN_adjst)
 
             if (!is.null(file_urls)) {
-              download_files_worldpop(file_urls, UN_adjst, file_location)
+              # We've already filtered based on UN_adjst, so no need to pass it again
+              download_files_worldpop(file_urls, file_location)
             } else {
-              warning(paste("No files found for year", year, "at URL", url))
+              # Try direct URL construction as a fallback
+              if (!is.null(UN_adjst)) {
+                direct_url <- if(UN_adjst == "Y") {
+                  paste0(url, tolower(iso_code), "_ppp_", year, "_UNadj.tif")
+                } else {
+                  paste0(url, tolower(iso_code), "_ppp_", year, ".tif")
+                }
+
+                if(check_url_status(direct_url)) {
+                  dest_file <- file.path(file_location, basename(direct_url))
+                  download_status <- httr_download(direct_url, dest_file)
+                  if (!download_status) {
+                    warning(paste("Failed to download file from direct URL:", direct_url))
+                  }
+                } else {
+                  warning(paste("No files found for year", year, "at URL", url, "with UN_adjst =", UN_adjst))
+                }
+              } else {
+                warning(paste("No files found for year", year, "at URL", url))
+              }
             }
           }
         }
@@ -558,14 +609,27 @@ geolink_population <- function(start_year = NULL,
   print("Process Complete!!!")
 
   return(dt)
-  unlink(tempdir(), recursive = TRUE)
 }
-
 
 
 #' Download high resolution elevation data based on shapefile coordinates
 #'
-#' This function downloads high-resolution elevation data based on the coordinates provided by either a shapefile or a file path to a shapefile. It can also incorporate survey data for further analysis. The elevation data is downloaded using the `elevation_3s` function and post-processed using the `postdownload_processor` function.
+#' @details This function downloads high-resolution elevation data based on the coordinates
+#' provided by either a shapefile or a file path to a shapefile. It can also incorporate
+#' survey data for further analysis. The elevation data is downloaded using the `elevation_3s` function
+#' and post-processed using the `postdownload_processor` function. The data is extracted into a shapefile
+#' provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @param iso_code A character, specifying the iso code for country to download data from
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
@@ -673,7 +737,22 @@ geolink_elevation <- function(iso_code,
 
 #' Download high resolution building data from WorldPop
 #'
-#' This function downloads high-resolution building data from WorldPop based on the specified version and ISO country code. It can incorporate survey data for further analysis. The building data is downloaded as raster files and can be processed and analyzed using the `postdownload_processor` function.
+#' @details This function downloads high-resolution building data from WorldPop based
+#' on the specified version and ISO country code. It can incorporate survey data
+#' for further analysis. The building data is downloaded as raster files and can
+#' be processed and analyzed using the `postdownload_processor` function.The data is extracted into
+#' a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @param version A character, the version of the building data to download. Options are "v1.1" and "v2.0".
 #' @param iso_code A character, the ISO country code for the country of interest.
@@ -767,7 +846,6 @@ geolink_buildings <- function(version,
   }
 
 
-
   tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
 
 
@@ -827,9 +905,22 @@ geolink_buildings <- function(version,
 
 #' Download CMIP6 climate model data
 #'
-#' This function downloads and processes CMIP6 (Coupled Model Intercomparison Project Phase 6)
+#' @details This function downloads and processes CMIP6 (Coupled Model Intercomparison Project Phase 6)
 #' climate model data for a specific scenario and desired model.
 #' It allows for further analysis of the data in conjunction with geographic data.
+#' Please see x for the full list of possible models and scenarios which can be downloaded.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
@@ -911,8 +1002,6 @@ geolink_CMIP6 <- function(start_date,
     print("Input a valid sf object or geosurvey")
     sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
   }
-
-
 
   # Set date range
   start_date <- as.Date(start_date)
@@ -1041,7 +1130,21 @@ geolink_CMIP6 <- function(start_date,
 
 #' Download cropland data
 #'
-#' This function downloads cropland data from a specified source, such as WorldCover. It allows for further analysis of cropland distribution in a given area.
+#' @details This function downloads cropland data from a specified source, such as WorldCover.
+#' It allows for further analysis of cropland distribution in a given area.
+#' The source of the dataset is X.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @param source A character, the source of cropland data. Default is "WorldCover".
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
@@ -1067,8 +1170,7 @@ geolink_CMIP6 <- function(start_date,
 #' \donttest{
 #'
 #'  #example usage
-#'df <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN
-#'                                 ==  "Abia",],
+#'df <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
 #'                 grid_size = 1000,
 #'                 extract_fun = "mean")
 #' }
@@ -1126,7 +1228,20 @@ geolink_cropland <- function(source = "WorldCover",
 
 #' Download WorldClim climate data
 #'
-#' This function downloads WorldClim climate data for a specific variable and resolution. It allows for further analysis of climate patterns in a given area.
+#' @details This function downloads WorldClim climate data for a specific variable and resolution.
+#' It allows for further analysis of climate patterns in a given area.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @param iso_code A character, specifying the iso code for country to download data from
 #' @param var A character, the variable of interest (e.g., "temperature", "precipitation").
@@ -1156,8 +1271,7 @@ geolink_cropland <- function(source = "WorldCover",
 #'df <- geolink_worldclim(iso_code ="NGA",
 #'                  var='tmax',
 #'                  res=2.5,
-#'                  shp_dt = shp_dt[shp_dt$ADM1_EN
-#'                                  == "Abia",],
+#'                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                  grid_size = 1000,
 #'                  extract_fun = "mean")
 #' }
@@ -1202,15 +1316,11 @@ geolink_worldclim <- function(iso_code,
    raster_list <- lapply(1:terra::nlyr(rasters_combined),
                          function(i) rasters_combined[[i]])
 
-
   name_set <- c()
 
   num_layers <- terra::nlyr(rasters_combined)
-  print(raster_list)
 
   months <- month.abb
-  print(months)
-
 
   name_set <- paste0(iso_code,"_WC_", var, "_", months)
 
@@ -1241,7 +1351,20 @@ geolink_worldclim <- function(iso_code,
 
 #' Download Terraclimate data
 #'
-#' This function downloads Terraclimate data for a specific variable and year. It allows for further analysis of climate patterns in a given area.
+#' @details This function downloads Terraclimate data for a specific variable and year.
+#' It allows for further analysis of climate patterns in a given area.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @param var A character, the variable of interest (e.g., "temperature", "precipitation").
 #' @param year A numeric, the year for which data is to be downloaded.
@@ -1261,7 +1384,7 @@ geolink_worldclim <- function(iso_code,
 #'
 #' @importFrom terra rast crs nlyr
 #' @importFrom sf st_bbox st_transform
-#' @importFrom httr GET http_type write_disk timeout http_status
+#' @importFrom httr GET timeout http_status content
 #' @importFrom ncdf4 nc_open nc_close
 #'
 #' @examples
@@ -1270,13 +1393,11 @@ geolink_worldclim <- function(iso_code,
 #'  #example usage
 #'df <- geolink_terraclimate( var='tmax',
 #'                                year = 2017,
-#'                                 shp_dt = shp_dt[shp_dt$ADM1_EN
-#'                                                 == "Abia",],
+#'                                 shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                                 grid_size = 1000,
 #'                                 extract_fun = "mean")
 #' }
 #'@export
-
 geolink_terraclimate <- function(var,
                                  year,
                                  shp_dt = NULL,
@@ -1289,37 +1410,41 @@ geolink_terraclimate <- function(var,
                                  buffer_size = NULL,
                                  extract_fun = "mean",
                                  survey_crs = 4326) {
+  # Add httr package
+  if (!requireNamespace("httr", quietly = TRUE)) {
+    stop("Package 'httr' is needed for this function to work. Please install it.")
+  }
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  # Ensure CRS is 4326 for both shapefile and survey data if they exist
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  }
 
   # Generate URL
   url <- paste0("http://thredds.northwestknowledge.net:8080/thredds/fileServer/TERRACLIMATE_ALL/data/TerraClimate_", var, "_", year, ".nc")
-
   # Extract the filename from the URL
   filename <- basename(url)
-
   # Create the destination path
   destination_dir <- tempdir()
   destination <- file.path(destination_dir, filename)
-
   # Ensure the temporary directory exists
   if (!dir.exists(destination_dir)) {
     dir.create(destination_dir, recursive = TRUE)
   }
-
   # Set the timeout
   timeout_seconds <- 240
-
   # Print the URL for debugging purposes
   print(paste("URL:", url))
-
   # Perform the GET request
   response <- try(GET(url, timeout(timeout_seconds)), silent = TRUE)
-
   # Check if the GET request was successful
   if (inherits(response, "try-error")) {
     print("Error performing the GET request.")
+    return(NULL)  # Added return to prevent further processing on failure
   } else if (http_status(response)$category == "Success") {
     # Write the content to a file if the status code is 200
     tryCatch({
@@ -1328,37 +1453,24 @@ geolink_terraclimate <- function(var,
       print(paste("File saved to:", destination))
     }, error = function(e) {
       print(paste("Error writing the file:", e$message))
+      return(NULL)  # Added return to prevent further processing on file write error
     })
-
-
-   # raster_stack <- stack(destination)
+    # raster_stack <- stack(destination)
     rasters_combined <- terra::rast(destination)
-
     # Check CRS and set it if necessary
-    if (is.na(crs(rasters_combined))) {
-      crs(rasters_combined) <- crs("+proj=longlat +datum=WGS84 +no_defs")
+    if (is.na(terra::crs(rasters_combined))) {
+      terra::crs(rasters_combined) <- "+proj=longlat +datum=WGS84 +no_defs"
     }
-
     #raster_list <- lapply(1:nlayers(raster_stack), function(i) raster_stack[[i]])
     raster_list <- lapply(1:terra::nlyr(rasters_combined), function(i) rasters_combined[[i]])
-
     #num_layers <- nlayers(raster_stack)
     num_layers <- terra::nlyr(rasters_combined)
-
     months <- month.abb
-
-
     name_set <- paste0(var, "_", months)
-
     # Set names for the raster layers
     names(raster_list) <- name_set
     print(paste("Names set for raster layers:", paste(names(raster_list), collapse = ", ")))
-
-
     print("Terraclimate Raster Downloaded")
-
-
-
     dt <- postdownload_processor(shp_dt = shp_dt,
                                  raster_objs = raster_list,
                                  shp_fn = shp_fn,
@@ -1371,17 +1483,15 @@ geolink_terraclimate <- function(var,
                                  buffer_size = buffer_size,
                                  survey_crs = survey_crs,
                                  name_set = name_set)
-
     print("Process Complete!!!")
-
+    # Clean up temp directory after successful processing
+    unlink(destination, force = TRUE)
     return(dt)
-    unlink(tempdir(), recursive = TRUE)
   } else {
     # Print the error status
     print(paste("Error downloading the file. Status code:", http_status(response)$status_code))
     return(NULL)
   }
-  unlink(tempdir(), recursive = TRUE)
 }
 
 #' Download points of interest from OSM data using open street maps API.
@@ -1398,9 +1508,16 @@ geolink_terraclimate <- function(var,
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
 #' @param grid_size A numeric, the grid size to be used as a buffer around survey points.
 #'
-#' @details
-#'
-#' Details for feature category and sub-category can be found here: https://wiki.openstreetmap.org/wiki/Map_features
+#' @details This function downloads open street maps (osm) datapoints based on osn_key and osm_value
+#' arguments passed to the function. The full details for osm_key and osm_value arguments
+#' can be found here: https://wiki.openstreetmap.org/wiki/Map_features. Either a shapefile, shapefile path,
+#' household survey or household survey path can be passed in as an area for analysis.
+#' The function works for shapefiles, however is also set up for stata users and allows the user to
+#' pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @importFrom osmdata available_features available_tags opq add_osm_feature osmdata_sf
 #' @importFrom sf st_bbox st_transform st_as_sf st_join st_geometry
@@ -1426,11 +1543,15 @@ geolink_terraclimate <- function(var,
 #' poi_shp = geolink_get_poi(osm_key = "amenity",
 #'                          shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
+#' poi_shp_fn = geolink_get_poi(osm_key = "amenity",
+#'                              shp_fn = "tests/testthat/testdata/shp_dt.shp")
+#'
 #'
 #'}
 #'
 
 # Main function
+
 geolink_get_poi <- function(osm_key,
                             osm_value = NULL,
                             shp_dt = NULL,
@@ -1442,11 +1563,13 @@ geolink_get_poi <- function(osm_key,
                             buffer_size = NULL,
                             survey_crs = NULL,
                             grid_size = NULL,
-                            max_retries = 3,
-                            timeout = 300,
-                            area_threshold = 1) {
+                            extract_fun = "mean") {
 
-  # Validate OSM key-value pairs
+  resolution = 1000
+  max_retries = 3
+  timeout = 300
+  area_threshold = 1
+
   if (!osm_key %in% available_features()) {
     stop(sprintf("'%s' is not a valid OSM key", osm_key))
   }
@@ -1457,19 +1580,15 @@ geolink_get_poi <- function(osm_key,
     }
   }
 
-  # Set CRS to 4326 if data is provided as survey_dt
   if (!is.null(survey_dt)) {
     survey_dt <- ensure_crs_4326(survey_dt)
   }
 
-
-  # Handle survey file input and projection
   if (!is.null(survey_fn)) {
     if (is.null(survey_lat) || is.null(survey_lon)) {
       stop("Both survey_lat and survey_lon must be provided when using survey_fn")
     }
 
-    # Read the survey file
     tryCatch({
       if (grepl("\\.dta$", survey_fn)) {
         survey_dt <- haven::read_dta(survey_fn)
@@ -1480,18 +1599,15 @@ geolink_get_poi <- function(osm_key,
       stop(sprintf("Error reading survey file: %s", e$message))
     })
 
-    # Convert to sf object with specified projection
     survey_dt <- st_as_sf(survey_dt,
                           coords = c(survey_lon, survey_lat),
                           crs = survey_crs)
 
-    # Transform to EPSG:4326 if needed
     if (st_crs(survey_dt)$epsg != 4326) {
       survey_dt <- st_transform(survey_dt, 4326)
     }
   }
 
-  # Process input data using helper functions
   if (!is.null(shp_dt)) {
     sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
       ensure_crs_4326()
@@ -1511,7 +1627,9 @@ geolink_get_poi <- function(osm_key,
     stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
   }
 
-  # Validate input data
+  # Keep original sf object
+  original_sf_obj <- sf_obj
+
   if (nrow(sf_obj) == 0) {
     stop("Input data is empty after filtering")
   }
@@ -1524,11 +1642,11 @@ geolink_get_poi <- function(osm_key,
   options(warn = -1)
   on.exit(options(warn = oldw))
 
-  # Get bounding box
   bbox <- st_bbox(sf_obj)
   bbox_area <- (bbox["xmax"] - bbox["xmin"]) * (bbox["ymax"] - bbox["ymin"])
 
   # Process based on area size
+  message("Fetching POI data...")
   if (bbox_area > area_threshold) {
     message("Large area detected. Splitting into quadrants...")
 
@@ -1548,15 +1666,7 @@ geolink_get_poi <- function(osm_key,
       process_bbox_quadrant(quad_bbox, osm_key, osm_value)
     })
 
-    # Remove NULL results
-    results_list <- results_list[!sapply(results_list, is.null)]
 
-    if (length(results_list) == 0) {
-      message("No results found in any quadrant")
-      return(NULL)
-    }
-
-    # Get union of all column names
     all_cols <- unique(unlist(lapply(results_list, names)))
 
     # Ensure all data frames have the same columns
@@ -1570,36 +1680,95 @@ geolink_get_poi <- function(osm_key,
       return(df[, all_cols])
     })
 
-    # Combine results
-    results <- do.call(rbind, results_list)
+    poi_data <- do.call(rbind, results_list)
+
+    # Remove any quadrant identifier columns
+    quadrant_cols <- grep("^q[1-4]\\.", names(poi_data), value = TRUE)
+    if (length(quadrant_cols) > 0) {
+      poi_data <- poi_data[, !names(poi_data) %in% quadrant_cols]
+    }
 
   } else {
     message("Processing area as single unit...")
     features <- get_osm_data(bbox, osm_key, osm_value, max_retries, timeout)
-    results <- features$osm_points %>%
+
+    if (is.null(features) || is.null(features$osm_points) || nrow(features$osm_points) == 0) {
+      message("No POI data found in the specified area")
+      return(NULL)
+    }
+
+    poi_data <- features$osm_points %>%
       filter(if_any(-c(osm_id, geometry), ~ !is.na(.x)))
   }
 
-  # Check if results exist
-  if (is.null(results)) {
+  if (is.null(poi_data) || nrow(poi_data) == 0) {
+    message("No points of interest found in the specified area")
     return(NULL)
   }
 
-  # Join results with input geometries
-  query_dt <- st_join(results, sf_obj, left = FALSE)
+  message(sprintf("Found %d points of interest", nrow(poi_data)))
 
-  # Check results
+  original_poi_data <- poi_data
+
+  message("Converting POI points to raster...")
+
+  poi_data$poi_count <- 1
+
+  tryCatch({
+    poi_raster <- point_sf_to_raster(
+      point_sf = poi_data,
+      crs = "EPSG:4326",
+      resolution = resolution,
+      agg_fun = sum
+    )
+
+    name_set <- "poi_density"
+    raster_objs <- list(poi_raster)
+    names(raster_objs) <- name_set
+
+    processed_result <- postdownload_processor(
+      raster_objs = raster_objs,
+      survey_dt = NULL,
+      survey_fn = NULL,
+      survey_lat = NULL,
+      survey_lon = NULL,
+      extract_fun = extract_fun,
+      buffer_size = buffer_size,
+      survey_crs = ifelse(is.null(survey_crs), 4326, survey_crs),
+      name_set = name_set,
+      shp_dt = original_sf_obj,
+      shp_fn = NULL,
+      grid_size = grid_size
+    )
+
+    message("Raster processing complete.")
+  }, error = function(e) {
+    warning(paste("Error in raster processing:", e$message))
+    processed_result <- NULL
+  })
+
+  query_dt <- st_join(original_poi_data, sf_obj, left = FALSE)
+
   if (nrow(query_dt) == 0) {
     message("No points of interest found in the specified area")
+    return(NULL)
   } else {
-    message(sprintf("Found %d points of interest", nrow(query_dt)))
+    message(sprintf("Retained %d points of interest after spatial join", nrow(query_dt)))
   }
 
-  message("OpenStreetMap data download complete!")
+  cols_to_remove <- c("quadrant", "id", "poi_count")
+  for (col in cols_to_remove) {
+    if (col %in% names(query_dt)) {
+      query_dt[[col]] <- NULL
+    }
+  }
 
+  cols_to_keep <- names(query_dt)[!grepl("^q[1-4]\\.", names(query_dt))]
+  query_dt <- query_dt[, cols_to_keep]
+
+  message("OpenStreetMap data download complete!")
   return(query_dt)
 }
-
 
 #' Download high resolution electrification access data from HREA
 #'
@@ -1617,9 +1786,21 @@ geolink_get_poi <- function(osm_key,
 #' @param survey_crs A numeric, the default is 4326
 #' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
 #'
-#' @details
-#'
-#' Details for the dataset can be found here: https://hrea.isr.umich.edu/
+#' @details This function downloads and processes the following electrification access indicators, lightscore,
+#' light-composite, nightime proportion and estimated brightness.
+#' Details for the dataset can be found here: https://hrea.isr.umich.edu/.
+#' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+#' the shapefile is also provided for users that need this data further analytics that require
+#' equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. However, a geocoded survey with population estimates are the end goal
+#' if the user also chooses. The function will merge shapefile polygons (either gridded or
+#' native polygons) with the location of the survey units i.e. population estimates for the
+#' locations of the units within the survey will be returned. The function is also set up for
+#' stata users and allows the user to pass file paths for the household survey `survey_fn`
+#' (with the lat and long variable names `survey_lon` and `survey_lat`) as well. This is requires
+#' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
+#' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
+#' `sf::read_sf()` function.
 #'
 #' @import rstac stac
 #' @importFrom rstac stac items_sign
@@ -1635,6 +1816,22 @@ geolink_get_poi <- function(osm_key,
 #' df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'   start_date = "2018-12-31", end_date = "2019-12-31")
 #'
+#' elect_shp_fn = geolink_electaccess(shp_fn = "tests/testthat/testdata/shp_dt.shp",
+#' start_date = "2018-12-31",
+#' end_date = "2019-12-31")
+#'
+#' elect_survey <- geolink_electaccess(
+#'  start_date = "2019-01-01",
+#'  end_date = "2019-12-31",
+#'  survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],
+#'  buffer_size = 1000)
+#'
+#' elect_survey_fn <- geolink_electaccess(start_date = "2019-01-01",
+#'                                       end_date = "2019-12-31",
+#'                                       survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
+#'                                       survey_lon = "x",
+#'                                       survey_lat = "y",
+#'                                       buffer_size = 1000)
 #' }
 #'
 
@@ -1811,8 +2008,12 @@ geolink_electaccess <- function(
 
 #' Download OpenCellID data
 #'
-#' This function processes downloaded OpenCellID data, which provides information about cell towers and their coverage areas.
-#' The return dataframe gives data of the nearest cell tower to the shapefile polygon centroid.
+#' @details This function processes downloaded OpenCellID data,
+#' which provides information about cell towers and their coverage areas.
+#' The return dataframe gives a count of cell towers within the shapefile area.
+#' For the function to run, the user will need to set up an account on www.opencellid.com and download the
+#' required csv.gz file for the country for which they wish to run the analysis. The file location of this
+#' dataset (csv.gz file) should then be passed into the cell_tower_file parameter. Please see example usage below/
 #'
 #' @param cell_tower_file A csv.gz file path downloaded from OpencellID.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
@@ -1837,8 +2038,24 @@ geolink_electaccess <- function(
 #' \donttest{
 #'
 #' # Example usage
-#' results <- geolink_opencellid(cell_tower_file = "C:/Users/username/Downloads/621.csv.gz",
-#'                              shp_dt = shp_dt)
+#' opencellid_shp <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#'                                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
+#'
+#'
+#' opencellid_shp_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#'                                         shp_fn = "tests/testthat/testdata/shp_dt.shp")
+#'
+#'
+#' opencellid_survey <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#'                                         buffer_size = 2000,
+#'                                         survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
+#'
+#'
+#' opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#'                                            buffer_size = 1000,
+#'                                            survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
+#'                                            survey_lon = "x",
+#'                                            survey_lat = "y")
 #' }
 #'
 
@@ -1959,3 +2176,5 @@ geolink_opencellid <- function(cell_tower_file,
 
   return(original_data)
 }
+
+

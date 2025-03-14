@@ -49,7 +49,23 @@ Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms"
 A processed data frame or object based on the input parameters and downloaded data.
 }
 \description{
-This function downloads Terraclimate data for a specific variable and year. It allows for further analysis of climate patterns in a given area.
+Download Terraclimate data
+}
+\details{
+This function downloads Terraclimate data for a specific variable and year.
+It allows for further analysis of climate patterns in a given area.
+The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+the shapefile is also provided for users that need this data further analytics that require
+equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+permitted final output. However, a geocoded survey with population estimates are the end goal
+if the user also chooses. The function will merge shapefile polygons (either gridded or
+native polygons) with the location of the survey units i.e. population estimates for the
+locations of the units within the survey will be returned. The function is also set up for
+stata users and allows the user to pass file paths for the household survey \code{survey_fn}
+(with the lat and long variable names \code{survey_lon} and \code{survey_lat}) as well. This is requires
+a .dta file which is read in with \code{haven::read_dta()} package. Likewise, the user is permitted
+to pass a filepath for the location of the shapefile \code{shp_fn} which is read in with the
+\code{sf::read_sf()} function.
 }
 \examples{
 \donttest{
@@ -57,8 +73,7 @@ This function downloads Terraclimate data for a specific variable and year. It a
  #example usage
 df <- geolink_terraclimate( var='tmax',
                                year = 2017,
-                                shp_dt = shp_dt[shp_dt$ADM1_EN
-                                                == "Abia",],
+                                shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                 grid_size = 1000,
                                 extract_fun = "mean")
 }

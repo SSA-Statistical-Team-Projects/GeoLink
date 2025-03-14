@@ -14,14 +14,14 @@ create_query_bbox(
 )
 }
 \arguments{
-\item{shp_dt}{`sf`, `data.frame`, a shapefile object with polygon geometry}
+\item{shp_dt}{\code{sf}, \code{data.frame}, a shapefile object with polygon geometry}
 
 \item{area_name}{character, the geographic name of the area of interest}
 
 \item{buffer_dist}{numeric, a numeric vector of length 4 for the distance from
-xmin, xmax, ymin and ymax to be added to the extent of `shp_dt`}
+xmin, xmax, ymin and ymax to be added to the extent of \code{shp_dt}}
 
-\item{metric_crs}{logical, default is FALSE. If TRUE, `shp_dt` posseses a metric
+\item{metric_crs}{logical, default is FALSE. If TRUE, \code{shp_dt} posseses a metric
 crs.}
 
 \item{osm_crs}{integer, the integer coordinate reference system for the OSM object}
