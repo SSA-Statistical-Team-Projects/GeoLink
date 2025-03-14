@@ -44,6 +44,7 @@
 #'
 #' @examples
 #'
+#' \dontrun{
 #' \donttest{
 #'
 #'
@@ -66,7 +67,7 @@
 #'                      buffer_size = 1000,
 #'                      extract_fun = "mean")
 #'
-#' }
+#' }}
 #'
 #' @export
 #' @importFrom raster raster stack brick crop projectRaster
@@ -204,6 +205,7 @@ geolink_chirps <- function(time_unit = NULL,
 #'
 #' @examples
 #'
+#' \dontrun{
 #' \donttest{
 #'
 #' #loading the survey data and shapefile
@@ -234,7 +236,7 @@ geolink_chirps <- function(time_unit = NULL,
 #'                  indicator = c("average_masked","cf_cvg"),
 #'                  extract_fun = "mean")
 #'
-#' }
+#' }}
 #
 #' @export
 #' @import rstac
@@ -376,20 +378,11 @@ geolink_ntl <- function(time_unit = "annual",
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#' @importFrom terra rast crs project ext
-#' @importFrom raster stack brick projectRaster
-#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
-#' @importFrom geodata elevation_30s
-#' @importFrom httr GET write_disk http_type
-#'
-#' @import terra
-#' @import raster
-#' @import sf
-#' @import geodata
-#' @import httr
 #'
 #' @examples
-#'\donttest{
+#'
+#' \dontrun{
+#' \donttest{
 #'
 #'
 #'
@@ -403,8 +396,19 @@ geolink_ntl <- function(time_unit = "annual",
 #'                            extract_fun = "mean",
 #'                            file_location = tempdir())
 #'
-#'}
-#'@export
+#' }}
+#' @export
+#' @importFrom terra rast crs project ext
+#' @importFrom raster stack brick projectRaster
+#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
+#' @importFrom geodata elevation_30s
+#' @importFrom httr GET write_disk http_type
+#'
+#' @import terra
+#' @import raster
+#' @import sf
+#' @import geodata
+#' @import httr
 
 geolink_population <- function(start_year = NULL,
                                end_year = NULL,
@@ -646,11 +650,10 @@ geolink_population <- function(start_year = NULL,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast crs project ext
-#' @importFrom sf st_bbox st_transform st_as_sf
-#' @importFrom geodata elevation_30s
 #'
 #' @examples
+#'
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage with shapefile
@@ -658,8 +661,11 @@ geolink_population <- function(start_year = NULL,
 #'                             shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                             grid_size = 1000,
 #'                             extract_fun = "mean")
-#' }
-#'@export
+#' }}
+#' @export
+#' @importFrom terra rast crs project ext
+#' @importFrom sf st_bbox st_transform st_as_sf
+#' @importFrom geodata elevation_30s
 
 geolink_elevation <- function(iso_code,
                               shp_dt=NULL,
@@ -771,12 +777,10 @@ geolink_elevation <- function(iso_code,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom httr GET http_type write_disk
-#' @importFrom terra rast crs project
-#' @importFrom raster projection projectRaster
-#' @importFrom sf st_transform st_as_sf st_bbox
 #'
 #' @examples
+#'
+#' \dontrun{
 #' \donttest{
 #'
 #' #example usage with version 1.1
@@ -786,9 +790,12 @@ geolink_elevation <- function(iso_code,
 #'                             indicators = "ALL",
 #'                             grid_size = 1000)
 #'
-#' }
+#' }}
 #' @export
-#'
+#' @importFrom httr GET http_type write_disk
+#' @importFrom terra rast crs project
+#' @importFrom raster projection projectRaster
+#' @importFrom sf st_transform st_as_sf st_bbox
 
 
 geolink_buildings <- function(version,
@@ -941,14 +948,10 @@ geolink_buildings <- function(version,
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
-#' @import rstac
-#' @importFrom httr GET http_type write_disk
-#' @importFrom rstac stac items_sign
-#' @importFrom terra rast crs project ext nlyr time tapp
-#' @importFrom sf st_bbox st_transform st_as_sf
-#' @importFrom progress progress_bar
 #'
 #' @examples
+#'
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage
@@ -958,9 +961,15 @@ geolink_buildings <- function(version,
 #'                    desired_models = "UKESM1-0-LL",
 #'                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                    grid_size = 1000)
-#' }
+#' }}
 #'
-#'@export
+#' @export
+#' @import rstac
+#' @importFrom httr GET http_type write_disk
+#' @importFrom rstac stac items_sign
+#' @importFrom terra rast crs project ext nlyr time tapp
+#' @importFrom sf st_bbox st_transform st_as_sf
+#' @importFrom progress progress_bar
 
 geolink_CMIP6 <- function(start_date,
                           end_date,
@@ -1161,20 +1170,22 @@ geolink_CMIP6 <- function(start_date,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast crs
-#' @importFrom sf st_transform
-#' @importFrom geodata cropland
-#' @importFrom httr GET write_disk
 #'
 #' @examples
+#'
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage
 #'df <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
 #'                 grid_size = 1000,
 #'                 extract_fun = "mean")
-#' }
-#'@export
+#' }}
+#' @export
+#' @importFrom terra rast crs
+#' @importFrom sf st_transform
+#' @importFrom geodata cropland
+#' @importFrom httr GET write_disk
 
 
 geolink_cropland <- function(source = "WorldCover",
@@ -1260,11 +1271,10 @@ geolink_cropland <- function(source = "WorldCover",
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast crs nlyr
-#' @importFrom sf st_transform
-#' @importFrom geodata worldclim_country
 #'
 #' @examples
+#'
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage
@@ -1274,8 +1284,14 @@ geolink_cropland <- function(source = "WorldCover",
 #'                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                  grid_size = 1000,
 #'                  extract_fun = "mean")
-#' }
-#'@export
+#' }}
+#'
+#' @export
+#' @importFrom terra rast crs nlyr
+#' @importFrom sf st_transform
+#' @importFrom geodata worldclim_country
+
+
 geolink_worldclim <- function(iso_code,
                               var,
                               res,
@@ -1382,12 +1398,10 @@ geolink_worldclim <- function(iso_code,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast crs nlyr
-#' @importFrom sf st_bbox st_transform
-#' @importFrom httr GET timeout http_status content
-#' @importFrom ncdf4 nc_open nc_close
 #'
 #' @examples
+#'
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage
@@ -1396,8 +1410,15 @@ geolink_worldclim <- function(iso_code,
 #'                                 shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'                                 grid_size = 1000,
 #'                                 extract_fun = "mean")
-#' }
-#'@export
+#' }}
+#'
+#' @export
+#' @importFrom terra rast crs nlyr
+#' @importFrom sf st_bbox st_transform
+#' @importFrom httr GET timeout http_status content
+#' @importFrom ncdf4 nc_open nc_close
+
+
 geolink_terraclimate <- function(var,
                                  year,
                                  shp_dt = NULL,
@@ -1519,11 +1540,11 @@ geolink_terraclimate <- function(var,
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#' @importFrom osmdata available_features available_tags opq add_osm_feature osmdata_sf
-#' @importFrom sf st_bbox st_transform st_as_sf st_join st_geometry
 #'
 #' @examples
-#'\donttest{
+#'
+#' \dontrun{
+#' \donttest{
 #'
 #'
 #' poi_survey_df <- geolink_get_poi(osm_key = "amenity",
@@ -1547,8 +1568,10 @@ geolink_terraclimate <- function(var,
 #'                              shp_fn = "tests/testthat/testdata/shp_dt.shp")
 #'
 #'
-#'}
-#'
+#' }}
+#' @export
+#' @importFrom osmdata available_features available_tags opq add_osm_feature osmdata_sf
+#' @importFrom sf st_bbox st_transform st_as_sf st_join st_geometry
 
 # Main function
 geolink_get_poi <- function(osm_key,
@@ -1754,15 +1777,10 @@ geolink_get_poi <- function(osm_key,
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
 #'
-#' @import rstac
-#' @importFrom rstac stac items_sign
-#' @importFrom terra rast crs project ext
-#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
-#' @importFrom httr GET write_disk
-#' @importFrom lubridate year
 #'
 #' @examples
-#'\donttest{
+#' \dontrun{
+#' \donttest{
 #'
 #'
 #' df = geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
@@ -1784,9 +1802,15 @@ geolink_get_poi <- function(osm_key,
 #'                                       survey_lon = "x",
 #'                                       survey_lat = "y",
 #'                                       buffer_size = 1000)
-#' }
+#' }}
 #'
-
+#' @export
+#' @import rstac
+#' @importFrom rstac stac items_sign
+#' @importFrom terra rast crs project ext
+#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
+#' @importFrom httr GET write_disk
+#' @importFrom lubridate year
 
 geolink_electaccess <- function(
     start_date = NULL,
@@ -1802,42 +1826,14 @@ geolink_electaccess <- function(
     extract_fun = "mean",
     survey_crs = 4326
 ) {
+
+  mosaic_and_crop = TRUE
+
+  # Convert dates to proper format
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
-  # Process input data first to get sf_obj
-  if (!is.null(survey_dt)) {
-    survey_dt <- ensure_crs_4326(survey_dt)
-  }
-
-  # Handle survey file input and projection
-  if (!is.null(survey_fn)) {
-    if (is.null(survey_lat) || is.null(survey_lon)) {
-      stop("Both survey_lat and survey_lon must be provided when using survey_fn")
-    }
-    # Read the survey file
-    tryCatch({
-      if (grepl("\\.dta$", survey_fn)) {
-        survey_dt <- haven::read_dta(survey_fn)
-      } else if (grepl("\\.csv$", survey_fn)) {
-        survey_dt <- read.csv(survey_fn)
-      } else {
-        stop("Unsupported file format. Please provide .dta file")
-      }
-    }, error = function(e) {
-      stop(sprintf("Error reading survey file: %s", e$message))
-    })
-    # Convert to sf object with specified projection
-    survey_dt <- st_as_sf(survey_dt,
-                          coords = c(survey_lon, survey_lat),
-                          crs = survey_crs)
-    # Transform to EPSG:4326 if needed
-    if (st_crs(survey_dt)$epsg != 4326) {
-      survey_dt <- st_transform(survey_dt, 4326)
-    }
-  }
-
-  # Create sf_obj based on input type
+  # Process input data and create sf_obj
   if (!is.null(shp_dt)) {
     sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
       ensure_crs_4326()
@@ -1845,73 +1841,256 @@ geolink_electaccess <- function(
     sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
       ensure_crs_4326()
   } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
+    # Handle survey data input
+    if (!is.null(survey_fn)) {
+      if (is.null(survey_lat) || is.null(survey_lon)) {
+        stop("Both survey_lat and survey_lon must be provided when using survey_fn")
+      }
+
+      # Read the survey file
+      tryCatch({
+        if (grepl("\\.dta$", survey_fn)) {
+          survey_dt <- haven::read_dta(survey_fn)
+        } else if (grepl("\\.csv$", survey_fn)) {
+          survey_dt <- read.csv(survey_fn)
+        } else {
+          stop("Unsupported file format. Please provide .dta or .csv file")
+        }
+      }, error = function(e) {
+        stop(sprintf("Error reading survey file: %s", e$message))
+      })
+
+      # Convert to sf object with specified projection
+      survey_dt <- st_as_sf(survey_dt,
+                            coords = c(survey_lon, survey_lat),
+                            crs = survey_crs)
+      # Transform to EPSG:4326 if needed
+      if (st_crs(survey_dt)$epsg != 4326) {
+        survey_dt <- st_transform(survey_dt, 4326)
+      }
+    } else if (!is.null(survey_dt)) {
+      survey_dt <- ensure_crs_4326(survey_dt)
+    }
+
     sf_obj <- zonalstats_prepsurvey(
       survey_dt = survey_dt,
-      survey_fn = survey_fn,
-      survey_lat = survey_lat,
-      survey_lon = survey_lon,
       buffer_size = buffer_size,
-      survey_crs = survey_crs) %>%
-      ensure_crs_4326()
+      survey_crs = survey_crs
+    ) %>% ensure_crs_4326()
   } else {
     stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
   }
 
-  # Now use sf_obj for STAC search
-  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1", force_version = "1.0.0")
-  it_obj <- s_obj %>%
+  # Use sf_obj for STAC search
+  stac_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1", force_version = "1.0.0")
+  bbox <- sf::st_bbox(sf_obj)
+  print(paste("Searching with bbox:", paste(bbox, collapse=", ")))
+
+  it_obj <- stac_obj %>%
     stac_search(
       collections = "hrea",
-      bbox = sf::st_bbox(sf_obj),
+      bbox = bbox,
       datetime = paste(start_date, end_date, sep = "/")
     ) %>%
     get_request() %>%
     items_sign(sign_fn = sign_planetary_computer())
 
+  print(paste("Found", length(it_obj$features), "features from STAC API"))
+  if (length(it_obj$features) > 0) {
+    print("First feature properties:")
+    print(it_obj$features[[1]]$properties)
+  }
+
   if (length(it_obj$features) == 0) {
     stop("No data found for the specified date range and location")
   }
 
-  # Modify url_list extraction with error checking
-  url_list <- lapply(1:length(it_obj$features), function(x) {
-    feature <- it_obj$features[[x]]
-    required_assets <- c("lightscore", "light-composite", "night-proportion", "estimated-brightness")
-
-    # Check if all required assets exist
+  # Extract URLs for required assets
+  required_assets <- c("lightscore", "light-composite", "night-proportion", "estimated-brightness")
+  url_list <- lapply(it_obj$features, function(feature) {
     missing_assets <- required_assets[!required_assets %in% names(feature$assets)]
     if (length(missing_assets) > 0) {
-      warning(sprintf("Missing assets for feature %d: %s", x, paste(missing_assets, collapse = ", ")))
+      warning(sprintf("Missing assets: %s", paste(missing_assets, collapse = ", ")))
       return(NULL)
     }
 
-    urls <- list(
-      lightscore = paste0("/vsicurl/", feature$assets$lightscore$href),
-      light_composite = paste0("/vsicurl/", feature$assets$`light-composite`$href),
-      night_proportion = paste0("/vsicurl/", feature$assets$`night-proportion`$href),
-      estimated_brightness = paste0("/vsicurl/", feature$assets$`estimated-brightness`$href)
+    # Get year from the feature properties
+    year <- as.integer(format(as.Date(feature$properties$datetime), "%Y"))
+
+    list(
+      lightscore = feature$assets$lightscore$href,
+      light_composite = feature$assets$`light-composite`$href,
+      night_proportion = feature$assets$`night-proportion`$href,
+      estimated_brightness = feature$assets$`estimated-brightness`$href,
+      year = year
     )
-    return(urls)
   })
 
-  # Remove NULL entries from url_list
-  url_list <- Filter(Negate(is.null), url_list)
+  # Group URLs by year
+  years <- unique(sapply(url_list, function(x) x$year))
+  print(paste("Found data for years:", paste(years, collapse=", ")))
 
-  if (length(url_list) == 0) {
-    stop("No valid data URLs found")
+  # Create temporary directory for downloaded rasters
+  temp_dir <- tempdir()
+  dir.create(file.path(temp_dir, "rasters"), showWarnings = FALSE, recursive = TRUE)
+
+  download_raster <- function(url, asset_name, year) {
+    tryCatch({
+      file_ext <- ".tif"
+      temp_file <- file.path(temp_dir, "rasters", paste0(asset_name, "_", year, file_ext))
+
+      result <- httr::GET(url,
+                          httr::write_disk(temp_file, overwrite = TRUE),
+                          httr::progress())
+
+      if (httr::status_code(result) == 200) {
+        return(list(
+          path = temp_file,
+          asset = asset_name,
+          year = year
+        ))
+      } else {
+        warning(sprintf("Failed to download %s for year %s: HTTP status code %d",
+                        asset_name, year, httr::status_code(result)))
+        return(NULL)
+      }
+    }, error = function(e) {
+      warning(sprintf("Failed to download raster for %s, year %s: %s",
+                      asset_name, year, e$message))
+      return(NULL)
+    })
   }
 
-  # Convert URLs to rasters with progress tracking
-  raster_objs <- list()
+  # Download all rasters
+  print("Downloading rasters...")
+  downloaded_files <- list()
+
   for (i in seq_along(url_list)) {
-    for (asset_name in names(url_list[[i]])) {
-      url <- url_list[[i]][[asset_name]]
+    item <- url_list[[i]]
+    year <- item$year
+
+    # Download each asset
+    for (asset_name in names(item)[names(item) != "year"]) {
+      url <- item[[asset_name]]
+      # Download the raster and add to list if successful
+      result <- download_raster(url, asset_name, year)
+      if (!is.null(result)) {
+        downloaded_files <- c(downloaded_files, list(result))
+      }
+    }
+  }
+
+  if (length(downloaded_files) == 0) {
+    stop("No rasters could be successfully downloaded")
+  }
+
+  print(paste("Successfully downloaded", length(downloaded_files), "raster files"))
+
+  # Group downloaded files by year and asset type
+  download_by_year_asset <- list()
+
+  for (file_info in downloaded_files) {
+    year <- file_info$year
+    asset <- file_info$asset
+    key <- paste(year, asset, sep="_")
+
+    if (is.null(download_by_year_asset[[key]])) {
+      download_by_year_asset[[key]] <- list()
+    }
+
+    download_by_year_asset[[key]] <- c(download_by_year_asset[[key]], file_info$path)
+  }
+
+  # Prepare file for shapefile to use in cropping
+  if (mosaic_and_crop && !is.null(shp_dt)) {
+    # Save the shapefile to a temporary location for use by the Python script
+    temp_shp <- file.path(temp_dir, "shape.gpkg")
+    sf::st_write(sf_obj, temp_shp, delete_layer = TRUE)
+    print(paste("Saved shapefile to temporary location:", temp_shp))
+  }
+
+  # Mosaic and crop for each year/asset combination if requested
+  raster_objs <- list()
+
+  if (mosaic_and_crop) {
+    print("Performing mosaicking and cropping...")
+
+    # Get path to the python script in the package
+    python_script <- system.file("python_scripts/mosaic_crop.py", package = "geolink")
+
+    if (!file.exists(python_script)) {
+      warning("Python script not found at ", python_script, ". Falling back to direct raster loading.")
+      mosaic_and_crop <- FALSE
+    } else {
+      # Process each year/asset group with the external Python script
+      for (key in names(download_by_year_asset)) {
+        file_paths <- download_by_year_asset[[key]]
+        parts <- strsplit(key, "_")[[1]]
+        year <- parts[1]
+        asset <- parts[2]
+
+        print(paste("Processing", asset, "for year", year))
+
+        # Output path for the mosaicked and cropped raster
+        processed_path <- file.path(temp_dir, paste0("processed_", key, ".tif"))
+
+        # Construct the Python command
+        python_cmd <- paste(
+          "python",
+          shQuote(python_script),
+          shQuote(temp_shp),
+          shQuote(processed_path),
+          paste(sapply(file_paths, shQuote), collapse = " ")
+        )
+
+        print(paste("Executing:", python_cmd))
+
+        # Execute the Python script
+        result <- system(python_cmd, intern = TRUE)
+
+        # Check if the mosaicking and cropping was successful
+        success_line <- grep("^SUCCESS:", result, value = TRUE)
+
+        if (length(success_line) > 0) {
+          # Extract the processed file path
+          final_path <- sub("^SUCCESS:", "", success_line)
+          print(paste("Successfully processed", asset, "for year", year))
+
+          # Load the processed raster
+          tryCatch({
+            rast_obj <- terra::rast(final_path)
+            if (!is.null(rast_obj)) {
+              raster_objs[[length(raster_objs) + 1]] <- rast_obj
+              # Store name with year and asset for later identification
+              names(raster_objs)[length(raster_objs)] <- paste0(asset, "_", year)
+            }
+          }, error = function(e) {
+            warning(sprintf("Failed to load processed raster for %s, year %s: %s",
+                            asset, year, e$message))
+          })
+        } else {
+          warning(paste("Failed to process", asset, "for year", year))
+          print(result)  # Print the full output for debugging
+        }
+      }
+    }
+  }
+
+  # If mosaicking and cropping was disabled or failed, load the individual rasters
+  if (!mosaic_and_crop || length(raster_objs) == 0) {
+    print("Loading individual rasters...")
+
+    for (file_info in downloaded_files) {
       tryCatch({
-        rast_obj <- terra::rast(url)
+        rast_obj <- terra::rast(file_info$path)
         if (!is.null(rast_obj)) {
           raster_objs[[length(raster_objs) + 1]] <- rast_obj
+          # Store name with year and asset for later identification
+          names(raster_objs)[length(raster_objs)] <- paste0(file_info$asset, "_", file_info$year)
         }
       }, error = function(e) {
-        warning(sprintf("Failed to load raster for %s: %s", asset_name, e$message))
+        warning(sprintf("Failed to load raster for %s, year %s: %s",
+                        file_info$asset, file_info$year, e$message))
       })
     }
   }
@@ -1920,24 +2099,13 @@ geolink_electaccess <- function(
     stop("No rasters could be successfully loaded")
   }
 
-  # Create name_set based on actual successful raster downloads
-  name_set <- character(length(raster_objs))
+  # Use names from the raster objects
+  name_set <- names(raster_objs)
 
-  # Generate names based on actual raster count
-  indicators <- c("lightscore", "light_composite", "night_proportion", "estimated_brightness")
-  year_sequence <- seq(lubridate::year(start_date), lubridate::year(end_date))
+  print("Electrification Access Raster Downloaded and Processed")
+  print(sprintf("Processing %d rasters", length(raster_objs)))
 
-  for (i in seq_along(raster_objs)) {
-    indicator_idx <- ((i - 1) %% length(indicators)) + 1
-    year_idx <- ((i - 1) %/% length(indicators)) + 1
-    if (year_idx <= length(year_sequence)) {
-      name_set[i] <- paste0(indicators[indicator_idx], "_", year_sequence[year_idx])
-    }
-  }
-
-  print("Electrification Access Raster Downloaded")
-  print(sprintf("Processing %d rasters with %d names", length(raster_objs), length(name_set)))
-
+  # Process downloaded rasters
   dt <- postdownload_processor(
     shp_dt = sf_obj,
     raster_objs = raster_objs,
@@ -1979,14 +2147,10 @@ geolink_electaccess <- function(
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
-#' @importFrom terra rast
-#' @importFrom httr GET timeout
-#' @importFrom sf st_as_sf st_transform st_bbox st_intersects st_as_sfc
-#' @importFrom data.table as.data.table
-#' @importFrom memoise memoise
-#' @importFrom haven read_dta
 #'
 #' @examples
+#'
+#' \dontrun{
 #' \donttest{
 #'
 #' # Example usage
@@ -2008,8 +2172,15 @@ geolink_electaccess <- function(
 #'                                            survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
 #'                                            survey_lon = "x",
 #'                                            survey_lat = "y")
-#' }
+#' }}
 #'
+#' @export
+#' @importFrom terra rast
+#' @importFrom httr GET timeout
+#' @importFrom sf st_as_sf st_transform st_bbox st_intersects st_as_sfc
+#' @importFrom data.table as.data.table
+#' @importFrom memoise memoise
+#' @importFrom haven read_dta
 
 
 geolink_opencellid <- function(cell_tower_file,
