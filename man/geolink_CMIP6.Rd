@@ -29,7 +29,7 @@ geolink_CMIP6(
 \item{scenario}{A scenario has to be selected and can be one of "historical", "ssp245" or "ssp585"}
 
 \item{desired_models}{The name or names in a list, of the desired model(s) required for the analysis, for example
-("ACCESS-CM-2" or ["ACCESS-CM-2","UKESM1-0-LL" ]). See the cmip6:model summary in the STAC collection for a full list of models.}
+("ACCESS-CM-2" or \link{"ACCESS-CM-2","UKESM1-0-LL" }). See the cmip6:model summary in the STAC collection for a full list of models.}
 
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.}
 
@@ -56,9 +56,25 @@ Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms"
 A processed data frame based on the input parameters and downloaded data.
 }
 \description{
+Download CMIP6 climate model data
+}
+\details{
 This function downloads and processes CMIP6 (Coupled Model Intercomparison Project Phase 6)
 climate model data for a specific scenario and desired model.
 It allows for further analysis of the data in conjunction with geographic data.
+Please see x for the full list of possible models and scenarios which can be downloaded.
+The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
+the shapefile is also provided for users that need this data further analytics that require
+equal area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+permitted final output. However, a geocoded survey with population estimates are the end goal
+if the user also chooses. The function will merge shapefile polygons (either gridded or
+native polygons) with the location of the survey units i.e. population estimates for the
+locations of the units within the survey will be returned. The function is also set up for
+stata users and allows the user to pass file paths for the household survey \code{survey_fn}
+(with the lat and long variable names \code{survey_lon} and \code{survey_lat}) as well. This is requires
+a .dta file which is read in with \code{haven::read_dta()} package. Likewise, the user is permitted
+to pass a filepath for the location of the shapefile \code{shp_fn} which is read in with the
+\code{sf::read_sf()} function.
 }
 \examples{
 \donttest{
@@ -70,7 +86,6 @@ df <- geolink_CMIP6(start_date = "2019-01-01",
                    desired_models = "UKESM1-0-LL",
                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                    grid_size = 1000)
-
-
 }
+
 }

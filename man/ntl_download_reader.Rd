@@ -27,7 +27,7 @@ ntl_download_reader(
 
 \item{max_retries}{the maximum number of retries before function time out}
 
-\item{...}{additional arguments to be used in `download.file()`}
+\item{...}{additional arguments to be used in \code{download.file()}}
 }
 \description{
 A function to download and read in a file from the internet for Night Time lights
