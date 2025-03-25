@@ -66,6 +66,7 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 \code{sf::read_sf()} function.
 }
 \examples{
+\dontrun{
 \donttest{
 
 
@@ -88,6 +89,6 @@ elect_survey_fn <- geolink_electaccess(start_date = "2019-01-01",
                                       survey_lon = "x",
                                       survey_lat = "y",
                                       buffer_size = 1000)
-}
+}}
 
 }

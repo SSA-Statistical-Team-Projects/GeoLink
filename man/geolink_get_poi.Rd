@@ -57,6 +57,8 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 \code{sf::read_sf()} function.
 }
 \examples{
+
+\dontrun{
 \donttest{
 
 
@@ -81,6 +83,5 @@ poi_shp_fn = geolink_get_poi(osm_key = "amenity",
                              shp_fn = "tests/testthat/testdata/shp_dt.shp")
 
 
-}
-
+}}
 }

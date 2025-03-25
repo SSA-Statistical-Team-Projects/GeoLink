@@ -77,6 +77,8 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 \code{sf::read_sf()} function.
 }
 \examples{
+
+\dontrun{
 \donttest{
 
  #example usage
@@ -86,6 +88,6 @@ df <- geolink_CMIP6(start_date = "2019-01-01",
                    desired_models = "UKESM1-0-LL",
                    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                    grid_size = 1000)
-}
+}}
 
 }
