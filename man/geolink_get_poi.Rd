@@ -15,7 +15,8 @@ geolink_get_poi(
   survey_lon = NULL,
   buffer_size = NULL,
   survey_crs = NULL,
-  grid_size = NULL
+  grid_size = NULL,
+  extract_fun = "mean"
 )
 }
 \arguments{

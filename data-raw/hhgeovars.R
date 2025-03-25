@@ -21,10 +21,20 @@ hhgeo_dt <- sf::st_join(hhgeo_dt, shp_dt)
 
 hhgeo_dt <- as.data.table(hhgeo_dt)
 
+totcons_dt <- haven::read_dta("data-raw/totcons_final.dta") |>
+  dplyr::select(hhid, wt_wave4, hhsize, popw, totcons_pc, totcons_adj, totcons_adj_norm) |>
+  dplyr::mutate(hhid = as.integer(hhid))
 
-# #### save the household geocoded survey and the shapefile
-# saveRDS(hhgeo_dt, "data/hhsample.RDS")
-# saveRDS(shp_dt, "data/shapefile.RDS")
+## Join consumption with hhgeo_dt
+hhgeo_dt |>
+  dplyr::left_join(totcons_dt, by = "hhid") -> hhgeo_dt
+
+## Population data (https://data.humdata.org/dataset/cod-ps-nga)
+readxl::read_xlsx("data-raw/nga_admpop_2020.xlsx",
+                  sheet = "nga_admpop_adm2_2020") |>
+  dplyr::select(dplyr::starts_with("ADM2"), T_TL) |>
+  dplyr::rename(ADM2_EN = ADM2_NAME) |>
+  as.data.frame() -> popHDX_dt
 
 # Define bounding box for Nigeria (approximate)
 xmin <- 2.69  # Westernmost longitude
@@ -51,6 +61,4 @@ point_dt <- data.frame(
 usethis::use_data(hhgeo_dt)
 usethis::use_data(shp_dt)
 usethis::use_data(point_dt)
-
-
-
+usethis::use_data(popHDX_dt)
