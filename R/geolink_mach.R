@@ -2337,44 +2337,8 @@ geolink_opencellid <- function(cell_tower_file,
 
   original_data[[name_set]] <- num_towers
 
+  return(original_data)}
 
-#' Download and Merge Annual Land Use Land Cover data into geocoded surveys
-#'
-#' Download Land Use Land Cover data from the LULC dataset at annual intervals for a specified period
-#' The data is downloaded in raster format and combined with shapefile and/or survey data provided
-#' by the user. Source data: https://planetarycomputer.microsoft.com/dataset/io-lulc-annual-v02
-#'
-#' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
-#' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
-#' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
-#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
-#'
-#'
-#' @examples
-#'
-#' \donttest{
-#'
-#' #loading the survey data and shapefile
-#'
-#' data("hhgeo_dt")
-#' data("shp_dt")
-#'
-#' #pull annual land use land cover and combine with household survey based on
-#' #grid tesselation of shapefile at 1000m
-#'
-#'df <- geolink_landcover(
-#                         start_date = "2020-01-01",
-#                         end_date = "2021-01-01",
-#                         shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
-#'
-#'
-#' }
-#'
-#' @import  rstac reticulate terra raster osmdata sp sf geodata httr ncdf4 rgdal exactextractr parallel
-#'
-#'
-#'
-#'
 
 
 #' Download and Merge Annual Land Use Land Cover data into geocoded surveys
@@ -2427,13 +2391,14 @@ geolink_opencellid <- function(cell_tower_file,
 #'   )
 #' }
 #'
+#' @export
 #' @import sf rstac terra
 #' @importFrom haven read_dta
 #' @importFrom httr GET write_disk config timeout status_code
 #' @importFrom exactextractr exact_extract
 #' @importFrom reticulate use_condaenv use_python py_run_string source_python
 #'
-#' @export
+#'
 
 
 geolink_landcover <- function(start_date,

@@ -32,3 +32,9 @@ run_geolink(
 \description{
 Master Function for Geospatial Data Extraction
 }
+\examples{
+\donttest{
+
+ #example usage
+}
+}

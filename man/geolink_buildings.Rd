@@ -73,6 +73,8 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 \code{sf::read_sf()} function.
 }
 \examples{
+
+\dontrun{
 \donttest{
 
 #example usage with version 1.1
@@ -82,5 +84,5 @@ test_dt <- geolink_buildings(version = "v1.1",
                             indicators = "ALL",
                             grid_size = 1000)
 
-}
+}}
 }

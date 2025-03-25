@@ -77,6 +77,7 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 }
 \examples{
 
+\dontrun{
 \donttest{
 
 
@@ -99,6 +100,6 @@ df <- geolink_chirps(time_unit = "month",
                      buffer_size = 1000,
                      extract_fun = "mean")
 
-}
+}}
 
 }
