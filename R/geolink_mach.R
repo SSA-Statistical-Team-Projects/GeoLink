@@ -1412,8 +1412,8 @@ geolink_vegindex <- function(
   indicator = "NDVI",
   shp_dt = NULL,
   shp_fn = NULL,
-  resolution = 5000,
-  grid_size = 5000,
+  resolution = NULL,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -1426,6 +1426,7 @@ geolink_vegindex <- function(
   if (indicator != "NDVI" & indicator != "EVI"){
     stop("Indicator must be either 'NDVI' or 'EVI'")
   }
+  indicator_arg <- indicator
   indicator <- paste0("500m_16_days_", indicator)
 
   if (!is.null(shp_dt)) {
@@ -1465,7 +1466,7 @@ geolink_vegindex <- function(
   if (end_date<start_date){
     stop("End date must be after start date.")
   }
-  
+
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
   it_obj <- s_obj %>%
@@ -1500,7 +1501,7 @@ geolink_vegindex <- function(
   it_obj$features <- it_obj$features[date_list$id==1]
   date_list <- date_list[date_list$id==1]  # Keep only entries with id == 1
 
-  
+
   # it_obj$features <- it_obj$features[date_list$id==1]
   # date_list <- date_list[date_list$id==1]  # Keep only entries with id == 1
 
@@ -1533,7 +1534,7 @@ geolink_vegindex <- function(
 
   # get list of months and yaers
   unique_months <- unique(date_list$date)
-  
+
   raster_objs <- c()
   for (i in 1:length(unique_months)){
     dls <- url_list[date_list[,date==unique_months[i]]]
@@ -1552,7 +1553,7 @@ geolink_vegindex <- function(
   # make sure they are 4326 (lon/lat)
   raster_objs <- lapply(raster_objs, function(x) terra::project(x, "EPSG:4326"))
   unique_months <- as.Date(paste0(unique_months, "-01"))
-  name_set <- paste0("ndvi_", "y", format(unique_months, "%Y"), "_m", format(unique_months, "%m"))
+  name_set <- paste0(tolower(indicator_arg), "_", "y", format(unique_months, "%Y"), "_m", format(unique_months, "%m"))
 
   print("NDVI Raster Downloaded")
 
@@ -1716,7 +1717,7 @@ geolink_pollution <- function(
       if (names(it_obj$features[[i]]$assets)==paste0(indicator)){
         # there are some that cover only a small area; ignore these
         # only keep those that are ENTIRE globe
-        if ((it_obj$features[[i]]$bbox[3]-it_obj$features[[i]]$bbox[1])==360 & 
+        if ((it_obj$features[[i]]$bbox[3]-it_obj$features[[i]]$bbox[1])==360 &
           (it_obj$features[[i]]$bbox[4]-it_obj$features[[i]]$bbox[2])>170){
           features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
           dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
