@@ -91,8 +91,8 @@ geolink_chirps <- function(time_unit = NULL,
                            extract_fun = "mean",
                            survey_crs = 4326) {
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  shp_dt <- ensure_crs_4326_2(shp_dt)
+  survey_dt <- ensure_crs_4326_2(survey_dt)
 
 
   # start_date <- as.Date(start_date)
@@ -679,8 +679,8 @@ geolink_elevation <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  shp_dt <- ensure_crs_4326_2(shp_dt)
+  survey_dt <- ensure_crs_4326_2(survey_dt)
 
   if(!is.null(iso_code)){
     print(paste("Checking data for", iso_code))
