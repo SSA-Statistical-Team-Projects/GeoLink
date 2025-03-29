@@ -266,8 +266,8 @@ geolink_ntl <- function(time_unit = "annual",
                         buffer_size = NULL,
                         survey_crs = 4326) {
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  # shp_dt <- ensure_crs_4326(shp_dt)
+  # survey_dt <- ensure_crs_4326(survey_dt)
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -906,8 +906,10 @@ geolink_buildings <- function(version,
 
   print("Process Complete!!!")
 
-  return(dt)
   unlink(tempdir(), recursive = TRUE)
+
+  return(dt)
+
 }
 
 #' Download CMIP6 climate model data
