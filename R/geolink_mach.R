@@ -2199,29 +2199,55 @@ geolink_opencellid <- function(cell_tower_file,
   resolution = 1000
   name_set = "cell_towers"
 
+  # Define read_opencellid_data function if not already defined
+  read_opencellid_data <- function(file_path) {
+    # For gzipped CSV files
+    if (grepl("\\.gz$", file_path)) {
+      message("Reading gzipped file...")
+      data <- data.table::fread(file_path)
+    } else {
+      data <- data.table::fread(file_path)
+    }
+
+    # Check if required columns exist
+    if (!all(c("lat", "lon") %in% colnames(data))) {
+      # Try to identify lat/lon columns if they exist
+      if (ncol(data) >= 8) {
+        # Assuming columns 7 and 8 are lon and lat as mentioned
+        names(data)[7] <- "lon"
+        names(data)[8] <- "lat"
+        message("Renamed columns 7 and 8 to 'lon' and 'lat'")
+      } else {
+        stop("Cell tower data must contain 'lat' and 'lon' columns")
+      }
+    }
+
+    return(data)
+  }
+
   read_opencellid_data_cached <- memoise::memoise(read_opencellid_data)
 
   if (!is.null(survey_dt)) {
     if (!inherits(survey_dt, "sf")) {
       if ("geometry" %in% names(survey_dt)) {
-        sf_obj <- st_as_sf(survey_dt)
+        sf_obj <- sf::st_as_sf(survey_dt)
       } else if (!is.null(survey_lat) && !is.null(survey_lon)) {
         if (!(survey_lat %in% names(survey_dt)) || !(survey_lon %in% names(survey_dt))) {
           stop(sprintf("Coordinate columns '%s' and '%s' not found in survey data",
                        survey_lat, survey_lon))
         }
 
-        sf_obj <- st_as_sf(survey_dt,
-                           coords = c(survey_lon, survey_lat),
-                           crs = survey_crs,
-                           agr = "constant")
+        sf_obj <- sf::st_as_sf(survey_dt,
+                               coords = c(survey_lon, survey_lat),
+                               crs = survey_crs,
+                               agr = "constant")
       } else {
         stop("Survey data must either have a geometry column or survey_lat/survey_lon must be provided")
       }
-      original_data <- as.data.table(st_drop_geometry(survey_dt))
+      original_data <- data.table::as.data.table(sf::st_drop_geometry(survey_dt))
     } else {
       sf_obj <- survey_dt
-      original_data <- as.data.table(st_drop_geometry(survey_dt))
+      original_data <- data.table::as.data.table(sf::st_drop_geometry(survey_dt))
     }
   } else if (!is.null(survey_fn)) {
     if (is.null(survey_lat) || is.null(survey_lon)) {
@@ -2235,20 +2261,19 @@ geolink_opencellid <- function(cell_tower_file,
                    survey_lat, survey_lon))
     }
 
-    sf_obj <- st_as_sf(original_data,
-                       coords = c(survey_lon, survey_lat),
-                       crs = survey_crs,
-                       agr = "constant")
+    sf_obj <- sf::st_as_sf(original_data,
+                           coords = c(survey_lon, survey_lat),
+                           crs = survey_crs,
+                           agr = "constant")
   } else if (!is.null(shp_dt)) {
     if (!inherits(shp_dt, "sf")) {
       stop("Input shp_dt must be an sf object")
     }
     sf_obj <- shp_dt
-    original_data <- as.data.table(st_drop_geometry(shp_dt))
+    original_data <- data.table::as.data.table(sf::st_drop_geometry(shp_dt))
   } else if (!is.null(shp_fn)) {
-
-        sf_obj <- st_read(shp_fn, quiet = TRUE)
-    original_data <- as.data.table(st_drop_geometry(sf_obj))
+    sf_obj <- sf::st_read(shp_fn, quiet = TRUE)
+    original_data <- data.table::as.data.table(sf::st_drop_geometry(sf_obj))
   } else {
     stop("Please provide either shapefile data or survey data with coordinate columns")
   }
@@ -2258,32 +2283,34 @@ geolink_opencellid <- function(cell_tower_file,
 
   # Use 3857 for buffering (metric) then convert to 4326 (degrees)
   if (!is.null(buffer_size)) {
-    sf_obj <- st_transform(sf_obj, 3857) %>%
-      st_buffer(buffer_size) %>%
-      st_transform(4326)
+    message(sprintf("Creating buffer of %s meters around points...", buffer_size))
+    sf_obj <- sf::st_transform(sf_obj, 3857) %>%
+      sf::st_buffer(buffer_size) %>%
+      sf::st_transform(4326)
   }
 
-  if (st_crs(sf_obj)$epsg != 4326) {
-    sf_obj <- st_transform(sf_obj, 4326)
+  if (sf::st_crs(sf_obj)$epsg != 4326) {
+    sf_obj <- sf::st_transform(sf_obj, 4326)
   }
 
   message("Reading cell tower data...")
   cell_towers <- read_opencellid_data_cached(cell_tower_file)
   message(sprintf("Read %d cell towers", nrow(cell_towers)))
 
-  cell_towers_sf <- st_as_sf(cell_towers,
-                             coords = c("lon", "lat"),
-                             crs = 4326,
-                             agr = "constant")
+  cell_towers_sf <- sf::st_as_sf(cell_towers,
+                                 coords = c("lon", "lat"),
+                                 crs = 4326,
+                                 agr = "constant")
 
   # Create spatial index for efficiency
-  cell_towers_sf <- st_sf(cell_towers_sf)
+  cell_towers_sf <- sf::st_sf(cell_towers_sf)
 
-  bbox <- st_bbox(sf_obj)
+  bbox <- sf::st_bbox(sf_obj)
 
-  cell_towers_filtered <- cell_towers_sf[st_intersects(
+  message("Filtering cell towers within bounding box...")
+  cell_towers_filtered <- cell_towers_sf[sf::st_intersects(
     cell_towers_sf,
-    st_as_sfc(bbox),
+    sf::st_as_sfc(bbox),
     sparse = FALSE
   )[,1], ]
 
@@ -2292,55 +2319,18 @@ geolink_opencellid <- function(cell_tower_file,
     num_towers <- rep(0, nrow(original_sf_obj))
   } else {
     message(sprintf("Found %d cell towers within bounding box", nrow(cell_towers_filtered)))
-    tryCatch({
-      cell_towers_filtered$tower_count <- 1
 
-      # Convert cell tower points to raster
-      cell_towers_raster <- point_sf_to_raster(
-        point_sf = cell_towers_filtered,
-        resolution = resolution,
-        agg_fun = sum
-      )
+    # HERE'S THE KEY CHANGE: We're using sf_obj (buffered) instead of original_sf_obj
+    message("Counting cell towers within buffered areas...")
+    num_towers <- lengths(sf::st_intersects(sf_obj, cell_towers_filtered, sparse = TRUE))
 
-      raster_objs <- list(cell_towers_raster)
-      names(raster_objs) <- name_set
-
-      result <- postdownload_processor(
-        raster_objs = raster_objs,
-        survey_dt = NULL,
-        survey_fn = NULL,
-        survey_lat = NULL,
-        survey_lon = NULL,
-        extract_fun = extract_fun,
-        buffer_size = buffer_size,
-        survey_crs = survey_crs,
-        name_set = name_set,
-        shp_dt = original_sf_obj,
-        shp_fn = NULL,
-        grid_size = grid_size
-      )
-
-      if (!is.null(result) && !is.data.frame(result)) {
-        result <- NULL
-      }
-
-      if (!is.null(result) && name_set %in% colnames(result)) {
-        original_data[[name_set]] <- result[[name_set]]
-        return(original_data)
-      } else {
-        warning("Failed to extract raster values")
-      }
-    }, error = function(e) {
-      warning(paste("Error in raster processing:", e$message))
-    })
-
-    num_towers <- lengths(st_intersects(original_sf_obj, cell_towers_filtered, sparse = TRUE))
+    message(sprintf("Total towers found in all buffers: %d", sum(num_towers)))
   }
 
   original_data[[name_set]] <- num_towers
 
-  return(original_data)}
-
+  return(original_data)
+}
 
 
 #' Download and Merge Annual Land Use Land Cover data into geocoded surveys
