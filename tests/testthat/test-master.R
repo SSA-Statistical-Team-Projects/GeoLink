@@ -445,3 +445,41 @@ test_that("Test opencellid function: ",
 
             expect_setequal(test_dt_func$cell_towers, test_dt$cell_towers)
           })
+
+# Test electaccess
+test_that("Test electaccess function: ",
+          {
+            suppressWarnings({ test_dt <- run_geolink("electaccess",
+                                                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                                                      start_date = "2019-01-01",
+                                                      end_date = "2019-12-31",
+                                                      grid_size = 1000,
+                                                      extract_fun = "mean")
+
+            suggest_dt <- crsuggest::suggest_crs(shp_dt,
+                                                 units = "m")
+            })
+
+            suppressWarnings({
+            test_dt_func <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                                        start_date = "2019-01-01",
+                                        end_date = "2019-12-31",
+                                        grid_size = 1000,
+                                        extract_fun = "mean")
+            })
+
+            expect_setequal(test_dt_func$night_proportion_2019, test_dt$night_proportion_2019)
+            expect_setequal(test_dt_func$lightscore_2019, test_dt$lightscore_2019)
+            expect_setequal(test_dt_func$light_composite_2019, test_dt$light_composite_2019)
+            expect_setequal(test_dt_func$estimated_brightness_2019, test_dt$estimated_brightness_2019)
+
+            #Write testing expressions below:
+            #01 - expect the colnames will be created correctly
+            expect_contains(colnames(test_dt), c("night_proportion_2019", "lightscore_2019", "light_composite_2019", "estimated_brightness_2019"))
+
+            #02 - Test that the mean column values is between 0 and 1 based on the raster values
+
+            expect_true(all(test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] >= 0 &
+                              test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] <= 1),
+                        info = "Values of night proportion should be between 0 and 1")
+          })
