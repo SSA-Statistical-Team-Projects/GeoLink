@@ -282,7 +282,7 @@ read_survey_data <- function(file_path) {
 }
 
 
-ensure_crs_4326_2 <- function(gdf) {
+ensure_crs_is_4326 <- function(gdf) {
   # Check if input is NULL or NA
   if (is.null(gdf) || length(gdf) == 0) {
     warning("Input geodataframe is NULL or empty. Returning NULL.")
