@@ -91,12 +91,21 @@ geolink_chirps <- function(time_unit = NULL,
                            extract_fun = "mean",
                            survey_crs = 4326) {
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
 
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
-  # start_date <- as.Date(start_date)
-  # end_date <- as.Date(end_date)
 
   ## download the data
   if (time_unit == "month") {
