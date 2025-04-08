@@ -91,20 +91,20 @@ geolink_chirps <- function(time_unit = NULL,
                            extract_fun = "mean",
                            survey_crs = 4326) {
 
-  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
-  if (!is.null(shp_dt)) {
-    shp_dt <- ensure_crs_4326(shp_dt)
-  } else if (!is.null(shp_fn)) {
-    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
-    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
-  }
-
-  if (!is.null(survey_dt)) {
-    survey_dt <- ensure_crs_4326(survey_dt)
-  } else if (!is.null(survey_fn)) {
-    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
-    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
-  }
+  # # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  # if (!is.null(shp_dt)) {
+  #   shp_dt <- ensure_crs_4326(shp_dt)
+  # } else if (!is.null(shp_fn)) {
+  #   # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+  #   shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  # }
+  #
+  # if (!is.null(survey_dt)) {
+  #   survey_dt <- ensure_crs_4326(survey_dt)
+  # } else if (!is.null(survey_fn)) {
+  #   # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+  #   survey_dt <- ensure_crs_4326(haven::read_dta(survey_fn))
+  # }
 
 
   ## download the data
@@ -677,7 +677,7 @@ geolink_population <- function(start_year = NULL,
 #' @importFrom geodata elevation_30s
 
 geolink_elevation <- function(iso_code,
-                              shp_dt=NULL,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = NULL,
                               survey_dt = NULL,
@@ -688,8 +688,10 @@ geolink_elevation <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  # shp_dt <- ensure_crs_4326(shp_dt)
+  # survey_dt <- ensure_crs_4326(survey_dt)
+
+
 
   if(!is.null(iso_code)){
     print(paste("Checking data for", iso_code))
@@ -716,16 +718,16 @@ geolink_elevation <- function(iso_code,
 
   raster_list <- lapply(tif_files, terra::rast)
 
-  epsg_4326 <- "+init=EPSG:4326"
-
-  for (i in seq_along(raster_list)) {
-    terra::crs(raster_list[[i]]) <- epsg_4326
-    if (is.null(terra::crs(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
-    }
-  }
+  # epsg_4326 <- "+init=EPSG:4326"
+  #
+  # for (i in seq_along(raster_list)) {
+  #   terra::crs(raster_list[[i]]) <- epsg_4326
+  #   if (is.null(terra::crs(raster_list[[i]]))) {
+  #     print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
+  #   } else {
+  #     print(paste("Raster", i, "projected successfully."))
+  #   }
+  # }
 
   print("Elevation Raster Downloaded")
 
@@ -997,31 +999,36 @@ geolink_CMIP6 <- function(start_date,
                           extract_fun = "mean",
                           survey_crs = 4326) {
 
-  # Ensure shapefile and survey are in the correct CRS
-  if (!is.null(shp_dt)) {
-    sf_obj <- ensure_crs_4326(shp_dt)
+  # # Ensure shapefile and survey are in the correct CRS
+  # if (!is.null(shp_dt)) {
+  #   sf_obj <- ensure_crs_4326(shp_dt)
+  #
+  # } else if (!is.null(survey_dt)) {
+  #   sf_obj <- ensure_crs_4326(survey_dt)
+  #
+  # } else if (!is.null(shp_fn)) {
+  #   sf_obj <- sf::read_sf(shp_fn)
+  #   sf_obj <- ensure_crs_4326(sf_obj)
+  #
+  # } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
+  #   sf_obj <- zonalstats_prepsurvey(
+  #     survey_dt = survey_dt,
+  #     survey_fn = survey_fn,
+  #     survey_lat = survey_lat,
+  #     survey_lon = survey_lon,
+  #     buffer_size = NULL,
+  #     survey_crs = survey_crs)
+  #   sf_obj <- ensure_crs_4326(sf_obj)
+  #
+  # } else {
+  #   print("Input a valid sf object or geosurvey")
+  #   sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
+  # }
 
-  } else if (!is.null(survey_dt)) {
-    sf_obj <- ensure_crs_4326(survey_dt)
-
-  } else if (!is.null(shp_fn)) {
-    sf_obj <- sf::read_sf(shp_fn)
-    sf_obj <- ensure_crs_4326(sf_obj)
-
-  } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
-    sf_obj <- zonalstats_prepsurvey(
-      survey_dt = survey_dt,
-      survey_fn = survey_fn,
-      survey_lat = survey_lat,
-      survey_lon = survey_lon,
-      buffer_size = NULL,
-      survey_crs = survey_crs)
-    sf_obj <- ensure_crs_4326(sf_obj)
-
-  } else {
-    print("Input a valid sf object or geosurvey")
-    sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
-  }
+  sf_obj <- prep_sf_obj_predownload(shp_dt = shp_dt,
+                                    shp_fn = shp_fn,
+                                    survey_dt = survey_dt,
+                                    survey_fn = survey_fn)
 
   # Set date range
   start_date <- as.Date(start_date)
@@ -1317,8 +1324,8 @@ geolink_worldclim <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  # shp_dt <- ensure_crs_4326(shp_dt)
+  # survey_dt <- ensure_crs_4326(survey_dt)
 
 
   if(!is.null(iso_code)){
