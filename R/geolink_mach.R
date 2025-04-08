@@ -91,8 +91,8 @@ geolink_chirps <- function(time_unit = NULL,
                            extract_fun = "mean",
                            survey_crs = 4326) {
 
-  shp_dt <- ensure_crs_is_4326(shp_dt)
-  survey_dt <- ensure_crs_is_4326(survey_dt)
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
 
 
   # start_date <- as.Date(start_date)
@@ -266,8 +266,20 @@ geolink_ntl <- function(time_unit = "annual",
                         buffer_size = NULL,
                         survey_crs = 4326) {
 
-  shp_dt <- ensure_crs_is_4326(shp_dt)
-  survey_dt <- ensure_crs_is_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -679,8 +691,20 @@ geolink_elevation <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  shp_dt <- ensure_crs_is_4326(shp_dt)
-  survey_dt <- ensure_crs_is_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
   if(!is.null(iso_code)){
     print(paste("Checking data for", iso_code))
@@ -988,14 +1012,14 @@ geolink_CMIP6 <- function(start_date,
 
   # Ensure shapefile and survey are in the correct CRS
   if (!is.null(shp_dt)) {
-    sf_obj <- ensure_crs_is_4326(shp_dt)
+    sf_obj <- ensure_crs_4326(shp_dt)
 
   } else if (!is.null(survey_dt)) {
-    sf_obj <- ensure_crs_is_4326(survey_dt)
+    sf_obj <- ensure_crs_4326(survey_dt)
 
   } else if (!is.null(shp_fn)) {
     sf_obj <- sf::read_sf(shp_fn)
-    sf_obj <- ensure_crs_is_4326(sf_obj)
+    sf_obj <- ensure_crs_4326(sf_obj)
 
   } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
     sf_obj <- zonalstats_prepsurvey(
@@ -1005,7 +1029,7 @@ geolink_CMIP6 <- function(start_date,
       survey_lon = survey_lon,
       buffer_size = NULL,
       survey_crs = survey_crs)
-    sf_obj <- ensure_crs_is_4326(sf_obj)
+    sf_obj <- ensure_crs_4326(sf_obj)
 
   } else {
     print("Input a valid sf object or geosurvey")
@@ -1306,8 +1330,20 @@ geolink_worldclim <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  shp_dt <- ensure_crs_is_4326(shp_dt)
-  survey_dt <- ensure_crs_is_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
 
   if(!is.null(iso_code)){
@@ -1438,11 +1474,11 @@ geolink_terraclimate <- function(var,
 
   # Ensure CRS is 4326 for both shapefile and survey data if they exist
   if (!is.null(shp_dt)) {
-    shp_dt <- ensure_crs_is_4326(shp_dt)
+    shp_dt <- ensure_crs_4326(shp_dt)
   }
 
   if (!is.null(survey_dt)) {
-    survey_dt <- ensure_crs_is_4326(survey_dt)
+    survey_dt <- ensure_crs_4326(survey_dt)
   }
 
   # Generate URL
@@ -1603,7 +1639,7 @@ geolink_get_poi <- function(osm_key,
 
   # Set CRS to 4326 if data is provided as survey_dt
   if (!is.null(survey_dt)) {
-    survey_dt <- ensure_crs_is_4326(survey_dt)
+    survey_dt <- ensure_crs_4326(survey_dt)
   }
 
 
@@ -1638,10 +1674,10 @@ geolink_get_poi <- function(osm_key,
   # Process input data using helper functions
   if (!is.null(shp_dt)) {
     sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else if (!is.null(shp_fn)) {
     sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
     sf_obj <- zonalstats_prepsurvey(
       survey_dt = survey_dt,
@@ -1650,7 +1686,7 @@ geolink_get_poi <- function(osm_key,
       survey_lon = survey_lon,
       buffer_size = buffer_size,
       survey_crs = survey_crs) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else {
     stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
   }
@@ -1836,10 +1872,10 @@ geolink_electaccess <- function(
   # Process input data and create sf_obj
   if (!is.null(shp_dt)) {
     sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else if (!is.null(shp_fn)) {
     sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
     # Handle survey data input
     if (!is.null(survey_fn)) {
@@ -1869,14 +1905,14 @@ geolink_electaccess <- function(
         survey_dt <- st_transform(survey_dt, 4326)
       }
     } else if (!is.null(survey_dt)) {
-      survey_dt <- ensure_crs_is_4326(survey_dt)
+      survey_dt <- ensure_crs_4326(survey_dt)
     }
 
     sf_obj <- zonalstats_prepsurvey(
       survey_dt = survey_dt,
       buffer_size = buffer_size,
       survey_crs = survey_crs
-    ) %>% ensure_crs_is_4326()
+    ) %>% ensure_crs_4326()
   } else {
     stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
   }
@@ -2424,7 +2460,7 @@ geolink_landcover <- function(start_date,
 
   # Handle survey data if provided
   if (!is.null(survey_dt)) {
-    survey_dt <- ensure_crs_is_4326(survey_dt)
+    survey_dt <- ensure_crs_4326(survey_dt)
   } else if (!is.null(survey_fn)) {
     if (is.null(survey_lat) || is.null(survey_lon)) {
       stop("Both survey_lat and survey_lon must be provided when using survey_fn")
@@ -2459,10 +2495,10 @@ geolink_landcover <- function(start_date,
   # Create spatial object from inputs
   if (!is.null(shp_dt)) {
     sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else if (!is.null(shp_fn)) {
     sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
     sf_obj <- zonalstats_prepsurvey(
       survey_dt = survey_dt,
@@ -2471,7 +2507,7 @@ geolink_landcover <- function(start_date,
       survey_lon = survey_lon,
       buffer_size = buffer_size,
       survey_crs = survey_crs) %>%
-      ensure_crs_is_4326()
+      ensure_crs_4326()
   } else {
     stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
   }
