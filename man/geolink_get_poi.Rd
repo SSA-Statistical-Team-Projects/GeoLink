@@ -64,7 +64,7 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 
 poi_survey_df <- geolink_get_poi(osm_key = "amenity",
                                 buffer_size = 2000,
-                                survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],)
+                                survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 
 
 poi_survey_fn <- geolink_get_poi(

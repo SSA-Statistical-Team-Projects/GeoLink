@@ -56,6 +56,7 @@ The data is downloaded in raster format and combined with shapefile and/or surve
 by the user. Source data: https://planetarycomputer.microsoft.com/dataset/io-lulc-annual-v02
 }
 \examples{
+\dontrun{
 \donttest{
 # Loading the survey data and shapefile
 data("hhgeo_dt")
@@ -68,8 +69,8 @@ data("shp_dt")
  end_date = "2019-12-31",
  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
  use_resampling = TRUE,
- target_resolution = 1000
- )
+ target_resolution = 1000)
+
 
 
  landcover_survey <- geolink_landcover(
@@ -80,7 +81,7 @@ data("shp_dt")
  use_resampling = TRUE,
  target_resolution = 1000)
 
-  )
-}
 
+}
+}
 }
