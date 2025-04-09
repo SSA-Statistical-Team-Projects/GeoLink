@@ -1567,7 +1567,7 @@ geolink_terraclimate <- function(var,
 #'
 #' poi_survey_df <- geolink_get_poi(osm_key = "amenity",
 #'                                 buffer_size = 2000,
-#'                                 survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],)
+#'                                 survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 #'
 #'
 #' poi_survey_fn <- geolink_get_poi(
@@ -2385,8 +2385,8 @@ geolink_opencellid <- function(cell_tower_file,
 #'  end_date = "2019-12-31",
 #'  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'  use_resampling = TRUE,
-#'  target_resolution = 1000
-#'  )
+#'  target_resolution = 1000)
+#'
 #'
 #'
 #'  landcover_survey <- geolink_landcover(
