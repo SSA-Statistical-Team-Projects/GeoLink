@@ -89,6 +89,7 @@ which is read in with the \code{sf::read_sf()} function.
 }
 \examples{
 
+\dontrun{
 \donttest{
 
 #loading the survey data and shapefile
@@ -119,5 +120,5 @@ df <- geolink_ntl(time_unit = "annual",
                  indicator = c("average_masked","cf_cvg"),
                  extract_fun = "mean")
 
-}
+}}
 }

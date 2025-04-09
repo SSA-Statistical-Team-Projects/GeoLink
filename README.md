@@ -1,24 +1,35 @@
+
 # GeoLink 🌍
 
-[![R-CMD-check](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub issues](https://img.shields.io/github/issues/your-username/geolink)]()
+<!-- badges: start -->
 
-GeoLink is an R package that provides easy access to various geospatial datasets, allowing seamless integration with your spatial data or household surveys.
+[![R-CMD-check](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml)
+[![License:
+MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub
+issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geolink)](https://github.com/SSA-Statistical-Team-Projects/geolink/issues)
+
+<!-- badges: end -->
+
+GeoLink is an R package that provides easy access to various geospatial
+datasets, allowing seamless integration with your spatial data or
+household surveys.
 
 ## 📋 Table of Contents
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Data Visualization Examples](#data-visualization-examples)
-- [Basic Usage Examples](#basic-usage-examples)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
+
+- [Features](#-features)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [Data Visualization Examples](#️-data-visualization-examples)
+- [Basic Usage Examples](#-basic-usage-examples)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ## ✨ Features
 
-Download and process:
+Download and process: 
+
 - CHIRPS rainfall data
 - Night Time Light (NTL) data
 - Population data (WorldPop)
@@ -32,18 +43,17 @@ Download and process:
 - Points of Interest (OpenStreetMap)
 - Electrification access data (HREA)
 - OpenCellID data
+- Pollution data
+- Vegetation Index data
 
 ## 🚀 Installation
 
-```R
+``` r
 # Install devtools if you haven't already
 install.packages("devtools")
 
-# Install required visualization packages
-install.packages(c("ggplot2", "sf", "leaflet", "viridis"))
-
 # Install GeoLink
-devtools::install_github("your-username/GeoLink")
+devtools::install_github("SSA-Statistical-Team-Projects/GeoLink")
 
 # Load the package
 library(GeoLink)
@@ -51,14 +61,14 @@ library(GeoLink)
 
 ## 📊 Usage
 
-Most functions require either:
-- A shapefile (`shp_dt` or `shp_fn`)
-- OR a household survey dataset (`survey_dt` or `survey_fn`) with coordinates
+Most functions require either: - A shapefile (`shp_dt` or `shp_fn`) - OR
+a household survey dataset (`survey_dt` or `survey_fn`) with coordinates
 
 ## 🗺️ Data Visualization Examples
 
 ### 1. Rainfall Visualization
-```R
+
+``` r
 library(ggplot2)
 library(sf)
 library(viridis)
@@ -68,7 +78,7 @@ rainfall_map <- geolink_chirps(
     time_unit = "month",
     start_date = "2020-01-01",
     end_date = "2020-01-31",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Abia",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
     grid_size = 1000
 )
 
@@ -91,16 +101,17 @@ ggplot(rainfall_map) +
     )
 ```
 
-![Rainfall Map Example](/assets/images/rainfall_map.png)
+![](assets/images/rainfall_map.png)
 
 ### 2. Night Time Lights Analysis
-```R
+
+``` r
 # Get night time lights data
 ntl_map <- geolink_ntl(
     time_unit = "annual",
     start_date = "2020-01-01",
     end_date = "2020-12-31",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Lagos",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",],
     indicator = "average_masked",
     grid_size = 1000
 )
@@ -127,84 +138,91 @@ ggplot(ntl_map) +
     )
 ```
 
-![Night Time Lights Map](/assets/images/ntl_map.png)
+![](assets/images/ntl_map.png)
 
 ### 3. Interactive Population Density
-```R
+
+``` r
 library(leaflet)
 
 # Get population data
 pop_data <- geolink_population(
-    start_year = 2020,
-    end_year = 2020,
-    iso_code = "NGA",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Kano",],
-    grid_size = 1000
+  start_year = 2018,
+  end_year = 2018,
+  iso_code = "NGA",
+  constrained = 'N',
+  UN_adjst = 'N',
+  shp_dt = shp_dt[shp_dt$ADM1_EN == "Kano",],
+  grid_size = 1000,
+  extract_fun = "mean"
 )
 
 # Create interactive population map
 leaflet(pop_data) %>%
     addProviderTiles(providers$CartoDB.DarkMatter) %>%
     addPolygons(
-        fillColor = ~colorQuantile("YlOrRd", population_2020)(population_2020),
+        fillColor = ~colorQuantile("YlOrRd", population_2018)(population_2018),
         fillOpacity = 0.7,
         weight = 1,
         color = "#666",
         popup = ~paste(
             "<strong>Area:</strong>", 
-            "<br>Population:", round(population_2020),
-            "<br>Density:", round(population_2020/st_area(geometry))
+            "<br>Population:", round(population_2018),
+            "<br>Density:", round(population_2018/st_area(geometry))
         )
     ) %>%
     addLegend(
         "bottomright",
         title = "Population Density",
-        pal = colorQuantile("YlOrRd", pop_data$population_2020),
-        values = ~population_2020
+        pal = colorQuantile("YlOrRd", pop_data$population_2018),
+        values = ~population_2018
     )
 ```
 
-![Population Density Map](/assets/images/population_map.png)
+![](assets/images/population_map.png)
 
 ### 4. Elevation Profile with Cropland Overlay
-```R
+
+``` r
 # Combine elevation and cropland data
 elevation_data <- geolink_elevation(
     iso_code = "NGA",
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Plateau",],
     grid_size = 1000
 )
 
 cropland_data <- geolink_cropland(
-    shp_dt = nigeria_states[nigeria_states$ADM1_EN == "Plateau",],
+    shp_dt = shp_dt[shp_dt$ADM1_EN == "Plateau",],
     grid_size = 1000
 )
 
+
 # Create combined visualization
 ggplot(elevation_data) +
-    geom_sf(aes(fill = elevation)) +
-    geom_sf(data = cropland_data, aes(alpha = cropland), fill = "darkgreen") +
-    scale_fill_gradient2(
-        low = "darkgreen",
-        mid = "yellowgreen",
-        high = "brown",
-        midpoint = median(elevation_data$elevation),
-        name = "Elevation (m)"
-    ) +
-    scale_alpha_continuous(name = "Cropland Density") +
-    theme_minimal() +
-    labs(
-        title = "Elevation Profile with Cropland Overlay",
-        subtitle = "Plateau State, Nigeria"
-    )
+  geom_sf(aes(fill = NGA_elv_msk)) +
+  geom_sf(data = cropland_data, aes(alpha = cropland), fill = "darkgreen") +
+  scale_fill_gradient2(
+    low = "darkgreen",
+    mid = "yellowgreen",
+    high = "brown",
+    midpoint = median(elevation_data$NGA_elv_msk),
+    name = "Elevation (m)"
+  ) +
+  scale_alpha_continuous(name = "Cropland Density") +
+  theme_minimal() +
+  labs(
+    title = "Elevation Profile with Cropland Overlay",
+    subtitle = "Plateau State, Nigeria"
+  )
 ```
 
-![Elevation and Cropland Map](/assets/images/elevation_cropland_map.png)
+![](assets/images/elevation_cropland_map.png)
 
 ## 📝 Basic Usage Examples
 
 ### Rainfall Data (CHIRPS)
-```R
+
+``` r
 df <- geolink_chirps(
     time_unit = "month",
     start_date = "2020-01-01",
@@ -215,7 +233,8 @@ df <- geolink_chirps(
 ```
 
 ### Night Time Lights
-```R
+
+``` r
 df <- geolink_ntl(
     time_unit = "month",
     start_date = "2020-01-01",
@@ -227,7 +246,8 @@ df <- geolink_ntl(
 ```
 
 ### Population Data
-```R
+
+``` r
 df <- geolink_population(
     start_year = 2018,
     end_year = 2019,
@@ -239,47 +259,149 @@ df <- geolink_population(
 
 ## 📚 Documentation
 
-For detailed documentation of each function, use R's help system:
-```R
+For detailed documentation of each function, use R’s help system:
+
+``` r
 ?geolink_chirps
 ?geolink_ntl
 ?geolink_population
 ```
 
 ### Memory Considerations
-- Some functions process large raster files
-- Use `use_resampling = TRUE` for large areas
-- Consider chunking large areas into smaller regions
+
+When working with geospatial data, memory management is crucial,
+especially on laptops:
+
+- **Large raster operations**: Many GeoLink functions process large
+  raster files that can consume significant RAM
+- **Geographic chunking**: Consider processing large areas by dividing
+  them into smaller regions
+- **Grid size adjustment**: Increase `grid_size` parameter to reduce
+  resolution and memory requirements
+- **Temporary file cleanup**: Use `raster::removeTmpFiles(h=0)`
+  periodically to clean up temp files
+
+#### Optimizing R Memory on Laptops
+
+To maximize available memory for GeoLink on your laptop:
+
+``` r
+# Increase R's memory limit (Windows)
+memory.limit(size=10000)  # Set to 10GB if available
+
+# Clear R environment before large operations
+rm(list = ls())
+gc()
+
+# Configure raster package to use disk instead of RAM
+raster::rasterOptions(maxmemory = 1e9)  # 1GB RAM limit
+raster::rasterOptions(tmpdir = "C:/R_temp")  # Custom temp directory
+
+# Monitor memory usage
+mem_used <- pryr::mem_used()  # Requires 'pryr' package
+print(paste0("Current memory usage: ", round(mem_used/1e6, 2), " MB"))
+
+# Close other applications and disable memory-intensive R features
+options(device.ask.default = FALSE)  # Disable interactive graphics prompts
+```
+
+#### Handling Very Large Datasets
+
+For extremely large geospatial operations:
+
+- Use `terra` package instead of `raster` for more efficient memory
+  usage
+- Consider parallel processing with `parallel` or `future` packages
+- Pre-filter your area of interest to the smallest necessary extent
+- Export intermediate results to disk using `sf::write_sf()` or
+  `terra::writeRaster()`
+- Consider cloud-based computation for nationwide or continental
+  analyses
 
 ### Error Handling
-The package includes comprehensive error checking:
-```R
-# Invalid file format
+
+GeoLink implements robust error handling to gracefully manage common
+issues when working with geospatial data:
+
+#### Input Validation
+
+``` r
+# Invalid file format detection
 df <- geolink_population(survey_fn = "invalid.txt")
 # Error: "Unsupported file format. Please provide .dta file"
 
-# CRS mismatch
+# Missing required parameters
+df <- geolink_chirps()
+# Error: "start_date and end_date must be specified"
+
+# Invalid parameter values
+df <- geolink_ntl(time_unit = "weekly")
+# Error: "Time unit should either be month or annual"
+```
+
+#### Coordinate Reference System (CRS) Management
+
+``` r
+# Automatic CRS detection and reprojection
 df <- geolink_chirps(shp_dt = invalid_crs_data)
 # Message: "Reprojecting from XXXX to EPSG:4326"
+
+# All GeoLink functions use ensure_crs_4326() internally to handle CRS issues
 ```
+
+#### Temporary File Management
+
+``` r
+# Proper resource allocation and deallocation
+on.exit(raster::removeTmpFiles(h=0))
+```
+
+#### Large Area Processing
+
+``` r
+# Intelligent splitting of large areas into manageable chunks
+# For OpenStreetMap data:
+if (bbox_area > area_threshold) {
+  message("Large area detected. Splitting into quadrants...")
+  # Process quadrants separately and combine results
+}
+```
+
+#### Common Error Solutions
+
+If you encounter errors, try these common solutions:
+
+1.  **Memory errors**: Increase grid size or use resampling
+2.  **Connection timeouts**: Check internet connection
+3.  **Missing data**: Verify date ranges are valid for the selected
+    dataset
+4.  **Invalid geometries**: Clean your shapefile using
+    `sf::st_make_valid()`
+5.  **Projection errors**: Ensure input data has defined coordinate
+    systems
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please feel free to submit a Pull Request.
+For major changes, please open an issue first to discuss what you would
+like to change.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1.  Fork the Project
+2.  Create your Feature Branch
+    (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the
+[LICENSE.md](LICENSE.md) file for details.
 
 ## 📫 Contact
 
-Project Link: [https://github.com/SSA-Statistical-Team-Projects/GeoLink](https://github.com/SSA-Statistical-Team-Projects/GeoLink)
+Project Link: <https://github.com/SSA-Statistical-Team-Projects/GeoLink>
 
----
-Made with ❤️ by [DECCS]
+------------------------------------------------------------------------
+
+Made with ❤️ by \[The World Bank Group & The University of Southampton\]

@@ -12,7 +12,7 @@
 #' @import sf
 #' @importFrom methods is
 #'
-#' #' @examples
+#' @examples
 #' \donttest{
 #'
 #'  #example usage
@@ -62,21 +62,6 @@ run_geolink <- function(
         extract_fun = "mean",
         buffer_size = NULL,
         survey_crs = 4326
-      )
-    ),
-    "landcover" = list(
-      description = "Download annual land use land cover data",
-      required = c("start_date", "end_date", "shp_dt"),
-      optional = list(
-        use_resampling = FALSE,
-        grid_size = 1000,
-        survey_dt = NULL,
-        survey_fn = NULL,
-        survey_lat = NULL,
-        survey_lon = NULL,
-        buffer_size = NULL,
-        survey_crs = 4326,
-        shp_fn = NULL
       )
     ),
     "population" = list(
@@ -221,6 +206,22 @@ run_geolink <- function(
         survey_crs = 4326
       )
     ),
+    "landcover" = list(
+      description = "Download land cover data",
+      required = c("start_date", "end_date", "shp_dt"),
+      optional = list(
+        shp_fn = NULL,
+        survey_dt = NULL,
+        survey_fn = NULL,
+        survey_lat = NULL,
+        survey_lon = NULL,
+        buffer_size = NULL,
+        survey_crs = 4326,
+        grid_size = NULL,
+        use_resampling = TRUE,
+        target_resolution = 1000
+      )
+    ),
     "terraclimate" = list(
       description = "Download TerraClimate data",
       required = c("var", "year", "shp_dt"),
@@ -262,7 +263,6 @@ run_geolink <- function(
   data_functions <- list(
     "rainfall" = geolink_chirps,
     "nightlight" = geolink_ntl,
-    "landcover" = geolink_landcover,
     "population" = geolink_population,
     "poi" = geolink_get_poi,
     "electaccess" = geolink_electaccess,
@@ -272,6 +272,7 @@ run_geolink <- function(
     "cropland" = geolink_cropland,
     "worldclim" = geolink_worldclim,
     "opencellid" = geolink_opencellid,
+    "landcover" = geolink_landcover,
     "terraclimate" = geolink_terraclimate
   )
 

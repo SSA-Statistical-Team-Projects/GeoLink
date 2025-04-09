@@ -71,6 +71,8 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 \code{sf::read_sf()} function.
 }
 \examples{
+
+\dontrun{
 \donttest{
 
  #example usage
@@ -80,5 +82,6 @@ df <- geolink_worldclim(iso_code ="NGA",
                  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                  grid_size = 1000,
                  extract_fun = "mean")
-}
+}}
+
 }

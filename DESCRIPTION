@@ -4,8 +4,8 @@ Title: Geospatial Data Integration for Unit Level Analysis
 Version: 0.1.0
 Authors@R: c(
     person("Daylan", "Gomez", email = "dsalmerongomez@worldbank.org", role = "aut"),
-    person("Diana", "Jaganjac", email = "djaganjac@worldbank.org", role = c("aut", "cre")),
-    person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = "aut"))
+    person("Diana", "Jaganjac", email = "djaganjac@worldbank.org", role = "aut"),
+    person("Ifeanyi", "Edochie", email = "iedochie@worldbank.org", role = c("aut", "cre")))
 Description: A toolkit for downloading and processing geospatial data from 
     multiple sources including CHIRPS rainfall, night time lights, population,
     elevation, building footprints, CMIP6 climate models, land use data,
@@ -42,17 +42,15 @@ Imports:
     stringr,
     terra,
     tools,
-    units
-Suggests:
-    testthat (>= 3.0.0),
+    units,
     crsuggest,
     dbscan,
-    knitr,
-    quarto
-Depends:
-    R (>= 3.5)
+    dplyr
+Suggests:
+    testthat (>= 3.0.0)
+Depends: 
+    R (>= 2.10)
 SystemRequirements: Python (>= 3.7)
 RoxygenNote: 7.3.2
 Config/testthat/edition: 3
 Config/reticulate: list(packages = c("numpy", "rasterio", "tqdm", "certifi"))
-VignetteBuilder: quarto

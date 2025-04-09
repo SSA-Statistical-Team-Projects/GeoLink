@@ -92,6 +92,8 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 \code{sf::read_sf()} function.
 }
 \examples{
+
+\dontrun{
 \donttest{
 
 
@@ -106,5 +108,5 @@ df <- geolink_population(start_year = 2018,
                            extract_fun = "mean",
                            file_location = tempdir())
 
-}
+}}
 }

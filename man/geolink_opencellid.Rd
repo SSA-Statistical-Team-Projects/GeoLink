@@ -13,7 +13,9 @@ geolink_opencellid(
   survey_lat = NULL,
   survey_lon = NULL,
   buffer_size = NULL,
-  survey_crs = 4326
+  survey_crs = 4326,
+  extract_fun = "mean",
+  grid_size = 1000
 )
 }
 \arguments{
@@ -50,6 +52,8 @@ required csv.gz file for the country for which they wish to run the analysis. Th
 dataset (csv.gz file) should then be passed into the cell_tower_file parameter. Please see example usage below/
 }
 \examples{
+
+\dontrun{
 \donttest{
 
 # Example usage
@@ -71,6 +75,6 @@ opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downlo
                                            survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
                                            survey_lon = "x",
                                            survey_lat = "y")
-}
+}}
 
 }
