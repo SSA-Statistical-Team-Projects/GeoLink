@@ -3,7 +3,7 @@
 #################################################################################
 
 #Test- A.
-test_that("Elevation Function works using a shapefile:", {
+test_that("Terraclimate works using a shapefile:", {
 
   suppressWarnings({ test_dt <- geolink_terraclimate( var='tmax',
                                                   year = 2017,
@@ -28,7 +28,7 @@ test_that("Elevation Function works using a shapefile:", {
 
 
 #Test- B
-test_that("Elevation Function works using a survey :", {
+test_that("Terraclimate works using a survey :", {
 
   suppressWarnings({ test_dt <- geolink_terraclimate(year = 2017,
                                                   var = 'tmax',

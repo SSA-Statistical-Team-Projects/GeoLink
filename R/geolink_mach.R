@@ -91,21 +91,12 @@ geolink_chirps <- function(time_unit = NULL,
                            extract_fun = "mean",
                            survey_crs = 4326) {
 
-  # # Only apply ensure_crs_4326 if the spatial inputs are not NULL
-  # if (!is.null(shp_dt)) {
-  #   shp_dt <- ensure_crs_4326(shp_dt)
-  # } else if (!is.null(shp_fn)) {
-  #   # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
-  #   shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
-  # }
-  #
-  # if (!is.null(survey_dt)) {
-  #   survey_dt <- ensure_crs_4326(survey_dt)
-  # } else if (!is.null(survey_fn)) {
-  #   # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
-  #   survey_dt <- ensure_crs_4326(haven::read_dta(survey_fn))
-  # }
+  shp_dt <- ensure_crs_4326(shp_dt)
+  survey_dt <- ensure_crs_4326(survey_dt)
 
+
+  # start_date <- as.Date(start_date)
+  # end_date <- as.Date(end_date)
 
   ## download the data
   if (time_unit == "month") {
@@ -275,8 +266,20 @@ geolink_ntl <- function(time_unit = "annual",
                         buffer_size = NULL,
                         survey_crs = 4326) {
 
-  # shp_dt <- ensure_crs_4326(shp_dt)
-  # survey_dt <- ensure_crs_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -677,7 +680,7 @@ geolink_population <- function(start_year = NULL,
 #' @importFrom geodata elevation_30s
 
 geolink_elevation <- function(iso_code,
-                              shp_dt = NULL,
+                              shp_dt=NULL,
                               shp_fn = NULL,
                               grid_size = NULL,
                               survey_dt = NULL,
@@ -688,10 +691,20 @@ geolink_elevation <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  # shp_dt <- ensure_crs_4326(shp_dt)
-  # survey_dt <- ensure_crs_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
 
-
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
   if(!is.null(iso_code)){
     print(paste("Checking data for", iso_code))
@@ -718,16 +731,16 @@ geolink_elevation <- function(iso_code,
 
   raster_list <- lapply(tif_files, terra::rast)
 
-  # epsg_4326 <- "+init=EPSG:4326"
-  #
-  # for (i in seq_along(raster_list)) {
-  #   terra::crs(raster_list[[i]]) <- epsg_4326
-  #   if (is.null(terra::crs(raster_list[[i]]))) {
-  #     print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
-  #   } else {
-  #     print(paste("Raster", i, "projected successfully."))
-  #   }
-  # }
+  epsg_4326 <- "+init=EPSG:4326"
+
+  for (i in seq_along(raster_list)) {
+    terra::crs(raster_list[[i]]) <- epsg_4326
+    if (is.null(terra::crs(raster_list[[i]]))) {
+      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
+    } else {
+      print(paste("Raster", i, "projected successfully."))
+    }
+  }
 
   print("Elevation Raster Downloaded")
 
@@ -917,10 +930,8 @@ geolink_buildings <- function(version,
 
   print("Process Complete!!!")
 
-  unlink(tempdir(), recursive = TRUE)
-
   return(dt)
-
+  unlink(tempdir(), recursive = TRUE)
 }
 
 #' Download CMIP6 climate model data
@@ -999,36 +1010,31 @@ geolink_CMIP6 <- function(start_date,
                           extract_fun = "mean",
                           survey_crs = 4326) {
 
-  # # Ensure shapefile and survey are in the correct CRS
-  # if (!is.null(shp_dt)) {
-  #   sf_obj <- ensure_crs_4326(shp_dt)
-  #
-  # } else if (!is.null(survey_dt)) {
-  #   sf_obj <- ensure_crs_4326(survey_dt)
-  #
-  # } else if (!is.null(shp_fn)) {
-  #   sf_obj <- sf::read_sf(shp_fn)
-  #   sf_obj <- ensure_crs_4326(sf_obj)
-  #
-  # } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
-  #   sf_obj <- zonalstats_prepsurvey(
-  #     survey_dt = survey_dt,
-  #     survey_fn = survey_fn,
-  #     survey_lat = survey_lat,
-  #     survey_lon = survey_lon,
-  #     buffer_size = NULL,
-  #     survey_crs = survey_crs)
-  #   sf_obj <- ensure_crs_4326(sf_obj)
-  #
-  # } else {
-  #   print("Input a valid sf object or geosurvey")
-  #   sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
-  # }
+  # Ensure shapefile and survey are in the correct CRS
+  if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
 
-  sf_obj <- prep_sf_obj_predownload(shp_dt = shp_dt,
-                                    shp_fn = shp_fn,
-                                    survey_dt = survey_dt,
-                                    survey_fn = survey_fn)
+  } else if (!is.null(survey_dt)) {
+    sf_obj <- ensure_crs_4326(survey_dt)
+
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else {
+    print("Input a valid sf object or geosurvey")
+    sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
+  }
 
   # Set date range
   start_date <- as.Date(start_date)
@@ -1324,8 +1330,20 @@ geolink_worldclim <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  # shp_dt <- ensure_crs_4326(shp_dt)
-  # survey_dt <- ensure_crs_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
 
   if(!is.null(iso_code)){
@@ -1601,7 +1619,7 @@ geolink_get_poi <- function(osm_key,
                             survey_lat = NULL,
                             survey_lon = NULL,
                             buffer_size = NULL,
-                            survey_crs = NULL,
+                            survey_crs = 4326,
                             grid_size = NULL) {
 
   max_retries = 3
@@ -1835,7 +1853,7 @@ geolink_electaccess <- function(
     end_date = NULL,
     shp_dt = NULL,
     shp_fn = NULL,
-    grid_size = 1000,
+    grid_size = NULL,
     survey_dt = NULL,
     survey_fn = NULL,
     survey_lat = NULL,
@@ -2149,7 +2167,7 @@ geolink_electaccess <- function(
 #' @details This function processes downloaded OpenCellID data,
 #' which provides information about cell towers and their coverage areas.
 #' The return dataframe gives a count of cell towers within the shapefile area.
-#' For the function to run, the user will need to set up an account on www.opencellid.com and download the
+#' For the function to run, the user will need to set up an account on www.opencellid.org and download the
 #' required csv.gz file for the country for which they wish to run the analysis. The file location of this
 #' dataset (csv.gz file) should then be passed into the cell_tower_file parameter. Please see example usage below/
 #'
@@ -2210,60 +2228,34 @@ geolink_opencellid <- function(cell_tower_file,
                                buffer_size = NULL,
                                survey_crs = 4326,
                                extract_fun = "mean",
-                               grid_size = 1000) {
+                               grid_size = NULL) {
 
   resolution = 1000
   name_set = "cell_towers"
-
-  # Define read_opencellid_data function if not already defined
-  read_opencellid_data <- function(file_path) {
-    # For gzipped CSV files
-    if (grepl("\\.gz$", file_path)) {
-      message("Reading gzipped file...")
-      data <- data.table::fread(file_path)
-    } else {
-      data <- data.table::fread(file_path)
-    }
-
-    # Check if required columns exist
-    if (!all(c("lat", "lon") %in% colnames(data))) {
-      # Try to identify lat/lon columns if they exist
-      if (ncol(data) >= 8) {
-        # Assuming columns 7 and 8 are lon and lat as mentioned
-        names(data)[7] <- "lon"
-        names(data)[8] <- "lat"
-        message("Renamed columns 7 and 8 to 'lon' and 'lat'")
-      } else {
-        stop("Cell tower data must contain 'lat' and 'lon' columns")
-      }
-    }
-
-    return(data)
-  }
 
   read_opencellid_data_cached <- memoise::memoise(read_opencellid_data)
 
   if (!is.null(survey_dt)) {
     if (!inherits(survey_dt, "sf")) {
       if ("geometry" %in% names(survey_dt)) {
-        sf_obj <- sf::st_as_sf(survey_dt)
+        sf_obj <- st_as_sf(survey_dt)
       } else if (!is.null(survey_lat) && !is.null(survey_lon)) {
         if (!(survey_lat %in% names(survey_dt)) || !(survey_lon %in% names(survey_dt))) {
           stop(sprintf("Coordinate columns '%s' and '%s' not found in survey data",
                        survey_lat, survey_lon))
         }
 
-        sf_obj <- sf::st_as_sf(survey_dt,
-                               coords = c(survey_lon, survey_lat),
-                               crs = survey_crs,
-                               agr = "constant")
+        sf_obj <- st_as_sf(survey_dt,
+                           coords = c(survey_lon, survey_lat),
+                           crs = survey_crs,
+                           agr = "constant")
       } else {
         stop("Survey data must either have a geometry column or survey_lat/survey_lon must be provided")
       }
-      original_data <- data.table::as.data.table(sf::st_drop_geometry(survey_dt))
+      original_data <- as.data.table(st_drop_geometry(survey_dt))
     } else {
       sf_obj <- survey_dt
-      original_data <- data.table::as.data.table(sf::st_drop_geometry(survey_dt))
+      original_data <- as.data.table(st_drop_geometry(survey_dt))
     }
   } else if (!is.null(survey_fn)) {
     if (is.null(survey_lat) || is.null(survey_lon)) {
@@ -2277,19 +2269,20 @@ geolink_opencellid <- function(cell_tower_file,
                    survey_lat, survey_lon))
     }
 
-    sf_obj <- sf::st_as_sf(original_data,
-                           coords = c(survey_lon, survey_lat),
-                           crs = survey_crs,
-                           agr = "constant")
+    sf_obj <- st_as_sf(original_data,
+                       coords = c(survey_lon, survey_lat),
+                       crs = survey_crs,
+                       agr = "constant")
   } else if (!is.null(shp_dt)) {
     if (!inherits(shp_dt, "sf")) {
       stop("Input shp_dt must be an sf object")
     }
     sf_obj <- shp_dt
-    original_data <- data.table::as.data.table(sf::st_drop_geometry(shp_dt))
+    original_data <- as.data.table(st_drop_geometry(shp_dt))
   } else if (!is.null(shp_fn)) {
-    sf_obj <- sf::st_read(shp_fn, quiet = TRUE)
-    original_data <- data.table::as.data.table(sf::st_drop_geometry(sf_obj))
+
+        sf_obj <- st_read(shp_fn, quiet = TRUE)
+    original_data <- as.data.table(st_drop_geometry(sf_obj))
   } else {
     stop("Please provide either shapefile data or survey data with coordinate columns")
   }
@@ -2299,34 +2292,32 @@ geolink_opencellid <- function(cell_tower_file,
 
   # Use 3857 for buffering (metric) then convert to 4326 (degrees)
   if (!is.null(buffer_size)) {
-    message(sprintf("Creating buffer of %s meters around points...", buffer_size))
-    sf_obj <- sf::st_transform(sf_obj, 3857) %>%
-      sf::st_buffer(buffer_size) %>%
-      sf::st_transform(4326)
+    sf_obj <- st_transform(sf_obj, 3857) %>%
+      st_buffer(buffer_size) %>%
+      st_transform(4326)
   }
 
-  if (sf::st_crs(sf_obj)$epsg != 4326) {
-    sf_obj <- sf::st_transform(sf_obj, 4326)
+  if (st_crs(sf_obj)$epsg != 4326) {
+    sf_obj <- st_transform(sf_obj, 4326)
   }
 
   message("Reading cell tower data...")
   cell_towers <- read_opencellid_data_cached(cell_tower_file)
   message(sprintf("Read %d cell towers", nrow(cell_towers)))
 
-  cell_towers_sf <- sf::st_as_sf(cell_towers,
-                                 coords = c("lon", "lat"),
-                                 crs = 4326,
-                                 agr = "constant")
+  cell_towers_sf <- st_as_sf(cell_towers,
+                             coords = c("lon", "lat"),
+                             crs = 4326,
+                             agr = "constant")
 
   # Create spatial index for efficiency
-  cell_towers_sf <- sf::st_sf(cell_towers_sf)
+  cell_towers_sf <- st_sf(cell_towers_sf)
 
-  bbox <- sf::st_bbox(sf_obj)
+  bbox <- st_bbox(sf_obj)
 
-  message("Filtering cell towers within bounding box...")
-  cell_towers_filtered <- cell_towers_sf[sf::st_intersects(
+  cell_towers_filtered <- cell_towers_sf[st_intersects(
     cell_towers_sf,
-    sf::st_as_sfc(bbox),
+    st_as_sfc(bbox),
     sparse = FALSE
   )[,1], ]
 
@@ -2335,18 +2326,56 @@ geolink_opencellid <- function(cell_tower_file,
     num_towers <- rep(0, nrow(original_sf_obj))
   } else {
     message(sprintf("Found %d cell towers within bounding box", nrow(cell_towers_filtered)))
+    tryCatch({
+      cell_towers_filtered$tower_count <- 1
 
-    # HERE'S THE KEY CHANGE: We're using sf_obj (buffered) instead of original_sf_obj
-    message("Counting cell towers within buffered areas...")
-    num_towers <- lengths(sf::st_intersects(sf_obj, cell_towers_filtered, sparse = TRUE))
+      # Convert cell tower points to raster
+      cell_towers_raster <- point_sf_to_raster(
+        point_sf = cell_towers_filtered,
+        resolution = resolution,
+        agg_fun = sum
+      )
 
-    message(sprintf("Total towers found in all buffers: %d", sum(num_towers)))
+      raster_objs <- list(cell_towers_raster)
+      names(raster_objs) <- name_set
+
+      result <- postdownload_processor(
+        raster_objs = raster_objs,
+        survey_dt = NULL,
+        survey_fn = NULL,
+        survey_lat = NULL,
+        survey_lon = NULL,
+        extract_fun = extract_fun,
+        buffer_size = buffer_size,
+        survey_crs = survey_crs,
+        name_set = name_set,
+        shp_dt = original_sf_obj,
+        shp_fn = NULL,
+        grid_size = grid_size
+      )
+
+      if (!is.null(result) && !is.data.frame(result)) {
+        result <- NULL
+      }
+
+      if (!is.null(result) && name_set %in% colnames(result)) {
+        original_data[[name_set]] <- result[[name_set]]
+        return(original_data)
+      } else {
+        warning("Failed to extract raster values")
+      }
+    }, error = function(e) {
+      warning(paste("Error in raster processing:", e$message))
+    })
+
+    num_towers <- lengths(st_intersects(original_sf_obj, cell_towers_filtered, sparse = TRUE))
   }
 
   original_data[[name_set]] <- num_towers
 
   return(original_data)
-}
+  }
+
 
 
 #' Download and Merge Annual Land Use Land Cover data into geocoded surveys
@@ -2372,7 +2401,6 @@ geolink_opencellid <- function(cell_tower_file,
 #' @return An sf object with land cover classifications by year
 #'
 #' @examples
-#' \dontrun{
 #' \donttest{
 #' # Loading the survey data and shapefile
 #' data("hhgeo_dt")
@@ -2397,9 +2425,9 @@ geolink_opencellid <- function(cell_tower_file,
 #'  use_resampling = TRUE,
 #'  target_resolution = 1000)
 #'
-#'
+#'   )
 #' }
-#'}
+#'
 #' @export
 #' @import sf rstac terra
 #' @importFrom haven read_dta

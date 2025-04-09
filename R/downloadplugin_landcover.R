@@ -1,15 +1,15 @@
-# Helper functions
-
-#' Ensure coordinates are in CRS 4326
-#'
-#' @param data Spatial data object
-#' @return Spatial data object with CRS 4326
-ensure_crs_4326 <- function(data) {
-  if (is.null(sf::st_crs(data)) || sf::st_crs(data)$epsg != 4326) {
-    return(sf::st_transform(data, 4326))
-  }
-  return(data)
-}
+#' # Helper functions
+#
+# #' Ensure coordinates are in CRS 4326
+# #'
+# #' @param data Spatial data object
+# #' @return Spatial data object with CRS 4326
+# ensure_crs_4326 <- function(data) {
+#   if (is.null(sf::st_crs(data)) || sf::st_crs(data)$epsg != 4326) {
+#     return(sf::st_transform(data, 4326))
+#   }
+#   return(data)
+# }
 
 #' Create default results dataframe for a year
 #'
