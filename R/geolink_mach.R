@@ -2372,6 +2372,7 @@ geolink_opencellid <- function(cell_tower_file,
 #' @return An sf object with land cover classifications by year
 #'
 #' @examples
+#' \dontrun{
 #' \donttest{
 #' # Loading the survey data and shapefile
 #' data("hhgeo_dt")
@@ -2396,9 +2397,9 @@ geolink_opencellid <- function(cell_tower_file,
 #'  use_resampling = TRUE,
 #'  target_resolution = 1000)
 #'
-#'   )
-#' }
 #'
+#' }
+#'}
 #' @export
 #' @import sf rstac terra
 #' @importFrom haven read_dta
