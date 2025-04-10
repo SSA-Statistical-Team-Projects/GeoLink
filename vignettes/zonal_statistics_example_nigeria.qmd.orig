@@ -1,6 +1,6 @@
 ---
 title: "GeoLink - Zonal Statistics Example"
-author: 
+author:
   - Luciano Perfetti Villa
   - Nikos Tzavidis
 vignette: >
@@ -15,13 +15,16 @@ knitr:
     comment: '#>'
     warning: false
     message: false
-    output: false
+    results: false
 ---
 
 ```{r}
 #| label: setup
 #| warning: false
-library(GeoLink)
+#| message: false
+#| results: false
+## library(GeoLink)
+devtools::load_all()
 library(tidyverse)
 library(sf)
 library(emdi)
@@ -40,18 +43,20 @@ The `GeoLink` package is a powerful tool designed to facilitate access to a wide
 
 One particularly valuable application of the GeoLink package is in the field of poverty estimation using small-area estimation (SAE) techniques [see @molinaSmallAreaEstimation2010; @tzavidisStartFinishFramework2018]. SAE is a statistical modeling approach that allows for the estimation of data for small domains where direct estimates are affected by small sizes of the sample, providing more granular insights than traditional survey methods. By combining the geospatial data capabilities of `GeoLink` with SAE methodologies, researchers and policymakers can generate more frequent and detailed poverty estimates when there is no access to the census or it is outdated.
 
-To demonstrate the practical utility of the `GeoLink` package, we present an application focused on estimating poverty in Nigeria at the second administrative level. This case study showcases how `GeoLink` can be used to access relevant geospatial data, such as nighttime light intensity, population density, and other metrics, which serve as covariates in the SAE model [see @masakiSmallAreaEstimation2022; @newhouseSmallAreaEstimation2022; @edochieSmallAreaEstimation2024]. By integrating these geospatial indicators with available survey data, we can produce high-resolution poverty maps for Nigeria, offering valuable insights for targeted policy interventions and resource allocation.
+To demonstrate the practical utility of the `GeoLink` package, we present an application focused on estimating poverty in Nigeria at the second administrative level. This case study showcases how `GeoLink` can be used to access relevant geospatial data, such as nighttime light intensity, population density, and other metrics, which serve as covariates in the SAE model [see @masakiSmallAreaEstimation2022; @newhouseSmallAreaEstimation2022; @edochieSmallAreaEstimation2024]. By integrating these geospatial indicators with available survey data, we can produce poverty maps for Nigeria, offering valuable insights for targeted policy interventions and resource allocation.
 
 This document will guide users through the process of utilizing GeoLink to obtain necessary geospatial data, implement SAE techniques, and visualize the resulting poverty estimates for Nigeria. The approach demonstrated here can be adapted to other countries or regions, making `GeoLink` a versatile tool for researchers and practitioners in the field of development economics and policy analysis.
 
 ## Data
 
-The data from Nigeria provides us with an interesting situation where we are able to obtain geospatial data at different levels, namely household-level and grid-generated or administrative zonal statistics. The household-level data can be extracted if we have access to the georeferrenced location of the household, either by using a buffer zone around the location of the household or by creating a grid to obtain zonal statistics. On the other hand, if we have the location of the households in terms of administrative boundaries, we can obtain zonal statistics using a shapefile of the corresponding admin level. 
+The data from Nigeria provides us with an interesting situation where we are able to obtain geospatial data at different levels, namely household-level and grid-generated or administrative zonal statistics. The household-level data can be extracted if we have access to the georeferrenced location of the household, either by using a buffer zone around the location of the household or by creating a grid to obtain zonal statistics. On the other hand, if we have the location of the households in terms of administrative boundaries, we can obtain zonal statistics using a shapefile of the corresponding admin level.
 
 In this vignette, we will explore the three scenarios. First, we will create a grid using Nigeria's original shapefile (`shp_dt`). The `gengrid2` function allows us to create a squared or polygonal grid with a defined cell size.
 
 ```{r}
 #| warning: false
+#| message: false
+#| results: false
 gengrid2(
   shp_dt = shp_dt,
   grid_size = 0.025,
@@ -59,10 +64,13 @@ gengrid2(
 ) -> shp_dt_grid
 ```
 
-The `hhgeo_dt` contains several geospatial variables, but we only want to keep the household identifier, administrative levels, location, sampling weights and total consumption for now. Therefore, each row contains a household with the location and the respective consumption. 
+The `hhgeo_dt` contains several geospatial variables, but we only want to keep the household identifier, administrative levels, location, sampling weights and total consumption for now. Therefore, each row contains a household with the location and the respective consumption.
 
 ```{r}
 #| label: identifiers
+#| warning: false
+#| message: false
+#| results: false
 hhgeo_dt %>%
   dplyr::select(
     hhid,                 ## Household identifier
@@ -77,11 +85,13 @@ st_geometry(survey_dt) <- hhgeo_dt$geometry
 
 ### Nighttime lights
 
-We first obtain the annual average of the nighttime lights for 2018. However, there are other options in terms of frequency (i.e., monthly) or indicator (e.g., median, maximum, coefficient of variation, among others).  
+We first obtain the annual average of the nighttime lights for 2018. However, there are other options in terms of frequency (i.e., monthly) or indicator (e.g., median, maximum, coefficient of variation, among others).
 
 ```{r}
 #| label: nighttime-lights
 #| warning: false
+#| message: false
+#| results: false
 geolink_ntl(start_date = "2018-01-01",
             end_date = "2018-12-31",
             annual_version = "v21",
@@ -106,11 +116,13 @@ geolink_ntl(start_date = "2018-01-01",
 
 ### CHIRPS
 
-For the rainfall data, we will use a similar approach. We will obtain the annual average rainfall for 2018, but, as mentioned before, there are other frequencies and indicators to use. 
+For the rainfall data, we will use a similar approach. We will obtain the annual average rainfall for 2018, but, as mentioned before, there are other frequencies and indicators to use.
 
 ```{r}
 #| label: chirps
 #| warning: false
+#| message: false
+#| results: false
 geolink_chirps(start_date = "2018-01-01",
                end_date = "2018-12-31",
                time_unit = "annual",
@@ -135,13 +147,15 @@ geolink_chirps(start_date = "2018-01-01",
 
 ### Population
 
-To estimate the SAE estimates at the desired level we need some information about the population in each level. Usually, under unit-level models we have the complete census (or administrative data) to predict the consumption of each household in the area of interest. When using geospatial data, we need a population estimate at the area of interest or aggregation level (i.e., zonal statistic). With this information, we can obtain the estimates acknowledging the number of household in each area and zonal statistic. 
+To estimate the SAE estimates at the desired level we need some information about the population in each level. Usually, under unit-level models we have the complete census (or administrative data) to predict the consumption of each household in the area of interest. When using geospatial data, we need a population estimate at the area of interest or aggregation level (i.e., zonal statistic). With this information, we can obtain the estimates acknowledging the number of household in each area and zonal statistic.
 
-`GeoLink` allows us to extract the WorldPop gridded population estimates in a given year. The following code obtains the total population for each case, i.e. the shapefile (admin2), the generated grid, and the household location. Note that we can also use population as a predictor of the mean consumption; for instance, we could use it as a measure of population density.  
+`GeoLink` allows us to extract the WorldPop gridded population estimates in a given year. The following code obtains the total population for each case, i.e. the shapefile (admin2), the generated grid, and the household location. Note that we can also use population as a predictor of the mean consumption; for instance, we could use it as a measure of population density.
 
 ```{r}
 #| label: population #
 #| warning: false
+#| message: false
+#| results: false
 geolink_population(start_year = 2018,
                    end_year = 2018,
                    iso_code = "NGA",
@@ -173,11 +187,13 @@ geolink_population(start_year = 2018,
 
 ### Elevation
 
-An additional layer to extract is the elevation of the terrain in the zonal statistic or the location of the households. We will continue to use the same buffer zone and the mean as the extraction function. 
+An additional layer to extract is the elevation of the terrain in the zonal statistic or the location of the households. We will continue to use the same buffer zone and the mean as the extraction function.
 
 ```{r}
 #| label: elevation
 #| warning: false
+#| message: false
+#| results: false
 geolink_elevation(iso_code = "NGA",
                   shp_dt = geolink_data_admin2) -> geolink_data_admin2
 
@@ -191,10 +207,13 @@ geolink_elevation(iso_code = "NGA",
 
 ### Buildings (WorldPop)
 
-WorldPop also produces a variable that estimates different measures of buildings in a given area ([more information here](https://wopr.worldpop.org/?/Buildings)). Such variables may help to differentiate highly populated areas where we could expect higher consumption due to urban economic development and less populated rural areas where the consumption might be lower. The survey was obtained in 2018, so we will obtain the version 1.1 that is closest to that year. Also, due to the raster was initially created, we will need to expand the buffer zone in order to avoid missing values. 
+WorldPop also produces a variable that estimates different measures of buildings in a given area ([more information here](https://wopr.worldpop.org/?/Buildings)). Such variables may help to differentiate highly populated areas where we could expect higher consumption due to urban economic development and less populated rural areas where the consumption might be lower. The survey was obtained in 2018, so we will obtain the version 1.1 that is closest to that year. Also, due to the raster was initially created, we will need to expand the buffer zone in order to avoid missing values.
 
 ```{r}
 #| label: buildings
+#| warning: false
+#| message: false
+#| results: false
 geolink_buildings(iso_code = "NGA",
                   version = "v1.1",
                   shp_dt = geolink_data_admin2) -> geolink_data_admin2
@@ -214,6 +233,9 @@ geolink_buildings(iso_code = "NGA",
 The data frame `geolink_data_admin2` contains all the layers of the geospatial data we obtained from the previous lines. Each row is a district, but we want to link each household in `survey_dt` with the value of the zonal statistic. Hence, we would ideally have the original `survey_dt` with consumption per household, and its geospatial predictors.
 
 ```{r}
+#| warning: false
+#| message: false
+#| results: false
 geolink_data_admin2 <- st_drop_geometry(geolink_data_admin2)
 geolink_data_survey_hh <- st_drop_geometry(geolink_data_survey_hh)
 
@@ -236,6 +258,9 @@ geolink_data_grid %>%
 Although there should be a thorough process to determine different possible transformations for each predictor, we will assume a log-shift transformation to improve the estimation of the model and reduce the impact of outliers in the covariates.
 
 ```{r}
+#| warning: false
+#| message: false
+#| results: false
 geolink_data_survey %>%
   mutate(across(c( ntl_annual1average_masked, rainfall_annual1,
          NGA_elv_msk, count, cv_area, cv_length,
@@ -271,6 +296,9 @@ The `geolink_data_admin2` and `geolink_data_survey_grid` data frames can be seen
 
 
 ```{r}
+#| warning: false
+#| message: false
+#| results: false
 geolink_data_admin2 %>%
   mutate(across(c( ntl_annual1average_masked, rainfall_annual1,
          NGA_elv_msk, count, cv_area, cv_length,
@@ -301,6 +329,9 @@ geolink_data_grid %>%
 We assume that the population of each admin2 area is obtained from a reliable external source (e.g., census, surveys, population projections, among others). In this case, we obtained it from the Humanitarian Data Exchange. Therefore, the results cannot be compared to official results but are good enough for the example. We merge the data frames so that we now have covariates and population weights for each admin2. It is worth mentioning that the population is in terms of people and not households, hence we are assuming an average household size of 5 members. In the `ebp` function of the `emdi` package, the `pop_weights` argument is used to provide a weighted indicator (e.g., mean or head count). Finally, we will estimate different poverty indicators at the district level.
 
 ```{r}
+#| warning: false
+#| message: false
+#| results: false
 geolink_data_admin2_log %>%
   left_join(popHDX_dt %>% dplyr::select(ADM2_PCODE, T_TL), by = c("ADM2_PCODE"), multiple = "first", unmatched = "drop") %>%
   mutate(pop_weights = if_else(is.na(T_TL), 1, T_TL/5),
@@ -308,6 +339,9 @@ geolink_data_admin2_log %>%
 ```
 
 ```{r}
+#| warning: false
+#| message: false
+#| results: false
 ebp_nga <- emdi::ebp(
                    fixed = totcons_adj_norm ~ ntl_annual1average_masked + rainfall_annual1 +
                      NGA_elv_msk + count + cv_area + cv_length +
@@ -373,6 +407,9 @@ ebp_nga_hh <- emdi::ebp(
 An alternative scenario might be when the researcher does not have access to population figures within each area. In such a case, alternative data sources like WorldPop may become an option. WorldPop produces gridded population figures, which allows us to obtain estimates of population in each area. However, since we are working with household level data, we need to transform the population into number of households. For this example we will assume a simple solution of 5 members per household, although there might be better ways to approach such transformation. As before, we use the `pop_weights` argument to include the estimated population into the `ebp` function.
 
 ```{r}
+#| warning: false
+#| message: false
+#| results: false
 ebp_nga_worldpop <- emdi::ebp(
                    fixed = totcons_adj_norm ~ ntl_annual1average_masked + rainfall_annual1 +
                      NGA_elv_msk + count + cv_area + cv_length +
@@ -395,12 +432,15 @@ ebp_nga_worldpop <- emdi::ebp(
 
 ### Comparison with direct estimates
 
-The `emdi` package also estimates the direct estimates at the target areas. Note, however, that in SAE, we would expect these estimates' Mean Square Error (MSE) to be higher due to the small sample in the domains. The direct estimates are unbiased, on average, so we could use them as a benchmark to identify any potential bias from the estimates obtained from the geospatial data models. Nonetheless, it is important to mention that in this case some of the direct estimates, at admin2, have samples of only 1 household. Therefore, we cannot expect to have unbiased direct estimates in these cases. For now, we will use the direct estimates as comparison but it is not recommended when we have such small samples. 
+The `emdi` package also estimates the direct estimates at the target areas. Note, however, that in SAE, we would expect these estimates' Mean Square Error (MSE) to be higher due to the small sample in the domains. The direct estimates are unbiased, on average, so we could use them as a benchmark to identify any potential bias from the estimates obtained from the geospatial data models. Nonetheless, it is important to mention that in this case some of the direct estimates, at admin2, have samples of only 1 household. Therefore, we cannot expect to have unbiased direct estimates in these cases. For now, we will use the direct estimates as comparison but it is not recommended when we have such small samples.
 
 ```{r}
+#| warning: false
+#| message: false
+#| results: false
 direct_nga <- emdi::direct(
                       y = "totcons_adj_norm",
-                      smp_data = geolink_data_survey_log %>% 
+                      smp_data = geolink_data_survey_log %>%
                         filter(!is.na(totcons_adj_norm)),
                       smp_domains = "ADM2_PCODE",
                       weights = "wt_wave4",
@@ -408,18 +448,18 @@ direct_nga <- emdi::direct(
                     )
 ```
 
-We can obtain some comparison plots using the `compare_plot` of the `emdi` package. The first plot compares the direct estimates with the EBP model by illustrating the correlation between both estimates. The second plot shows the levels of each estimate arranged by area. 
+We can obtain some comparison plots using the `compare_plot` of the `emdi` package. The first plot compares the direct estimates with the EBP model by illustrating the correlation between both estimates. The second plot shows the levels of each estimate arranged by area.
 
 ```{r}
 #| label: fig-comparison-direct
 #| output: true
-#| fig-cap: 
+#| fig-cap:
 #|   - "Comparison of Head Count Ratio with direct estimates using census population"
 #|   - "Arranged comparison of Head Count Ratio with direct estimates using census population"
 emdi::compare_plot(model = ebp_nga, direct = direct_nga, indicator = "Mean")
 ```
 
-To compare all models, we can define a simple function that extracts the results from each `ebp` and `direct` result. The following code extracts the `Mean` and `Head_Count` ratio from the objects and then joins these in a `tibble` with a variable holding the model's name. We could replicate the same to extract the MSE by changing `ind` for `MSE`.   
+To compare all models, we can define a simple function that extracts the results from each `ebp` and `direct` result. The following code extracts the `Mean` and `Head_Count` ratio from the objects and then joins these in a `tibble` with a variable holding the model's name. We could replicate the same to extract the MSE by changing `ind` for `MSE`.
 
 ```{r}
 extract_ebp <- function(ebps, indicators = c("Mean", "Head_Count")){
@@ -435,16 +475,16 @@ results <- extract_ebp(list(
   "EBP_Zonal" = ebp_nga,
   "EBP_Grid" = ebp_nga_grid,
   "EBP_HH" = ebp_nga_hh,
-  "EBP_WorldPop" = ebp_nga_worldpop)) 
+  "EBP_WorldPop" = ebp_nga_worldpop))
 
 ```
 
-@fig-comparison-mean-ebps and @fig-comparison-hcr-ebps show the different models compared to the direct estimates. The estimates lie close to the diagonal, suggesting that the models track the direct estimates slightly well. Note that the models do not reasonably estimate the highest values. 
+The figures below show the different models compared to the direct estimates. The estimates lie close to the diagonal, suggesting that the models track the direct estimates slightly well. Note that the models do not reasonably estimate the highest values.
 
 ```{r}
 #| label: fig-comparison-mean-ebps
-#| output: true
-#| fig-cap: 
+#| include: true
+#| fig-cap:
 #|   - "Comparison of mean consumption estimates with direct estimates between the different models"
 results %>%
   dplyr::select(-Head_Count) %>%
@@ -456,15 +496,15 @@ results %>%
   facet_wrap(~Model, scales = "free") +
   labs(
     title = "Comparison of mean consumption estimates from EBP models with direct estimates",
-    x = "Direct",   
+    x = "Direct",
     y = "Model"
   )
 ```
 
 ```{r}
 #| label: fig-comparison-hcr-ebps
-#| output: true
-#| fig-cap: 
+#| include: true
+#| fig-cap:
 #|   - "Comparison of Head Count Ratio estimates with direct estimates between the different models"
 results %>%
   dplyr::select(-Mean) %>%
@@ -476,37 +516,37 @@ results %>%
   facet_wrap(~Model, scales = "free") +
   labs(
     title = "Comparison of Head Count Ratio estimates from EBP models with direct estimates",
-    x = "Direct",   
+    x = "Direct",
     y = "Model"
   )
 ```
 
-We can also check the spatial distribution of the estimates and compare the results. Note that the direct estimate have out-of-sample areas that we cannot estimate since there are no samples in these areas. On the other hand, the EBP allows us to produce out-of-sample estimates with the caveat of having larger uncertainty around these estimates. In both @fig-comparison-mean-maps and @fig-comparison-hcr-maps, we can observe similar patterns with some slight differences in some regions. 
+We can also check the spatial distribution of the estimates and compare the results. Note that the direct estimate have out-of-sample areas that we cannot estimate since there are no samples in these areas. On the other hand, the EBP allows us to produce out-of-sample estimates with the caveat of having larger uncertainty around these estimates. In both sets of maps, we can observe similar patterns with some slight differences in some regions.
 
 ```{r}
 #| label: fig-comparison-mean-maps
-#| output: true
-#| fig-cap: 
+#| include: true
+#| fig-cap:
 #|   - "Comparison of mean consumption estimates using maps"
-shp_dt %>% 
-  dplyr::select(ADM2_PCODE, geometry) %>% 
+shp_dt %>%
+  dplyr::select(ADM2_PCODE, geometry) %>%
   right_join(results, by = c("ADM2_PCODE" = "Domain")) -> results_sf
 
-ggplot() + 
-  geom_sf(data = results_sf, aes(fill = Mean)) + 
-  facet_wrap(~Model) + 
+ggplot() +
+  geom_sf(data = results_sf, aes(fill = Mean)) +
+  facet_wrap(~Model) +
   scale_fill_viridis_c(option = "plasma") +
   labs(fill = "Mean consumption")
 ```
 
 ```{r}
 #| label: fig-comparison-hcr-maps
-#| output: true
-#| fig-cap: 
+#| include: true
+#| fig-cap:
 #|   - "Comparison of Head Count Ratio estimates using maps"
-ggplot() + 
-  geom_sf(data = results_sf, aes(fill = Head_Count)) + 
-  facet_wrap(~Model) + 
+ggplot() +
+  geom_sf(data = results_sf, aes(fill = Head_Count)) +
+  facet_wrap(~Model) +
   scale_fill_viridis_c(option = "plasma") +
   labs(fill = "Head Count Ratio")
 ```

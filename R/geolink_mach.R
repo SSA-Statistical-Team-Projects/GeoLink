@@ -335,9 +335,8 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Process Complete!!!")
 
+  unlink(paste0(tempdir(), "/file*"), recursive = TRUE)
   return(dt)
-
-  unlink(tempdir(), recursive = TRUE)
 }
 
 
