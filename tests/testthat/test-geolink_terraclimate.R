@@ -53,3 +53,30 @@ test_that("Terraclimate works using a survey :", {
 
 }
 )
+
+
+#Test- C.
+test_that("Elevation Function works using a shapefile from geodata package:", {
+
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
+    test_dt <- geolink_terraclimate( var='tmax',
+                                                      year = 2017,
+                                                      shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",],
+                                                      extract_fun = "mean")
+
+  suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames will be created correctly
+  expect_contains(colnames(test_dt), "tmax_Jan")
+
+  #03 - Test that the mean column values is between 10 and 45
+
+  expect_true(all(test_dt$tmax_Jan[!is.na(test_dt$tmax_Jan)] >= -40.80   &
+                    test_dt$tmax_Jan[!is.na(test_dt$tmax_Jan)] <= 41.50),
+              info = "Values of COL_WC_tmax_Sep should be between -40.80 and-40.80")
+
+})

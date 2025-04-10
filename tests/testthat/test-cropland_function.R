@@ -57,4 +57,27 @@ test_that("Cropland Function works using a survey :", {
 }
 )
 
+#Test- C.
+test_that("Cropland Function works using a shapefile from geodata package:", {
 
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
+
+    test_dt <- geolink_cropland(shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",],
+                                                 extract_fun = "mean")
+
+    suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames will be created correctly
+  expect_contains(colnames(test_dt), "cropland")
+
+  #03 - Test that the mean column values is between 0 and 1 based on the raster values
+
+  expect_true(all(test_dt$cropland[!is.na(test_dt$cropland)] >= 0 &
+                    test_dt$cropland[!is.na(test_dt$cropland)] <= 1),
+              info = "Values of cropland should be between 0 and 1")
+
+})
