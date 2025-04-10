@@ -75,13 +75,13 @@ test_that("Monthly chirps using a survey :", {
 test_that("Monthly chirps using a survey for stata users :", {
 
   suppressWarnings({ test_dt <- geolink_chirps(time_unit = "month",
-                                    start_date = "2020-01-01",
-                                    end_date = "2020-02-01",
-                                    survey_fn = "testdata/xy_hhgeo_dt.dta",
-                                    survey_lat = "y",
-                                    survey_lon = "x",
-                                    buffer_size = 1000,
-                                    extract_fun = "mean")
+                                               start_date = "2020-01-01",
+                                               end_date = "2020-02-01",
+                                               survey_fn = test_path("testdata/xy_hhgeo_dt.dta"),
+                                               survey_lat = "y",
+                                               survey_lon = "x",
+                                               buffer_size = 1000,
+                                               extract_fun = "mean")
   })
 
   #Write testing expressions below:
@@ -90,7 +90,8 @@ test_that("Monthly chirps using a survey for stata users :", {
               info = "Column 'rainfall_month1' is not present in test_dt")
 
   #02 - expect the length of test_dt be the same as the survey
-  expect_equal(length(test_dt$hhid), nrow(haven::read_dta("testdata/xy_hhgeo_dt.dta")))
+  expect_equal(length(test_dt$hhid),
+               nrow(haven::read_dta(test_path("testdata/xy_hhgeo_dt.dta"))))
 
   #Expect the radios of the buffer to be a 1000 m
   expect_equal(as.numeric(round(sqrt(st_area(test_dt[1,]) / pi))), 1000)
