@@ -275,8 +275,21 @@ geolink_ntl <- function(time_unit = "annual",
                         buffer_size = NULL,
                         survey_crs = 4326) {
 
-  # shp_dt <- ensure_crs_4326(shp_dt)
-  # survey_dt <- ensure_crs_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
+
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -688,10 +701,20 @@ geolink_elevation <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  # shp_dt <- ensure_crs_4326(shp_dt)
-  # survey_dt <- ensure_crs_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
 
-
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
 
   if(!is.null(iso_code)){
     print(paste("Checking data for", iso_code))
@@ -1324,8 +1347,21 @@ geolink_worldclim <- function(iso_code,
                               extract_fun = "mean",
                               survey_crs = 4326){
 
-  # shp_dt <- ensure_crs_4326(shp_dt)
-  # survey_dt <- ensure_crs_4326(survey_dt)
+  # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  if (!is.null(shp_dt)) {
+    shp_dt <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
+  } else if (!is.null(survey_fn)) {
+    # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
+  }
+
 
 
   if(!is.null(iso_code)){
@@ -1601,7 +1637,7 @@ geolink_get_poi <- function(osm_key,
                             survey_lat = NULL,
                             survey_lon = NULL,
                             buffer_size = NULL,
-                            survey_crs = NULL,
+                            survey_crs = 4326,
                             grid_size = NULL) {
 
   max_retries = 3
@@ -1835,7 +1871,7 @@ geolink_electaccess <- function(
     end_date = NULL,
     shp_dt = NULL,
     shp_fn = NULL,
-    grid_size = 1000,
+    grid_size = NULL,
     survey_dt = NULL,
     survey_fn = NULL,
     survey_lat = NULL,
@@ -2149,7 +2185,7 @@ geolink_electaccess <- function(
 #' @details This function processes downloaded OpenCellID data,
 #' which provides information about cell towers and their coverage areas.
 #' The return dataframe gives a count of cell towers within the shapefile area.
-#' For the function to run, the user will need to set up an account on www.opencellid.com and download the
+#' For the function to run, the user will need to set up an account on www.opencellid.org and download the
 #' required csv.gz file for the country for which they wish to run the analysis. The file location of this
 #' dataset (csv.gz file) should then be passed into the cell_tower_file parameter. Please see example usage below/
 #'
@@ -2210,7 +2246,7 @@ geolink_opencellid <- function(cell_tower_file,
                                buffer_size = NULL,
                                survey_crs = 4326,
                                extract_fun = "mean",
-                               grid_size = 1000) {
+                               grid_size = NULL) {
 
   resolution = 1000
   name_set = "cell_towers"
@@ -2346,7 +2382,8 @@ geolink_opencellid <- function(cell_tower_file,
   original_data[[name_set]] <- num_towers
 
   return(original_data)
-}
+  }
+
 
 
 #' Download and Merge Annual Land Use Land Cover data into geocoded surveys
