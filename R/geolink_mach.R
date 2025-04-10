@@ -2162,6 +2162,9 @@ geolink_electaccess <- function(
 #' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE)
 #' @param survey_crs A numeric, the default is 4326
 #' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
+#' @param grid_size A numeric, the grid size to be used in meters
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -2299,7 +2302,7 @@ geolink_opencellid <- function(cell_tower_file,
 
   # Use 3857 for buffering (metric) then convert to 4326 (degrees)
   if (!is.null(buffer_size)) {
-    message(sprintf("Creating buffer of %s meters around points...", buffer_size))
+    message(sprintf("Creating buffer of %s meters aroundpoints...", buffer_size))
     sf_obj <- sf::st_transform(sf_obj, 3857) %>%
       sf::st_buffer(buffer_size) %>%
       sf::st_transform(4326)
