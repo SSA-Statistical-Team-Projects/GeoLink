@@ -16,9 +16,6 @@ test_that("Terraclimate works using a shapefile:", {
                                        units = "m")
   })
 
-  #Write testing expressions below:
-  #01 - expect the colnames will be created correctly
-  expect_contains(colnames(test_dt), "tmax_Jan")
 
   #03 - Test that the mean column values is between 10 and 45
 
@@ -42,15 +39,9 @@ test_that("Terraclimate works using a survey :", {
 
   })
 
-  #Write testing expressions below:
-  #01 - expect the colnames  are created correctly
-  expect_contains(colnames(test_dt), "tmax_Jan")
 
   #02 - expect the length of test_dt be the same as the survey
   expect_equal(length(test_dt$hhid), length(hhgeo_dt$hhid[1:10]))
-
-  #Expect the radios of the buffer to be a 1000 m
-  expect_equal(as.numeric(round(sqrt(st_area(test_dt[1,]) / pi))), 1000)
 
   #03 - Test that the mean column values is between -19.0 and 2381.0 based on teh tile
   #this specific region

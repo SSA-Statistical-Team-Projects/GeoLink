@@ -91,12 +91,21 @@ geolink_chirps <- function(time_unit = NULL,
                            extract_fun = "mean",
                            survey_crs = 4326) {
 
-  shp_dt <- ensure_crs_4326(shp_dt)
-  survey_dt <- ensure_crs_4326(survey_dt)
+  # # Only apply ensure_crs_4326 if the spatial inputs are not NULL
+  # if (!is.null(shp_dt)) {
+  #   shp_dt <- ensure_crs_4326(shp_dt)
+  # } else if (!is.null(shp_fn)) {
+  #   # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
+  #   shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  # }
+  #
+  # if (!is.null(survey_dt)) {
+  #   survey_dt <- ensure_crs_4326(survey_dt)
+  # } else if (!is.null(survey_fn)) {
+  #   # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
+  #   survey_dt <- ensure_crs_4326(haven::read_dta(survey_fn))
+  # }
 
-
-  # start_date <- as.Date(start_date)
-  # end_date <- as.Date(end_date)
 
   ## download the data
   if (time_unit == "month") {
@@ -280,6 +289,7 @@ geolink_ntl <- function(time_unit = "annual",
     # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
     survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
   }
+
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
@@ -680,7 +690,7 @@ geolink_population <- function(start_year = NULL,
 #' @importFrom geodata elevation_30s
 
 geolink_elevation <- function(iso_code,
-                              shp_dt=NULL,
+                              shp_dt = NULL,
                               shp_fn = NULL,
                               grid_size = NULL,
                               survey_dt = NULL,
@@ -731,16 +741,16 @@ geolink_elevation <- function(iso_code,
 
   raster_list <- lapply(tif_files, terra::rast)
 
-  epsg_4326 <- "+init=EPSG:4326"
-
-  for (i in seq_along(raster_list)) {
-    terra::crs(raster_list[[i]]) <- epsg_4326
-    if (is.null(terra::crs(raster_list[[i]]))) {
-      print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
-    } else {
-      print(paste("Raster", i, "projected successfully."))
-    }
-  }
+  # epsg_4326 <- "+init=EPSG:4326"
+  #
+  # for (i in seq_along(raster_list)) {
+  #   terra::crs(raster_list[[i]]) <- epsg_4326
+  #   if (is.null(terra::crs(raster_list[[i]]))) {
+  #     print(paste("Projection failed for raster", st_crs(raster_list[[i]])$input))
+  #   } else {
+  #     print(paste("Raster", i, "projected successfully."))
+  #   }
+  # }
 
   print("Elevation Raster Downloaded")
 
@@ -930,8 +940,10 @@ geolink_buildings <- function(version,
 
   print("Process Complete!!!")
 
-  return(dt)
   unlink(tempdir(), recursive = TRUE)
+
+  return(dt)
+
 }
 
 #' Download CMIP6 climate model data
@@ -1010,31 +1022,36 @@ geolink_CMIP6 <- function(start_date,
                           extract_fun = "mean",
                           survey_crs = 4326) {
 
-  # Ensure shapefile and survey are in the correct CRS
-  if (!is.null(shp_dt)) {
-    sf_obj <- ensure_crs_4326(shp_dt)
+  # # Ensure shapefile and survey are in the correct CRS
+  # if (!is.null(shp_dt)) {
+  #   sf_obj <- ensure_crs_4326(shp_dt)
+  #
+  # } else if (!is.null(survey_dt)) {
+  #   sf_obj <- ensure_crs_4326(survey_dt)
+  #
+  # } else if (!is.null(shp_fn)) {
+  #   sf_obj <- sf::read_sf(shp_fn)
+  #   sf_obj <- ensure_crs_4326(sf_obj)
+  #
+  # } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
+  #   sf_obj <- zonalstats_prepsurvey(
+  #     survey_dt = survey_dt,
+  #     survey_fn = survey_fn,
+  #     survey_lat = survey_lat,
+  #     survey_lon = survey_lon,
+  #     buffer_size = NULL,
+  #     survey_crs = survey_crs)
+  #   sf_obj <- ensure_crs_4326(sf_obj)
+  #
+  # } else {
+  #   print("Input a valid sf object or geosurvey")
+  #   sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
+  # }
 
-  } else if (!is.null(survey_dt)) {
-    sf_obj <- ensure_crs_4326(survey_dt)
-
-  } else if (!is.null(shp_fn)) {
-    sf_obj <- sf::read_sf(shp_fn)
-    sf_obj <- ensure_crs_4326(sf_obj)
-
-  } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
-    sf_obj <- zonalstats_prepsurvey(
-      survey_dt = survey_dt,
-      survey_fn = survey_fn,
-      survey_lat = survey_lat,
-      survey_lon = survey_lon,
-      buffer_size = NULL,
-      survey_crs = survey_crs)
-    sf_obj <- ensure_crs_4326(sf_obj)
-
-  } else {
-    print("Input a valid sf object or geosurvey")
-    sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
-  }
+  sf_obj <- prep_sf_obj_predownload(shp_dt = shp_dt,
+                                    shp_fn = shp_fn,
+                                    survey_dt = survey_dt,
+                                    survey_fn = survey_fn)
 
   # Set date range
   start_date <- as.Date(start_date)
@@ -1346,6 +1363,7 @@ geolink_worldclim <- function(iso_code,
   }
 
 
+
   if(!is.null(iso_code)){
     print(paste("Checking data for", iso_code))
   } else{
@@ -1585,7 +1603,7 @@ geolink_terraclimate <- function(var,
 #'
 #' poi_survey_df <- geolink_get_poi(osm_key = "amenity",
 #'                                 buffer_size = 2000,
-#'                                 survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],)
+#'                                 survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 #'
 #'
 #' poi_survey_fn <- geolink_get_poi(
@@ -2233,29 +2251,55 @@ geolink_opencellid <- function(cell_tower_file,
   resolution = 1000
   name_set = "cell_towers"
 
+  # Define read_opencellid_data function if not already defined
+  read_opencellid_data <- function(file_path) {
+    # For gzipped CSV files
+    if (grepl("\\.gz$", file_path)) {
+      message("Reading gzipped file...")
+      data <- data.table::fread(file_path)
+    } else {
+      data <- data.table::fread(file_path)
+    }
+
+    # Check if required columns exist
+    if (!all(c("lat", "lon") %in% colnames(data))) {
+      # Try to identify lat/lon columns if they exist
+      if (ncol(data) >= 8) {
+        # Assuming columns 7 and 8 are lon and lat as mentioned
+        names(data)[7] <- "lon"
+        names(data)[8] <- "lat"
+        message("Renamed columns 7 and 8 to 'lon' and 'lat'")
+      } else {
+        stop("Cell tower data must contain 'lat' and 'lon' columns")
+      }
+    }
+
+    return(data)
+  }
+
   read_opencellid_data_cached <- memoise::memoise(read_opencellid_data)
 
   if (!is.null(survey_dt)) {
     if (!inherits(survey_dt, "sf")) {
       if ("geometry" %in% names(survey_dt)) {
-        sf_obj <- st_as_sf(survey_dt)
+        sf_obj <- sf::st_as_sf(survey_dt)
       } else if (!is.null(survey_lat) && !is.null(survey_lon)) {
         if (!(survey_lat %in% names(survey_dt)) || !(survey_lon %in% names(survey_dt))) {
           stop(sprintf("Coordinate columns '%s' and '%s' not found in survey data",
                        survey_lat, survey_lon))
         }
 
-        sf_obj <- st_as_sf(survey_dt,
-                           coords = c(survey_lon, survey_lat),
-                           crs = survey_crs,
-                           agr = "constant")
+        sf_obj <- sf::st_as_sf(survey_dt,
+                               coords = c(survey_lon, survey_lat),
+                               crs = survey_crs,
+                               agr = "constant")
       } else {
         stop("Survey data must either have a geometry column or survey_lat/survey_lon must be provided")
       }
-      original_data <- as.data.table(st_drop_geometry(survey_dt))
+      original_data <- data.table::as.data.table(sf::st_drop_geometry(survey_dt))
     } else {
       sf_obj <- survey_dt
-      original_data <- as.data.table(st_drop_geometry(survey_dt))
+      original_data <- data.table::as.data.table(sf::st_drop_geometry(survey_dt))
     }
   } else if (!is.null(survey_fn)) {
     if (is.null(survey_lat) || is.null(survey_lon)) {
@@ -2269,20 +2313,19 @@ geolink_opencellid <- function(cell_tower_file,
                    survey_lat, survey_lon))
     }
 
-    sf_obj <- st_as_sf(original_data,
-                       coords = c(survey_lon, survey_lat),
-                       crs = survey_crs,
-                       agr = "constant")
+    sf_obj <- sf::st_as_sf(original_data,
+                           coords = c(survey_lon, survey_lat),
+                           crs = survey_crs,
+                           agr = "constant")
   } else if (!is.null(shp_dt)) {
     if (!inherits(shp_dt, "sf")) {
       stop("Input shp_dt must be an sf object")
     }
     sf_obj <- shp_dt
-    original_data <- as.data.table(st_drop_geometry(shp_dt))
+    original_data <- data.table::as.data.table(sf::st_drop_geometry(shp_dt))
   } else if (!is.null(shp_fn)) {
-
-        sf_obj <- st_read(shp_fn, quiet = TRUE)
-    original_data <- as.data.table(st_drop_geometry(sf_obj))
+    sf_obj <- sf::st_read(shp_fn, quiet = TRUE)
+    original_data <- data.table::as.data.table(sf::st_drop_geometry(sf_obj))
   } else {
     stop("Please provide either shapefile data or survey data with coordinate columns")
   }
@@ -2292,32 +2335,34 @@ geolink_opencellid <- function(cell_tower_file,
 
   # Use 3857 for buffering (metric) then convert to 4326 (degrees)
   if (!is.null(buffer_size)) {
-    sf_obj <- st_transform(sf_obj, 3857) %>%
-      st_buffer(buffer_size) %>%
-      st_transform(4326)
+    message(sprintf("Creating buffer of %s meters around points...", buffer_size))
+    sf_obj <- sf::st_transform(sf_obj, 3857) %>%
+      sf::st_buffer(buffer_size) %>%
+      sf::st_transform(4326)
   }
 
-  if (st_crs(sf_obj)$epsg != 4326) {
-    sf_obj <- st_transform(sf_obj, 4326)
+  if (sf::st_crs(sf_obj)$epsg != 4326) {
+    sf_obj <- sf::st_transform(sf_obj, 4326)
   }
 
   message("Reading cell tower data...")
   cell_towers <- read_opencellid_data_cached(cell_tower_file)
   message(sprintf("Read %d cell towers", nrow(cell_towers)))
 
-  cell_towers_sf <- st_as_sf(cell_towers,
-                             coords = c("lon", "lat"),
-                             crs = 4326,
-                             agr = "constant")
+  cell_towers_sf <- sf::st_as_sf(cell_towers,
+                                 coords = c("lon", "lat"),
+                                 crs = 4326,
+                                 agr = "constant")
 
   # Create spatial index for efficiency
-  cell_towers_sf <- st_sf(cell_towers_sf)
+  cell_towers_sf <- sf::st_sf(cell_towers_sf)
 
-  bbox <- st_bbox(sf_obj)
+  bbox <- sf::st_bbox(sf_obj)
 
-  cell_towers_filtered <- cell_towers_sf[st_intersects(
+  message("Filtering cell towers within bounding box...")
+  cell_towers_filtered <- cell_towers_sf[sf::st_intersects(
     cell_towers_sf,
-    st_as_sfc(bbox),
+    sf::st_as_sfc(bbox),
     sparse = FALSE
   )[,1], ]
 
@@ -2326,49 +2371,12 @@ geolink_opencellid <- function(cell_tower_file,
     num_towers <- rep(0, nrow(original_sf_obj))
   } else {
     message(sprintf("Found %d cell towers within bounding box", nrow(cell_towers_filtered)))
-    tryCatch({
-      cell_towers_filtered$tower_count <- 1
 
-      # Convert cell tower points to raster
-      cell_towers_raster <- point_sf_to_raster(
-        point_sf = cell_towers_filtered,
-        resolution = resolution,
-        agg_fun = sum
-      )
+    # HERE'S THE KEY CHANGE: We're using sf_obj (buffered) instead of original_sf_obj
+    message("Counting cell towers within buffered areas...")
+    num_towers <- lengths(sf::st_intersects(sf_obj, cell_towers_filtered, sparse = TRUE))
 
-      raster_objs <- list(cell_towers_raster)
-      names(raster_objs) <- name_set
-
-      result <- postdownload_processor(
-        raster_objs = raster_objs,
-        survey_dt = NULL,
-        survey_fn = NULL,
-        survey_lat = NULL,
-        survey_lon = NULL,
-        extract_fun = extract_fun,
-        buffer_size = buffer_size,
-        survey_crs = survey_crs,
-        name_set = name_set,
-        shp_dt = original_sf_obj,
-        shp_fn = NULL,
-        grid_size = grid_size
-      )
-
-      if (!is.null(result) && !is.data.frame(result)) {
-        result <- NULL
-      }
-
-      if (!is.null(result) && name_set %in% colnames(result)) {
-        original_data[[name_set]] <- result[[name_set]]
-        return(original_data)
-      } else {
-        warning("Failed to extract raster values")
-      }
-    }, error = function(e) {
-      warning(paste("Error in raster processing:", e$message))
-    })
-
-    num_towers <- lengths(st_intersects(original_sf_obj, cell_towers_filtered, sparse = TRUE))
+    message(sprintf("Total towers found in all buffers: %d", sum(num_towers)))
   }
 
   original_data[[name_set]] <- num_towers
@@ -2401,6 +2409,7 @@ geolink_opencellid <- function(cell_tower_file,
 #' @return An sf object with land cover classifications by year
 #'
 #' @examples
+#' \dontrun{
 #' \donttest{
 #' # Loading the survey data and shapefile
 #' data("hhgeo_dt")
@@ -2413,8 +2422,8 @@ geolink_opencellid <- function(cell_tower_file,
 #'  end_date = "2019-12-31",
 #'  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
 #'  use_resampling = TRUE,
-#'  target_resolution = 1000
-#'  )
+#'  target_resolution = 1000)
+#'
 #'
 #'
 #'  landcover_survey <- geolink_landcover(
@@ -2425,9 +2434,9 @@ geolink_opencellid <- function(cell_tower_file,
 #'  use_resampling = TRUE,
 #'  target_resolution = 1000)
 #'
-#'   )
-#' }
 #'
+#' }
+#'}
 #' @export
 #' @import sf rstac terra
 #' @importFrom haven read_dta
@@ -2826,3 +2835,435 @@ create_empty_result <- function(sf_obj, start_date) {
   empty_result$year <- format(start_date, "%Y")
   return(sf::st_sf(empty_result, geometry = sf::st_geometry(sf_obj)))
 }
+
+
+
+
+
+
+
+
+#' Download vegetation index data
+#'
+#' This function download vegetation index data, either NDVI or EVI, based on start and end dates.
+#'
+#' @param start_date A character object with the start date; it must be specified as "yyyy-mm-dd"
+#' @param end_date A character object with the end date; it must be specified as "yyyy-mm-dd"
+#' @param indicator A character object with the vegetation index to be used; it must be either "NDVI" or "EVI".
+#' @param shp_dt An object of class 'sf', which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param resolution A numeric, the resolution to be used in meters for extracting the vegetation index data.
+#' @param grid_size A numeric, the grid size to be used to extract the data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame based on the input parameters and downloaded data.
+#'
+#' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
+#'
+#' @examples
+#' \donttest{
+#'
+#'  #example usage
+#' df <- geolink_vegindex(shp_dt = shp_dt,
+#'                              start_date = "2019-01-01",
+#'                              end_date = "2019-12-31",
+#'                              extract_fun = "mean",
+#'                              buffer_size = 1000,
+#'                              survey_crs = 4326)
+#'
+#'
+#' }
+#'@export
+
+
+geolink_vegindex <- function(
+  start_date,
+  end_date,
+  indicator = "NDVI",
+  shp_dt = NULL,
+  shp_fn = NULL,
+  resolution = NULL,
+  grid_size = NULL,
+  survey_dt = NULL,
+  survey_fn = NULL,
+  survey_lat = NULL,
+  survey_lon = NULL,
+  buffer_size = NULL,
+  extract_fun = "mean",
+  survey_crs = 4326
+  ){
+
+  if (indicator != "NDVI" & indicator != "EVI"){
+    stop("Indicator must be either 'NDVI' or 'EVI'")
+  }
+  indicator_arg <- indicator
+  indicator <- paste0("500m_16_days_", indicator)
+
+  if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
+
+  } else if (!is.null(survey_dt)) {
+    sf_obj <- ensure_crs_4326(survey_dt)
+
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else if (!is.null(survey_fn)) { # Changed condition to survey_fn
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
+      sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else {
+    stop("Input a valid sf object or geosurvey")
+    sf_obj <- NULL # Optional: Define a default value to avoid potential errors
+  }
+
+  # check dates are valid
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+  if (as.numeric(format(start_date, "%Y"))<2001){
+    stop("Start date must be 2001 or later.")
+  }
+  if (end_date>=as.Date(Sys.Date())){
+    stop("End date must before today.")
+  }
+  if (end_date<start_date){
+    stop("End date must be after start date.")
+  }
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  it_obj <- s_obj %>%
+    stac_search(collections = "modis-13A1-061",
+                bbox = sf::st_bbox(sf_obj),
+                datetime = paste(start_date, end_date, sep = "/")) %>%
+    get_request() %>%
+    items_sign(sign_fn = sign_planetary_computer())
+
+
+  date_list <- lapply(1:length(it_obj$features),
+    function(x){
+
+      date <- cbind(as.numeric(format(as.Date(it_obj$features[[x]]$properties$end_datetime), "%Y")),
+        as.numeric(format(as.Date(it_obj$features[[x]]$properties$end_datetime), "%m")),
+        as.numeric(format(as.Date(it_obj$features[[x]]$properties$end_datetime), "%d")))
+      colnames(date) <- c("year", "month", "day")
+
+      return(date)
+
+    })
+
+  date_list <- data.table::data.table(do.call(rbind, date_list))
+  # just keep what we want
+  it_obj$features <- it_obj$features[date_list[,as.Date(paste0(year, "-", month, "-", day))]<end_date]
+  date_list <- date_list[date_list[,as.Date(paste0(year, "-", month, "-", day))]<end_date]
+  date_list$date <- as.Date(paste0(date_list$year, "-", date_list$month, "-", date_list$day))
+  date_list$date <- format(date_list$date, "%Y-%m")
+  # create indicator for FIRST day uin each month
+  date_list <- date_list[, id := seq_len(.N), by = .(year, month)]
+  date_list <- date_list[, id := (day==min(day)), by = .(year, month)]
+  it_obj$features <- it_obj$features[date_list$id==1]
+  date_list <- date_list[date_list$id==1]  # Keep only entries with id == 1
+
+
+  # it_obj$features <- it_obj$features[date_list$id==1]
+  # date_list <- date_list[date_list$id==1]  # Keep only entries with id == 1
+
+  features_todl <- lapply(1:nrow(date_list),
+    function(x){
+
+      feat <- c()
+      for (i in 1:length(it_obj$features)){
+        if ((as.numeric(format(as.Date(it_obj$features[[i]]$properties$end_datetime), "%Y")) == date_list[x, .(year)] &
+                        as.numeric(format(as.Date(it_obj$features[[i]]$properties$end_datetime), "%m")) == date_list[x, .(month)] &
+                        as.numeric(format(as.Date(it_obj$features[[i]]$properties$end_datetime), "%d")) == date_list[x, .(day)])==TRUE){
+          feat <- c(feat, i)
+        }
+      }
+      return(feat)
+
+    })
+
+
+  url_list <- lapply(1:length(features_todl),
+    function(x){
+      url <- c()
+      for (i in features_todl[x][[1]]){
+        url <- c(url, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
+      }
+      return(url)
+    })
+
+  print("NDVI/EVI raster download started. This may take some time, especially for large areas.")
+
+  # get list of months and yaers
+  unique_months <- unique(date_list$date)
+
+  raster_objs <- c()
+  for (i in 1:length(unique_months)){
+    dls <- url_list[date_list[,date==unique_months[i]]]
+    for (j in 1:length(unlist(dls))){
+      if (j==1){
+        rall <- terra::rast(unlist(dls)[[1]])
+      } else{
+        r <- terra::rast(unlist(dls)[[j]])
+        rall <- terra::mosaic(r, rall, fun = "max")
+      }
+    }
+    rall <- rall/100000000
+    raster_objs <- c(raster_objs, rall)
+    print(paste0("Month ", i, " of ", length(unique_months), " completed."))
+  }
+  # make sure they are 4326 (lon/lat)
+  raster_objs <- lapply(raster_objs, function(x) terra::project(x, "EPSG:4326"))
+  unique_months <- as.Date(paste0(unique_months, "-01"))
+  name_set <- paste0(tolower(indicator_arg), "_", "y", format(unique_months, "%Y"), "_m", format(unique_months, "%m"))
+
+  print("NDVI Raster Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+    raster_objs = raster_objs,
+    shp_fn = shp_fn,
+    grid_size = grid_size,
+    survey_dt = survey_dt,
+    survey_fn = survey_fn,
+    survey_lat = survey_lat,
+    survey_lon = survey_lon,
+    extract_fun = extract_fun,
+    buffer_size = buffer_size,
+    survey_crs = survey_crs,
+    name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)
+}
+
+
+
+
+
+
+
+#' Download pollution data
+#'
+#' This function downloads pollution data at the monthly level. It allows for the extraction of five separate pollution indicators.
+#'
+#' @param start_date A character object with the start date; it must be specified as "yyyy-mm-dd"
+#' @param end_date A character object with the end date; it must be specified as "yyyy-mm-dd"
+#' @param indicator A character object with the pollution data to be used; it must be one of "aer-ai", "hcho", "no2", "o3", "so2".
+#' @param shp_dt An object of class 'sf', which contains polygons or multipolygons representing the study area.
+#' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
+#' @param resolution A numeric, the resolution to be used in meters for extracting the vegetation index data.
+#' @param grid_size A numeric, the grid size to be used to extract the data.
+#' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey with latitude and longitude values (optional).
+#' @param survey_fn A character, file path for geocoded survey (.dta format) (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lat A character, latitude variable from survey (for STATA users only & if use_survey is TRUE) (optional).
+#' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
+#' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
+#' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
+#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#'
+#' @return A processed data frame based on the input parameters and downloaded data.
+#'
+#' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
+#'
+#' @examples
+#' \donttest{
+#'
+#'  #example usage
+#' df <- geolink_vegindex(shp_dt = shp_dt,
+#'                              start_date = "2019-01-01",
+#'                              end_date = "2019-12-31",
+#'                              extract_fun = "mean",
+#'                              buffer_size = 1000,
+#'                              survey_crs = 4326)
+#'
+#'
+#' }
+#'@export
+
+
+
+geolink_pollution <- function(
+  start_date,
+  end_date,
+  indicator = NULL,
+  shp_dt = NULL,
+  shp_fn = NULL,
+  resolution = 5000,
+  grid_size = 5000,
+  survey_dt = NULL,
+  survey_fn = NULL,
+  survey_lat = NULL,
+  survey_lon = NULL,
+  buffer_size = NULL,
+  extract_fun = "mean",
+  survey_crs = 4326
+  ){
+
+  # checks
+  if (is.null(indicator)==TRUE){
+    stop("You must specify an indicator: aer-ai, hcho, no2, o3, so2")
+  } else if ((indicator %in% c("aer-ai", "hcho", "no2", "o3", "so2"))==FALSE){
+    stop("You must specify one of the following indicators: aer-ai, hcho, no2, o3, so2")
+  }
+
+
+  if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
+
+  } else if (!is.null(survey_dt)) {
+    sf_obj <- ensure_crs_4326(survey_dt)
+
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else if (!is.null(survey_fn)) { # Changed condition to survey_fn
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
+      sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else {
+    stop("Input a valid sf object or geosurvey")
+    sf_obj <- NULL # Optional: Define a default value to avoid potential errors
+  }
+
+  # check dates are valid
+  start_date <- as.Date(start_date)
+  end_date <- as.Date(end_date)
+  if (start_date<as.Date("2018-05-01")){
+    stop("Start date must be 2018-05-01 or later.")
+  }
+  if (end_date>=as.Date(Sys.Date())){
+    stop("End date must before today.")
+  }
+  if (end_date<start_date){
+    stop("End date must be after start date.")
+  }
+
+  # get the months we need
+  allmonths <- seq.Date(start_date, end_date, by = "month")
+  allmonths <- data.table::data.table(allmonths)
+  allmonths <- allmonths[, .(year = year(allmonths), month = month(allmonths), day = 1)]
+
+  s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+
+  print("Collection of monthly links started.")
+
+  # this will collect the features we need to download for the variable of interest
+  # all months
+  url_list <- c()
+  bboxes <- c()
+  for (x in 1:nrow(allmonths)){
+    start_date_ind <- as.Date(paste0(allmonths[x, .(year)], "-", allmonths[x, .(month)], "-01"))
+    end_date_ind <- start_date_ind + months(1) - days(1)
+    it_obj <- s_obj %>%
+      stac_search(collections = "sentinel-5p-l2-netcdf",
+                  bbox = sf::st_bbox(sf_obj),
+                  datetime = paste(start_date_ind, end_date_ind, sep = "/"),
+                  limit = 1000) %>%
+      get_request() %>%
+      items_sign(sign_fn = sign_planetary_computer())
+    # now collect what we need
+    features_month <- c()
+    dates_month <- c()
+    bboxes_month <- c()
+    features <- c()
+    for (i in 1:length(it_obj$features)){
+      if (names(it_obj$features[[i]]$assets)==paste0(indicator)){
+        # there are some that cover only a small area; ignore these
+        # only keep those that are ENTIRE globe
+        if ((it_obj$features[[i]]$bbox[3]-it_obj$features[[i]]$bbox[1])==360 &
+          (it_obj$features[[i]]$bbox[4]-it_obj$features[[i]]$bbox[2])>170){
+          features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
+          dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
+          bboxes_month <- c(bboxes_month, list(it_obj$features[[i]]$bbox))
+          features <- c(features, list(it_obj$features[[i]]))
+        }
+      }
+    }
+    # this keeps the LAST raster for each month
+    # there are issues trying to mosaik multiple rasters. They all seem to have slightly different extents and resolutions
+    features_month <- features_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+    bboxes_month <- bboxes_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+    features <- features[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+
+    url_list <- c(url_list, list(features_month))
+    bboxes <- c(bboxes, list(bboxes_month))
+  }
+
+  print("Pollution raster download started. This may take some time.")
+
+  # right layer name depending on the indicator
+  layer <- dplyr::case_match(
+    indicator,
+    "aer-ai" ~ "aerosol_index_340_380",
+    "ch4" ~ "methane_strong_twoband_total_column",
+    "co" ~ "carbonmonoxide_total_column",
+    "hcho" ~ "formaldehyde_tropospheric_vertical_column",
+    "no2" ~ "nitrogendioxide_tropospheric_column",
+    "o3" ~ "ozone_total_vertical_column",
+    "so2" ~ "sulfurdioxide_total_vertical_column"
+  )
+
+  # The rasters do not have the appropriate extent and CRS
+  # We have saved the bbox from the metadata and will use it to transform the raster
+  raster_objs <- c()
+  for (i in 1:length(url_list)){
+    # get bbox for this raster
+    bb <- as.vector(bboxes[[i]][[1]])
+    # load raster
+    rall <- rast(url_list[[i]][[1]])
+    # set extent using bbox from the metadata
+    ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
+    # it's lon/lat, will be 4326
+    crs(rall) <- "EPSG:4326"
+    raster_objs <- c(raster_objs, rall[[layer]])
+    print(paste0("Month ", i, " of ", length(url_list), " completed."))
+  }
+
+  date_list <- as_date(paste0(allmonths$year, "-", allmonths$month, "-01"))
+  name_set <- paste0(indicator, "_", "y", allmonths$year, "_m", allmonths$month)
+
+  print("Pollution Rasters Downloaded")
+
+  dt <- postdownload_processor(shp_dt = shp_dt,
+    raster_objs = raster_objs,
+    shp_fn = shp_fn,
+    grid_size = grid_size,
+    survey_dt = survey_dt,
+    survey_fn = survey_fn,
+    survey_lat = survey_lat,
+    survey_lon = survey_lon,
+    extract_fun = extract_fun,
+    buffer_size = buffer_size,
+    survey_crs = survey_crs,
+    name_set = name_set)
+
+  print("Process Complete!!!")
+
+  return(dt)
+}
+
+
