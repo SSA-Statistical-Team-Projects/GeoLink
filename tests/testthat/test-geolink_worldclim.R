@@ -64,3 +64,31 @@ test_that("Elevation Function works using a survey :", {
 
 }
 )
+
+#Test- C.
+test_that("Elevation Function works using a shapefile from geodata package:", {
+
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
+
+    test_dt <- geolink_worldclim(iso_code ="COL",
+                                                  var='tmax',
+                                                  res=2.5,
+                                                  shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",],
+                                                  extract_fun = "mean")
+
+  suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames will be created correctly
+  expect_contains(colnames(test_dt), "COL_WC_tmax_Sep")
+
+  #03 - Test that the mean column values is between 10 and 45
+
+  expect_true(all(test_dt$COL_WC_tmax_Sep[!is.na(test_dt$COL_WC_tmax_Sep)] >= 10 &
+                    test_dt$COL_WC_tmax_Sep[!is.na(test_dt$COL_WC_tmax_Sep)] <= 45),
+              info = "Values of COL_WC_tmax_Sep should be between 10 and 45")
+
+})
