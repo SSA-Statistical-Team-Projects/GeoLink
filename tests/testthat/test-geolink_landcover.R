@@ -15,11 +15,11 @@ test_that("Landcover using shapefile: ", {
 
   #Write testing expressions below:
   #01 - expect the colnames will be created correctly
-  expect_contains(colnames(test_dt), "landcover")
+  expect_contains(colnames(test_dt), "water")
 
   #03 - Test that the mean column values is between 0 and 1 based on the raster values
 
-  expect_true(all(test_dt$landcover[!is.na(test_dt$landcover)] >= 0 &
-                     test_dt$landcover[!is.na(test_dt$landcover)] <= 1),
+  expect_true(all(test_dt$water[!is.na(test_dt$water)] >= 0 &
+                     test_dt$water[!is.na(test_dt$water)] <= 1),
                info = "Values of landcover should be between 0 and 1")
 })

@@ -15,7 +15,7 @@ geolink_opencellid(
   buffer_size = NULL,
   survey_crs = 4326,
   extract_fun = "mean",
-  grid_size = 1000
+  grid_size = NULL
 )
 }
 \arguments{
@@ -47,7 +47,7 @@ Download OpenCellID data
 This function processes downloaded OpenCellID data,
 which provides information about cell towers and their coverage areas.
 The return dataframe gives a count of cell towers within the shapefile area.
-For the function to run, the user will need to set up an account on www.opencellid.com and download the
+For the function to run, the user will need to set up an account on www.opencellid.org and download the
 required csv.gz file for the country for which they wish to run the analysis. The file location of this
 dataset (csv.gz file) should then be passed into the cell_tower_file parameter. Please see example usage below/
 }

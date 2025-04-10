@@ -14,7 +14,7 @@ geolink_get_poi(
   survey_lat = NULL,
   survey_lon = NULL,
   buffer_size = NULL,
-  survey_crs = NULL,
+  survey_crs = 4326,
   grid_size = NULL
 )
 }

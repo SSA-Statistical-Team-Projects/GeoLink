@@ -1,5 +1,5 @@
-#' # Helper functions
-#
+#' Helper functions
+
 # #' Ensure coordinates are in CRS 4326
 # #'
 # #' @param data Spatial data object

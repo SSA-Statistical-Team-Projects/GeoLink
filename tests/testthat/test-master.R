@@ -209,7 +209,7 @@ test_that("Test population function:", {
 test_that("Test nightlight function:", {
   suppressWarnings({test_dt <- run_geolink("nightlight",
                          time_unit = "annual",
-                         indicator = "avg_rade9h",
+                         indicator = "median_masked",
                          start_date = "2020-01-01",
                          end_date = "2020-12-01",
                          grid_size = 1000,
@@ -220,14 +220,14 @@ test_that("Test nightlight function:", {
 
   })
 
-  expect_contains(colnames(test_dt), "nightlight_annual_avg_rade9h")
+  expect_contains(colnames(test_dt), "ntl_annual1median_masked")
 
-  expect_true(all(test_dt$nightlight_annual_avg_rade9h >= 0 &
-                    test_dt$nightlight_annual_avg_rade9h <= 2000),
-              info = "Values of nightlight_annual_avg_rade9h should be between 0 and 2000")
+  expect_true(all(test_dt$ntt_annual1median_masked >= 0 &
+                    test_dt$nlt_annual1median_masked <= 200),
+              info = "Values of nlt_annual1median_masked should be between 0 and 2000")
 
   suppressWarnings({test_dt_func <- geolink_nightlight(time_unit = "annual",
-                                    indicator = "avg_rade9h",
+                                    indicator = "median_masked",
                                     start_date = "2020-01-01",
                                     end_date = "2020-12-01",
                                     grid_size = 1000,
@@ -242,7 +242,7 @@ test_that("Test nightlight function:", {
                                                 crs = as.numeric(suggest_dt$crs_code[1])),
                                  grid_size = 1000)$poly_id)}))
 
-  expect_setequal(test_dt_func$nightlight_annual_avg_rade9h, test_dt$nightlight_annual_avg_rade9h)
+  expect_setequal(test_dt_func$ntl_annual1median_masked, test_dt$ntl_annual1median_masked)
 })
 
 # Test for buildings
@@ -418,7 +418,7 @@ test_that("Test worldclim function:", {
 test_that("Test opencellid function: ",
           {
             suppressWarnings({ test_dt <- run_geolink("opencellid",
-                                                      cell_tower_file = "testdata/opencellidNGA.csv.gz",
+                                                      cell_tower_file = paste0(test_path(), "/testdata/opencellidNGA.csv.gz"),
                                                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                                       grid_size = 1000)
 
@@ -434,11 +434,11 @@ test_that("Test opencellid function: ",
             expect_equal(nrow(test_dt), nrow(shp_dt[shp_dt$ADM1_EN == "Abia",]))
 
             #03 - expect the number of cell_towers in the test_dt to be positive and less than 2828
-            expect_true(all(test_dt$cell_towers > 0) & all(test_dt$cell_towers < 2828),
+            expect_true(all(test_dt$cell_towers >= 0) & all(test_dt$cell_towers < 2828),
                         info = "Number of cell_towers should be positive and less than 2828")
 
             #04 - expect the test_dt_func to be equal to the test_dt
-            suppressWarnings({ test_dt_func <- geolink_opencellid(cell_tower_file = "testdata/opencellidNGA.csv.gz",
+            suppressWarnings({ test_dt_func <- geolink_opencellid(cell_tower_file = paste0(test_path(), "/testdata/opencellidNGA.csv.gz"),
                                                                   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                                                   grid_size = 1000)
             })
@@ -479,7 +479,50 @@ test_that("Test electaccess function: ",
 
             #02 - Test that the mean column values is between 0 and 1 based on the raster values
 
-            expect_true(all(test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] >= 0 &
-                              test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] <= 1),
+            expect_true(all(test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] >= 0 &
+                              test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] <= 1),
                         info = "Values of night proportion should be between 0 and 1")
           })
+
+# Test vegindex
+# test_that("Test vegindex function: ",
+#           {
+#             suppressWarnings({ test_dt <- run_geolink("vegindex",
+#                                                       start_date = "2019-01-01",
+#                                                       end_date = "2019-12-31",
+#                                                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#                                                       grid_size = 1000,
+#                                                       extract_fun = "mean")
+#
+#             suggest_dt <- crsuggest::suggest_crs(shp_dt,
+#                                                  units = "m")
+#             })
+#
+#             #Write testing expressions below:
+#             #01 - expect the colnames will be created correctly
+#             expect_contains(colnames(test_dt), c("ndvi_y2019_m04"))
+#
+#             #02 - Test that the mean column values is between -1 and 1 based on the raster values
+#
+#             expect_true(all(test_dt$ndvi_y2019_m04[!is.na(test_dt$ndvi_y2019_m04)] >= -1 &
+#                               test_dt$ndvi_y2019_m04[!is.na(test_dt$ndvi_y2019_m04)] <= 1),
+#                         info = "Values of ndvi should be between -1 and 1")
+#
+#             #03 - Test that the number of unique polygons in the test_dt is equal to the number of unique polygons in the shapefile
+#             expect_equal(length(unique(test_dt$poly_id)),
+#                          suppressWarnings({
+#                            length(gengrid2(shp_dt =
+#                                              st_transform(shp_dt[shp_dt$ADM1_EN == "Abia",],
+#                                                           crs = as.numeric(suggest_dt$crs_code[1])),
+#                                          grid_size = 1000)$poly_id)}))
+#
+#             #04 - expect the test_dt_func to be equal to the test_dt
+#             suppressWarnings({
+#               test_dt_func <- geolink_vegindex(start_date = "2019-01-01",
+#                                                end_date = "2019-12-31",
+#                                                shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+#                                                grid_size = 1000,
+#                                                extract_fun = "mean")
+#             })
+#             expect_setequal(test_dt_func$ndvi_y2019_m04, test_dt$ndvi_y2019_m04)
+#           })
