@@ -43,7 +43,8 @@ geolink_landcover(
 
 \item{grid_size}{Numeric. Size of grid cells for tessellation (in meters)}
 
-\item{use_resampling}{Logical. Whether to resample rasters to a common resolution (default: TRUE)}
+\item{use_resampling}{Logical. Whether to resample rasters to a common resolution (default: TRUE)
+Using resampling might use a significant amount of memory.}
 
 \item{target_resolution}{Numeric. Target resolution for resampling in meters (default: 1000)}
 }

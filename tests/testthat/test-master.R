@@ -19,7 +19,7 @@ test_that("Test error for date arguments:", {
                            end_date = "2020-02-01",
                            shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                            extract_fun = "mean"),
-               regexp = "a date argument you inputted is in the wrong format, it should be")
+               regexp = "start_date must be in a valid date format")
 
   expect_error(run_geolink("rainfall",
                            time_unit = "month",
@@ -487,7 +487,7 @@ test_that("Test electaccess function: ",
 #  Test vegindex
 test_that("Test vegindex function: ",
           {
-            suppressWarnings({ test_dt <- run_geolink("vegindex",
+            suppressWarnings({ test_dt <- run_geolink("vegetation",
                                                       start_date = "2019-01-01",
                                                       end_date = "2019-12-31",
                                                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],

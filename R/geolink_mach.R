@@ -2423,6 +2423,7 @@ geolink_opencellid <- function(cell_tower_file,
 #' @param survey_crs Numeric. CRS code for survey coordinates (default: 4326)
 #' @param grid_size Numeric. Size of grid cells for tessellation (in meters)
 #' @param use_resampling Logical. Whether to resample rasters to a common resolution (default: TRUE)
+#' Using resampling might use a significant amount of memory.
 #' @param target_resolution Numeric. Target resolution for resampling in meters (default: 1000)
 #'
 #' @return An sf object with land cover classifications by year
