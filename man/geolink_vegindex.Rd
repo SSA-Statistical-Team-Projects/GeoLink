@@ -58,6 +58,7 @@ A processed data frame based on the input parameters and downloaded data.
 This function download vegetation index data, either NDVI or EVI, based on start and end dates.
 }
 \examples{
+\dontrun{
 \donttest{
 
  #example usage
@@ -69,5 +70,5 @@ df <- geolink_vegindex(shp_dt = shp_dt,
                              survey_crs = 4326)
 
 
-}
+}}
 }

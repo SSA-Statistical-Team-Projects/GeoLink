@@ -6,25 +6,22 @@
 \usage{
 \method{as.data.table}{raster}(
   x,
-  row.names = NULL,
-  optional = FALSE,
+  keep.rownames = FALSE,
   xy = FALSE,
   inmem = raster::canProcessInMemory(x, 2),
   ...
 )
 }
 \arguments{
-\item{x}{an object of class \code{raster}.}
+\item{x}{An object of class \verb{Raster*}, typically from the \code{raster} package.}
 
-\item{row.names}{(optional) Names for the rows.}
-
-\item{optional}{(optional) Logical. If \code{TRUE}, setting row names in the output is optional.}
+\item{keep.rownames}{Logical. If \code{TRUE}, include row names as a column in the output.}
 
 \item{xy}{(optional) Logical. If \code{TRUE}, include coordinates of raster cells in the output.}
 
 \item{inmem}{(optional) Logical. If \code{TRUE}, process the raster in memory. Default is determined by \code{raster::canProcessInMemory()}.}
 
-\item{...}{Additional arguments (none)}
+\item{...}{Additional arguments passed to methods.}
 }
 \description{
 Convert a raster to data.table object

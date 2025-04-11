@@ -2,8 +2,7 @@
 % Please edit documentation in R/downloadplugin_landcover.R
 \name{create_default_results}
 \alias{create_default_results}
-\title{Helper functions
-Create default results dataframe for a year}
+\title{Create default results dataframe for a year}
 \usage{
 create_default_results(sf_obj, year)
 }
@@ -16,6 +15,5 @@ create_default_results(sf_obj, year)
 A dataframe with default values
 }
 \description{
-Helper functions
 Create default results dataframe for a year
 }

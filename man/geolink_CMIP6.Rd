@@ -29,7 +29,7 @@ geolink_CMIP6(
 \item{scenario}{A scenario has to be selected and can be one of "historical", "ssp245" or "ssp585"}
 
 \item{desired_models}{The name or names in a list, of the desired model(s) required for the analysis, for example
-("ACCESS-CM-2" or \link{"ACCESS-CM-2","UKESM1-0-LL" }). See the cmip6:model summary in the STAC collection for a full list of models.}
+("ACCESS-CM-2" or c("ACCESS-CM-2","UKESM1-0-LL")). See the cmip6:model summary in the STAC collection for a full list of models.}
 
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.}
 

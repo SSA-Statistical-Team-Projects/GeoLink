@@ -36,6 +36,11 @@ geolink_opencellid(
 \item{buffer_size}{A numeric, the size of the buffer for \code{survey_dt} or \code{survey_fn} in meters.}
 
 \item{survey_crs}{A numeric, the default is 4326}
+
+\item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
+Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
+
+\item{grid_size}{A numeric, the grid size to be used in meters}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.

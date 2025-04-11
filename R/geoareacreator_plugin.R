@@ -10,8 +10,8 @@
 #' @importFrom raster raster
 #' @importFrom raster cellStats
 #' @importFrom units set_units
-#' @importFrom sf st_perimeter st_minimum_bounding_circle
-#' @importFrom lwgeom st_geod_area st_geod_length st_make_valid st_transform_proj st_snap_to_grid
+#' @importFrom sf st_perimeter st_minimum_bounding_circle st_make_valid
+#' @importFrom lwgeom st_geod_area st_geod_length st_transform_proj st_snap_to_grid
 #'
 #' @export
 

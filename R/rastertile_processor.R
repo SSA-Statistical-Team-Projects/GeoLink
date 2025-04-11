@@ -13,7 +13,6 @@
 
 #'
 #' @importFrom data.table as.data.table
-#' @inheritParams raster::as.data.frame
 #'
 #' @export
 as.data.table.raster <- function(x,
