@@ -146,3 +146,35 @@ test_that("Population works using a survey :", {
 # })
 
 
+#Test- D.
+test_that("Population works using a shapefile from package geodata:", {
+  #Create a consistent file directory:
+
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("KEN", level = 2, tempdir()))
+
+    test_dt <- geolink_population(start_year = 2018,
+                                                   end_year = 2019,
+                                                   iso_code = "KEN",
+                                                   UN_adjst = "N",
+                                                   constrained = "N",
+                                                   shp_dt = temp_gamd[temp_gamd$NAME_1 == "Nairobi",],
+                                                   extract_fun = "mean",
+                                                   file_location = tempdir())
+
+  suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames will be created correctly
+  expect_contains(colnames(test_dt), c("population_2018","population_2019" ))
+
+
+  #03 - Test that the mean column values is between 0 and 1444.34
+  non_na_population <- na.omit(test_dt$population_2020)
+  expect_true(all(non_na_population >= 0.02873377 & non_na_population <= 1022.052),
+              info = "Values of population_2018 should be between 0.02873377 and 1022.052.")
+
+}
+)
