@@ -153,11 +153,11 @@ test_that("Annual NTL using a shapefile from geodata package:", {
 
   #Write testing expressions below:
   #01 - expect the colnames ro be created correctly
-  expect_contains(colnames(test_dt), "ntl_annual1average_masked" )
+  expect_contains(colnames(test_dt), "ntl_annual1cf_cvg" )
 
 
-  expect_true(all(test_dt$ntl_annual1average_masked >= -1.5 & test_dt$ntl_annual1average_masked <= 92084.44 ),
-              info = "Values of ntl_annual1average_masked should be between -1.5 and 92084.44")
+  expect_true(all(test_dt$ntl_annual1cf_cvg >= 0 & test_dt$ntl_annual1cf_cvg <= 100 ),
+              info = "Values of ntl_annual1cf_cvg should be between 0 and 100")
 })
 
 

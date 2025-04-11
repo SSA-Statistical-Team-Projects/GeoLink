@@ -345,9 +345,9 @@ geolink_ntl <- function(time_unit = "annual",
 
   print("Process Complete!!!")
 
-  return(dt)
+  unlink(paste0(tempdir(), "/file*"), recursive = TRUE)
 
-  unlink(tempdir(), recursive = TRUE)
+  return(dt)
 }
 
 
@@ -770,8 +770,9 @@ geolink_elevation <- function(iso_code,
 
   print("Process Complete!!!")
 
+  unlink(paste0(tempdir(), "/elevation"), recursive = TRUE)
+
   return(dt)
-  unlink(tempdir(), recursive = TRUE)
 }
 
 
@@ -969,7 +970,7 @@ geolink_buildings <- function(version,
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param scenario A scenario has to be selected and can be one of "historical", "ssp245" or "ssp585"
 #' @param desired_models The name or names in a list, of the desired model(s) required for the analysis, for example
-#'  ("ACCESS-CM-2" or ["ACCESS-CM-2","UKESM1-0-LL" ]). See the cmip6:model summary in the STAC collection for a full list of models.
+#'  ("ACCESS-CM-2" or c("ACCESS-CM-2","UKESM1-0-LL")). See the cmip6:model summary in the STAC collection for a full list of models.
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons representing the study area.
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only).
 #' @param grid_size A numeric, the grid size to be used in meters for analyzing the climate model data.
@@ -1123,9 +1124,19 @@ geolink_CMIP6 <- function(start_date,
           GET(url, write_disk(temp_file, overwrite = TRUE))
           raster <- rast(temp_file)
 
-          if (nlyr(raster) == 360) {
+          # Check if extend is between 0 and 360, if so rotate it
+          if (ext(raster)[1] == 0 & ext(raster)[2] == 360) {
+            raster <- rotate(raster)
+          }
+
+          if (nlyr(raster) >= 355 & nlyr(raster) <= 365) {
             time_indices <- as.numeric(format(time(raster), "%Y"))
-            yearly_raster <- tapp(raster, index = time_indices, fun = "mean", na.rm = TRUE)
+            if(length(unique(time_indices)) == 1){
+              yearly_raster <- app(raster, index = time_indices, fun = "mean", na.rm = TRUE)
+            } else {
+              yearly_raster <- tapp(raster, index = time_indices, fun = "mean", na.rm = TRUE)
+            }
+
             current_rasters[[var]] <- yearly_raster
           }
         }, error = function(e) {
@@ -1174,8 +1185,13 @@ geolink_CMIP6 <- function(start_date,
 
   #print("Process Complete! DataFrame saved as 'geolink_CMIP6_output' in the environment.")
 
+  for(model in desired_models){
+    # Remove the downloaded files for the model
+    unlink(paste0(tempdir(), "/", model, "*"), recursive = TRUE)
+  }
+
   return(dt)
-  unlink(tempdir(), recursive = TRUE)
+
 }
 
 #' Download cropland data
@@ -2871,6 +2887,7 @@ create_empty_result <- function(sf_obj, start_date) {
 #' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
 #'
 #' @examples
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage
@@ -2882,7 +2899,7 @@ create_empty_result <- function(sf_obj, start_date) {
 #'                              survey_crs = 4326)
 #'
 #'
-#' }
+#' }}
 #'@export
 
 

@@ -6,6 +6,9 @@ test_that("Vegindex using a shapefile: ",
                                                               end_date = "2019-12-31",
                                                               grid_size = 1000,
                                                               extract_fun = "mean")
+
+            suggest_dt <- crsuggest::suggest_crs(shp_dt,
+                                                 units = "m")
             })
             #Write testing expressions below:
             #01 - expect the colnames will be created correctly
@@ -114,7 +117,7 @@ test_that("Annual vegindex using a shapefile from geodata package:", {
 
   #Write testing expressions below:
   #01 - expect the colnames ro be created correctly
-  expect_contains(colnames(test_dt), "evi_y2019_m02" )
+  expect_contains(colnames(test_dt), c("evi_y2019_m02"))
 
 
   expect_true(all(test_dt$evi_y2019_m01[!is.na(test_dt$evi_y2019_m01)] >= 0 &

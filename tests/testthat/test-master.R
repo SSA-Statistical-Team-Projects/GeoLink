@@ -19,7 +19,7 @@ test_that("Test error for date arguments:", {
                            end_date = "2020-02-01",
                            shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                            extract_fun = "mean"),
-               regexp = "start_date must be in a valid date format")
+               regexp = "a date argument you inputted is in the wrong format, it should be")
 
   expect_error(run_geolink("rainfall",
                            time_unit = "month",
@@ -27,7 +27,7 @@ test_that("Test error for date arguments:", {
                            end_date = "2020/02/01",
                            shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                            extract_fun = "mean"),
-               regexp = "end_date must be in a valid date format")
+               regexp = "a date argument you inputted is in the wrong format, it should be")
 })
 
 # Test shp_dt and survey_dt as sf objects
@@ -226,7 +226,7 @@ test_that("Test nightlight function:", {
                     test_dt$nlt_annual1median_masked <= 200),
               info = "Values of nlt_annual1median_masked should be between 0 and 2000")
 
-  suppressWarnings({test_dt_func <- geolink_nightlight(time_unit = "annual",
+  suppressWarnings({test_dt_func <- geolink_ntl(time_unit = "annual",
                                     indicator = "median_masked",
                                     start_date = "2020-01-01",
                                     end_date = "2020-12-01",
@@ -484,45 +484,45 @@ test_that("Test electaccess function: ",
                         info = "Values of night proportion should be between 0 and 1")
           })
 
-# Test vegindex
-# test_that("Test vegindex function: ",
-#           {
-#             suppressWarnings({ test_dt <- run_geolink("vegindex",
-#                                                       start_date = "2019-01-01",
-#                                                       end_date = "2019-12-31",
-#                                                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-#                                                       grid_size = 1000,
-#                                                       extract_fun = "mean")
-#
-#             suggest_dt <- crsuggest::suggest_crs(shp_dt,
-#                                                  units = "m")
-#             })
-#
-#             #Write testing expressions below:
-#             #01 - expect the colnames will be created correctly
-#             expect_contains(colnames(test_dt), c("ndvi_y2019_m04"))
-#
-#             #02 - Test that the mean column values is between -1 and 1 based on the raster values
-#
-#             expect_true(all(test_dt$ndvi_y2019_m04[!is.na(test_dt$ndvi_y2019_m04)] >= -1 &
-#                               test_dt$ndvi_y2019_m04[!is.na(test_dt$ndvi_y2019_m04)] <= 1),
-#                         info = "Values of ndvi should be between -1 and 1")
-#
-#             #03 - Test that the number of unique polygons in the test_dt is equal to the number of unique polygons in the shapefile
-#             expect_equal(length(unique(test_dt$poly_id)),
-#                          suppressWarnings({
-#                            length(gengrid2(shp_dt =
-#                                              st_transform(shp_dt[shp_dt$ADM1_EN == "Abia",],
-#                                                           crs = as.numeric(suggest_dt$crs_code[1])),
-#                                          grid_size = 1000)$poly_id)}))
-#
-#             #04 - expect the test_dt_func to be equal to the test_dt
-#             suppressWarnings({
-#               test_dt_func <- geolink_vegindex(start_date = "2019-01-01",
-#                                                end_date = "2019-12-31",
-#                                                shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-#                                                grid_size = 1000,
-#                                                extract_fun = "mean")
-#             })
-#             expect_setequal(test_dt_func$ndvi_y2019_m04, test_dt$ndvi_y2019_m04)
-#           })
+#  Test vegindex
+test_that("Test vegindex function: ",
+          {
+            suppressWarnings({ test_dt <- run_geolink("vegindex",
+                                                      start_date = "2019-01-01",
+                                                      end_date = "2019-12-31",
+                                                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                                                      grid_size = 1000,
+                                                      extract_fun = "mean")
+
+            suggest_dt <- crsuggest::suggest_crs(shp_dt,
+                                                 units = "m")
+            })
+
+            #Write testing expressions below:
+            #01 - expect the colnames will be created correctly
+            expect_contains(colnames(test_dt), c("ndvi_y2019_m04"))
+
+            #02 - Test that the mean column values is between -1 and 1 based on the raster values
+
+            expect_true(all(test_dt$ndvi_y2019_m04[!is.na(test_dt$ndvi_y2019_m04)] >= -1 &
+                              test_dt$ndvi_y2019_m04[!is.na(test_dt$ndvi_y2019_m04)] <= 1),
+                        info = "Values of ndvi should be between -1 and 1")
+
+            #03 - Test that the number of unique polygons in the test_dt is equal to the number of unique polygons in the shapefile
+            expect_equal(length(unique(test_dt$poly_id)),
+                         suppressWarnings({
+                           length(gengrid2(shp_dt =
+                                             st_transform(shp_dt[shp_dt$ADM1_EN == "Abia",],
+                                                          crs = as.numeric(suggest_dt$crs_code[1])),
+                                         grid_size = 1000)$poly_id)}))
+
+            #04 - expect the test_dt_func to be equal to the test_dt
+            suppressWarnings({
+              test_dt_func <- geolink_vegindex(start_date = "2019-01-01",
+                                               end_date = "2019-12-31",
+                                               shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
+                                               grid_size = 1000,
+                                               extract_fun = "mean")
+            })
+            expect_setequal(test_dt_func$ndvi_y2019_m04, test_dt$ndvi_y2019_m04)
+          })
