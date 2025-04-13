@@ -10,8 +10,8 @@ geolink_pollution(
   indicator = NULL,
   shp_dt = NULL,
   shp_fn = NULL,
-  resolution = 5000,
-  grid_size = 5000,
+  resolution = NULL,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -58,10 +58,11 @@ A processed data frame based on the input parameters and downloaded data.
 This function downloads pollution data at the monthly level. It allows for the extraction of five separate pollution indicators.
 }
 \examples{
+\dontrun{
 \donttest{
 
  #example usage
-df <- geolink_vegindex(shp_dt = shp_dt,
+df <- geolink_pollution(shp_dt = shp_dt,
                              start_date = "2019-01-01",
                              end_date = "2019-12-31",
                              extract_fun = "mean",
@@ -69,5 +70,5 @@ df <- geolink_vegindex(shp_dt = shp_dt,
                              survey_crs = 4326)
 
 
-}
+}}
 }

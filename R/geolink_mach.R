@@ -3102,12 +3102,14 @@ geolink_vegindex <- function(
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
 #' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
+#' @importFrom lubridate year month days day as_date
 #'
 #' @examples
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage
-#' df <- geolink_vegindex(shp_dt = shp_dt,
+#' df <- geolink_pollution(shp_dt = shp_dt,
 #'                              start_date = "2019-01-01",
 #'                              end_date = "2019-12-31",
 #'                              extract_fun = "mean",
@@ -3115,7 +3117,7 @@ geolink_vegindex <- function(
 #'                              survey_crs = 4326)
 #'
 #'
-#' }
+#' }}
 #'@export
 
 
@@ -3126,8 +3128,8 @@ geolink_pollution <- function(
   indicator = NULL,
   shp_dt = NULL,
   shp_fn = NULL,
-  resolution = 5000,
-  grid_size = 5000,
+  resolution = NULL,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
