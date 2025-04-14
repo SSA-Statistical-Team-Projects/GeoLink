@@ -23,12 +23,13 @@ test_check("GeoLink")
 # usethis::use_test("building_functions") # Done
 #usethis::use_test("geolink_CMIP6") # Done
 #usethis::use_test("geolink_terraclimate") # Done
+#usethis::use_test("geolink_get_poi") # Done
+#usethis::use_test("geolink_opencellid") # Done
+#usethis::use_test("geolink_electaccess") # Done
+#usethis::use_test("geolink_landcover") # Done
+#usethis::use_test("geolink_vegindex") # Done
 
 # 6 functions not working
-#usethis::use_test("geolink_electaccess") # Not working
-#usethis::use_test("geolink_vegindex") # Not working
 #usethis::use_test("geolink_pollution") # Not working
-#usethis::use_test("geolink_landcover") # Not working
-#usethis::use_test("geolink_get_poi") # Not working
-#usethis::use_test("geolink_opencellid") # Not working
+
 

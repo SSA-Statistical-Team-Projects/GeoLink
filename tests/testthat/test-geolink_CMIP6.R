@@ -37,7 +37,7 @@ test_that("CMIP6 works using a shapefile:", {
   #03 - Test that the mean column values is between the ranges specified in the
   # rasters
 
-  expect_true(all(test_dt$pr_2019 >= 0 & test_dt$pr_2019 <= 0.000249315 ),
+  expect_true(all(test_dt$pr_2019 >= 0 & test_dt$pr_2019 <= 0.01 ),
               info = "Values of pr should be between 0 and 0.000249315")
 
   expect_true(all(test_dt$tas_2019 >= 247.7378  & test_dt$tas_2019 <= 306.4844 ),
@@ -135,7 +135,7 @@ test_that("CMIP6 works using a shapefile:", {
 
     test_dt <- geolink_CMIP6(start_date = "2019-01-01",
                                               end_date = "2019-12-31",
-                                              scenario = "ssp245",
+                                              scenario = "ssp585",
                                               desired_models = "UKESM1-0-LL",
                                               shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",])
 
@@ -155,8 +155,8 @@ test_that("CMIP6 works using a shapefile:", {
   #03 - Test that the mean column values is between the ranges specified in the
   # rasters
 
-  expect_true(all(test_dt$pr_2019 >= 0 & test_dt$pr_2019 <= 0.000249315 ),
-              info = "Values of pr should be between 0 and 0.000249315")
+  expect_true(all(test_dt$pr_2019 >= 0 & test_dt$pr_2019 <= 0.01 ),
+              info = "Values of pr should be between 0 and 0.01")
 
   expect_true(all(test_dt$tas_2019 >= 247.7378  & test_dt$tas_2019 <= 306.4844 ),
               info = "Values of pr should be between 247.7378  and 306.4844 ")

@@ -76,7 +76,7 @@ run_geolink <- function(
         bespoke = NULL,
         version = NULL,
         shp_fn = NULL,
-        grid_size = 1000,
+        grid_size = NULL,
         survey_dt = NULL,
         survey_fn = NULL,
         survey_lat = NULL,
@@ -107,7 +107,7 @@ run_geolink <- function(
       required = c("start_date", "end_date", "shp_dt"),
       optional = list(
         shp_fn = NULL,
-        grid_size = 1000,
+        grid_size = NULL,
         survey_dt = NULL,
         survey_fn = NULL,
         survey_lat = NULL,
@@ -169,7 +169,7 @@ run_geolink <- function(
       optional = list(
         source = "WorldCover",
         shp_fn = NULL,
-        grid_size = 1000,
+        grid_size = NULL,
         survey_dt = NULL,
         survey_fn = NULL,
         survey_lat = NULL,
@@ -184,7 +184,7 @@ run_geolink <- function(
       required = c("iso_code", "var", "res", "shp_dt"),
       optional = list(
         shp_fn = NULL,
-        grid_size = 1000,
+        grid_size = NULL,
         survey_dt = NULL,
         survey_fn = NULL,
         survey_lat = NULL,
@@ -228,7 +228,24 @@ run_geolink <- function(
       required = c("var", "year", "shp_dt"),
       optional = list(
         shp_fn = NULL,
-        grid_size = 1000,
+        grid_size = NULL,
+        survey_dt = NULL,
+        survey_fn = NULL,
+        survey_lat = NULL,
+        survey_lon = NULL,
+        buffer_size = NULL,
+        extract_fun = "mean",
+        survey_crs = 4326
+      )
+    ),
+    "vegetation" = list(
+      description = "Download Vegetation (NDVI/EVI) data",
+      required = c("start_date","end_date","shp_dt"),
+      optional = list(
+        indicator = "NDVI",
+        shp_fn = NULL,
+        resolution = NULL,
+        grid_size = NULL,
         survey_dt = NULL,
         survey_fn = NULL,
         survey_lat = NULL,
@@ -274,7 +291,8 @@ run_geolink <- function(
     "worldclim" = geolink_worldclim,
     "opencellid" = geolink_opencellid,
     "landcover" = geolink_landcover,
-    "terraclimate" = geolink_terraclimate
+    "terraclimate" = geolink_terraclimate,
+    "vegetation" = geolink_vegindex
   )
 
   # Get the target function

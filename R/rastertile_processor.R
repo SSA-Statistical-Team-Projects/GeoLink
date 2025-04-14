@@ -8,10 +8,11 @@
 #' @param keep.rownames Logical. If `TRUE`, include row names as a column in the output.
 #' @param xy (optional) Logical. If `TRUE`, include coordinates of raster cells in the output.
 #' @param inmem (optional) Logical. If `TRUE`, process the raster in memory. Default is determined by `raster::canProcessInMemory()`.
+
 #' @param ... Additional arguments passed to methods.
+
 #'
 #' @importFrom data.table as.data.table
-#' @inheritParams raster::as.data.frame
 #'
 #' @export
 as.data.table.raster <- function(x,
@@ -171,6 +172,7 @@ filter_tiles_landcover <- function(raster_objs, dt, numCores = NULL) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' \donttest{
 #'
 #'  #example usage with shapefile
@@ -178,7 +180,7 @@ filter_tiles_landcover <- function(raster_objs, dt, numCores = NULL) {
 #'                                   crs = "EPSG:4326",
 #'                                   resolution = 0.1)
 #'
-#' }
+#' }}
 #'@export
 
 

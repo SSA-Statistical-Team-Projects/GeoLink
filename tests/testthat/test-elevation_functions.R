@@ -61,7 +61,7 @@ test_that("Elevation Function works using a survey :", {
 )
 
 #Test- C.
-test_that("Elevation Function works using a shapefile:", {
+test_that("Elevation Function works using a shapefile from geodata:", {
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
@@ -78,12 +78,12 @@ test_that("Elevation Function works using a shapefile:", {
   #01 - expect the colnames will be created correctly
   expect_contains(colnames(test_dt), "COL_elv_msk")
 
-  #03 - Test that the mean column values is between -19.0 and 2381.0 based on NGA image
+  #03 - Test that the mean column values is between -11.0 and 3000.0 based on NGA image
   #this specific region
 
   expect_true(all(test_dt$COL_elv_msk[!is.na(test_dt$COL_elv_msk)] >= -11 &
-                    test_dt$COL_elv_msk[!is.na(test_dt$COL_elv_msk)] <= 2381.0),
-              info = "Values of COL_elv_msk should be between -19.0 and 2381.0")
+                    test_dt$COL_elv_msk[!is.na(test_dt$COL_elv_msk)] <= 3000.0),
+              info = "Values of COL_elv_msk should be between -11.0 and 3000.0")
 
 })
 

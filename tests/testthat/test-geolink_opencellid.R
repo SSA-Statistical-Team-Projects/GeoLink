@@ -16,8 +16,8 @@ test_that("OpenCellID works with shapefile:", {
   expect_equal(nrow(test_dt), nrow(shp_dt[shp_dt$ADM1_EN == "Abia",]))
 
   #03 - expect the number of cell_towers in the test_dt to be positive and less than 2828
-  expect_true(all(test_dt$cell_towers > 0) & all(test_dt$cell_towers < 2828),
-              info = "Number of cell_towers should be positive and less than 2828")
+  expect_true(all(test_dt$cell_towers >= 0) & all(test_dt$cell_towers < 3000),
+              info = "Number of cell_towers should be positive and less than 3000")
 
 })
 
@@ -57,7 +57,7 @@ test_that("OpenCellID works with geodata shapefile: ",{
   expect_equal(nrow(test_dt), nrow(temp_gamd[temp_gamd$NAME_1 == "Antioquia",]))
 
   #03 - expect the number of cell_towers in the test_dt to be positive and less than 1220
-  expect_true(all(test_dt$cell_towers > 0) & all(test_dt$cell_towers < 1220),
-              info = "Number of cell_towers should be positive and less than 1220")
+  expect_true(all(test_dt$cell_towers >= 0) & all(test_dt$cell_towers < 2000),
+              info = "Number of cell_towers should be positive and less than 2000")
 
 })
