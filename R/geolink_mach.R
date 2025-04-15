@@ -3120,24 +3120,22 @@ geolink_vegindex <- function(
 #' }}
 #'@export
 
-
-
 geolink_pollution <- function(
-  start_date,
-  end_date,
-  indicator = NULL,
-  shp_dt = NULL,
-  shp_fn = NULL,
-  resolution = NULL,
-  grid_size = NULL,
-  survey_dt = NULL,
-  survey_fn = NULL,
-  survey_lat = NULL,
-  survey_lon = NULL,
-  buffer_size = NULL,
-  extract_fun = "mean",
-  survey_crs = 4326
-  ){
+                                start_date,
+                                end_date,
+                                indicator = NULL,
+                                shp_dt = NULL,
+                                shp_fn = NULL,
+                                resolution = NULL,
+                                grid_size = NULL,
+                                survey_dt = NULL,
+                                survey_fn = NULL,
+                                survey_lat = NULL,
+                                survey_lon = NULL,
+                                buffer_size = NULL,
+                                extract_fun = "mean",
+                                survey_crs = 4326
+                            ){
 
   # checks
   if (is.null(indicator)==TRUE){
@@ -3157,7 +3155,7 @@ geolink_pollution <- function(
     sf_obj <- sf::read_sf(shp_fn)
     sf_obj <- ensure_crs_4326(sf_obj)
 
-  } else if (!is.null(survey_fn)) { # Changed condition to survey_fn
+  } else if (!is.null(survey_fn)) {
     sf_obj <- zonalstats_prepsurvey(
       survey_dt = survey_dt,
       survey_fn = survey_fn,
@@ -3165,11 +3163,11 @@ geolink_pollution <- function(
       survey_lon = survey_lon,
       buffer_size = NULL,
       survey_crs = survey_crs)
-      sf_obj <- ensure_crs_4326(sf_obj)
+    sf_obj <- ensure_crs_4326(sf_obj)
 
   } else {
     stop("Input a valid sf object or geosurvey")
-    sf_obj <- NULL # Optional: Define a default value to avoid potential errors
+    sf_obj <- NULL
   }
 
   # check dates are valid
@@ -3198,6 +3196,8 @@ geolink_pollution <- function(
   # all months
   url_list <- c()
   bboxes <- c()
+  valid_months <- c() # Track which months have valid data
+
   for (x in 1:nrow(allmonths)){
     start_date_ind <- as.Date(paste0(allmonths[x, .(year)], "-", allmonths[x, .(month)], "-01"))
     end_date_ind <- start_date_ind + months(1) - days(1)
@@ -3218,7 +3218,7 @@ geolink_pollution <- function(
         # there are some that cover only a small area; ignore these
         # only keep those that are ENTIRE globe
         if ((it_obj$features[[i]]$bbox[3]-it_obj$features[[i]]$bbox[1])==360 &
-          (it_obj$features[[i]]$bbox[4]-it_obj$features[[i]]$bbox[2])>170){
+            (it_obj$features[[i]]$bbox[4]-it_obj$features[[i]]$bbox[2])>170){
           features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
           dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
           bboxes_month <- c(bboxes_month, list(it_obj$features[[i]]$bbox))
@@ -3226,14 +3226,21 @@ geolink_pollution <- function(
         }
       }
     }
-    # this keeps the LAST raster for each month
-    # there are issues trying to mosaik multiple rasters. They all seem to have slightly different extents and resolutions
-    features_month <- features_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
-    bboxes_month <- bboxes_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
-    features <- features[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
 
-    url_list <- c(url_list, list(features_month))
-    bboxes <- c(bboxes, list(bboxes_month))
+    # Check if there are any features for this month
+    if (length(features_month) > 0) {
+      # this keeps the LAST raster for each month
+      # there are issues trying to mosaik multiple rasters. They all seem to have slightly different extents and resolutions
+      features_month <- features_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+      bboxes_month <- bboxes_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+      features <- features[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+
+      url_list <- c(url_list, list(features_month))
+      bboxes <- c(bboxes, list(bboxes_month))
+      valid_months <- c(valid_months, x)
+    } else {
+      print(paste0("No data available for month ", x, " (", start_date_ind, "). Skipping."))
+    }
   }
 
   print("Pollution raster download started. This may take some time.")
@@ -3252,41 +3259,124 @@ geolink_pollution <- function(
 
   # The rasters do not have the appropriate extent and CRS
   # We have saved the bbox from the metadata and will use it to transform the raster
-  raster_objs <- c()
-  for (i in 1:length(url_list)){
-    # get bbox for this raster
-    bb <- as.vector(bboxes[[i]][[1]])
-    # load raster
-    rall <- rast(url_list[[i]][[1]])
-    # set extent using bbox from the metadata
-    ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
-    # it's lon/lat, will be 4326
-    crs(rall) <- "EPSG:4326"
-    raster_objs <- c(raster_objs, rall[[layer]])
-    print(paste0("Month ", i, " of ", length(url_list), " completed."))
+  raster_objs <- vector("list", length(allmonths$year)) # Pre-allocate list for all months, will store NULL for missing months
+
+  for (i in 1:length(valid_months)) {
+    tryCatch({
+      month_idx <- valid_months[i]
+      # get bbox for this raster
+      bb <- as.vector(bboxes[[i]][[1]])
+      # load raster
+      rall <- rast(url_list[[i]][[1]])
+
+      # Check if raster is valid before processing
+      if (is.null(rall) || nlyr(rall) == 0) {
+        print(paste0("Invalid raster for month ", month_idx, ". Skipping."))
+        raster_objs[[month_idx]] <- NULL
+        next
+      }
+
+      # Check if the layer exists in the raster
+      if (!layer %in% names(rall)) {
+        print(paste0("Layer '", layer, "' not found in raster for month ", month_idx, ". Available layers: ",
+                     paste(names(rall), collapse=", "), ". Skipping."))
+        raster_objs[[month_idx]] <- NULL
+        next
+      }
+
+      # set extent using bbox from the metadata - use try to handle errors
+      tryCatch({
+        ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
+        # it's lon/lat, will be 4326
+        crs(rall) <- "EPSG:4326"
+        raster_objs[[month_idx]] <- rall[[layer]]
+        print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed."))
+      }, error = function(e) {
+        print(paste0("Error setting extent/crs for month ", month_idx, ": ", e$message, ". Trying alternative approach."))
+        # Try a different approach if setting extent fails
+        tryCatch({
+          # Just extract the layer without modifying the extent
+          raster_objs[[month_idx]] <- rall[[layer]]
+          # Set CRS if not already set
+          if (is.na(crs(raster_objs[[month_idx]]))) {
+            crs(raster_objs[[month_idx]]) <- "EPSG:4326"
+          }
+          print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed with alternative approach."))
+        }, error = function(e2) {
+          print(paste0("Alternative approach also failed for month ", month_idx, ": ", e2$message, ". Skipping."))
+          raster_objs[[month_idx]] <- NULL
+        })
+      })
+    }, error = function(e) {
+      print(paste0("Error processing month ", valid_months[i], ": ", e$message, ". Skipping."))
+      raster_objs[[valid_months[i]]] <- NULL
+    })
   }
 
+  # Create date_list and name_set for all months
   date_list <- as_date(paste0(allmonths$year, "-", allmonths$month, "-01"))
   name_set <- paste0(indicator, "_", "y", allmonths$year, "_m", allmonths$month)
 
   print("Pollution Rasters Downloaded")
 
+  # Modify postdownload_processor to handle NULL rasters or include only valid rasters
+  # First identify which elements in raster_objs are not NULL
+  valid_indices <- which(!sapply(raster_objs, is.null))
+
+  # Extract the valid rasters and their corresponding names
+  valid_rasters <- raster_objs[valid_indices]
+  valid_names <- name_set[valid_indices]
+
+  if (length(valid_rasters) == 0) {
+    warning("No valid rasters were downloaded. Returning NULL.")
+    return(NULL)
+  }
+
+  print(paste0("Processing ", length(valid_rasters), " valid rasters out of ", length(raster_objs), " months."))
+
   dt <- postdownload_processor(shp_dt = shp_dt,
-    raster_objs = raster_objs,
-    shp_fn = shp_fn,
-    grid_size = grid_size,
-    survey_dt = survey_dt,
-    survey_fn = survey_fn,
-    survey_lat = survey_lat,
-    survey_lon = survey_lon,
-    extract_fun = extract_fun,
-    buffer_size = buffer_size,
-    survey_crs = survey_crs,
-    name_set = name_set)
+                               raster_objs = valid_rasters,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = valid_names)
+
+  # For missing months, add NA columns to the returned data.table
+  if (length(valid_months) < nrow(allmonths)) {
+    missing_months <- setdiff(1:nrow(allmonths), valid_months)
+    missing_names <- name_set[missing_months]
+
+    for (missing_name in missing_names) {
+      dt[[missing_name]] <- NA
+    }
+
+    print(paste0("Added NA values for ", length(missing_months), " missing months."))
+  }
+
+  # Reorder columns to ensure chronological sequence of months
+  month_pattern <- paste0("^", indicator, "_")
+  month_cols <- names(dt)[grepl(month_pattern, names(dt))]
+
+  if (length(month_cols) > 0) {
+    # Sort month columns chronologically
+    year_month <- gsub(paste0("^", indicator, "_y(\\d+)_m(\\d+)$"), "\\1-\\2", month_cols)
+    sort_keys <- paste0(year_month, "-01")
+
+    sorted_indices <- order(sort_keys)
+    sorted_month_cols <- month_cols[sorted_indices]
+
+    non_month_cols <- setdiff(names(dt), month_cols)
+
+    dt <- dt[, c(non_month_cols, sorted_month_cols), with = FALSE]
+  }
 
   print("Process Complete!!!")
 
   return(dt)
 }
-
-
