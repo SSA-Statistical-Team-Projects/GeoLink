@@ -254,6 +254,22 @@ run_geolink <- function(
         extract_fun = "mean",
         survey_crs = 4326
       )
+    ),
+    "pollution" = list(
+      description = "Download Pollution data",
+      required = c("start_date","end_date","shp_dt", "indicator"),
+      optional = list(
+        shp_fn = NULL,
+        resolution = NULL,
+        grid_size = NULL,
+        survey_dt = NULL,
+        survey_fn = NULL,
+        survey_lat = NULL,
+        survey_lon = NULL,
+        buffer_size = NULL,
+        extract_fun = "mean",
+        survey_crs = 4326
+      )
     )
   )
 
@@ -292,7 +308,8 @@ run_geolink <- function(
     "opencellid" = geolink_opencellid,
     "landcover" = geolink_landcover,
     "terraclimate" = geolink_terraclimate,
-    "vegetation" = geolink_vegindex
+    "vegetation" = geolink_vegindex,
+    "pollution" = geolink_pollution
   )
 
   # Get the target function
