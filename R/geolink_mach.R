@@ -1676,7 +1676,6 @@ geolink_get_poi <- function(osm_key,
     survey_dt <- ensure_crs_4326(survey_dt)
   }
 
-
   # Handle survey file input and projection
   if (!is.null(survey_fn)) {
     if (is.null(survey_lat) || is.null(survey_lon)) {
@@ -1709,9 +1708,11 @@ geolink_get_poi <- function(osm_key,
   if (!is.null(shp_dt)) {
     sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
       ensure_crs_4326()
+    input_source <- "shapefile"
   } else if (!is.null(shp_fn)) {
     sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
       ensure_crs_4326()
+    input_source <- "shapefile"
   } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
     sf_obj <- zonalstats_prepsurvey(
       survey_dt = survey_dt,
@@ -1721,6 +1722,7 @@ geolink_get_poi <- function(osm_key,
       buffer_size = buffer_size,
       survey_crs = survey_crs) %>%
       ensure_crs_4326()
+    input_source <- "survey"
   } else {
     stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
   }
@@ -1795,23 +1797,55 @@ geolink_get_poi <- function(osm_key,
   }
 
   # Check if results exist
-  if (is.null(results)) {
+  if (is.null(results) || nrow(results) == 0) {
+    message("No points of interest found in the specified area")
     return(NULL)
   }
 
-  # Join results with input geometries
-  query_dt <- st_join(results, sf_obj, left = FALSE)
+  message(sprintf("Found %d points of interest", nrow(results)))
 
-  # Check results
-  if (nrow(query_dt) == 0) {
-    message("No points of interest found in the specified area")
-  } else {
-    message(sprintf("Found %d points of interest", nrow(query_dt)))
+  # Add a unique identifier to each input geometry
+  sf_obj$input_id <- 1:nrow(sf_obj)
+
+  # Spatial join to combine POI data with input geometries
+  # This time we keep all POIs (left=TRUE) and add the input geometry data to them
+  joined_data <- st_join(results, sf_obj, left = TRUE)
+
+  # Keep track of POIs that don't intersect with any input geometry
+  outside_pois <- joined_data %>%
+    filter(is.na(input_id))
+
+  # Keep only POIs that intersect with input geometries
+  joined_data <- joined_data %>%
+    filter(!is.na(input_id))
+
+  if (nrow(joined_data) == 0) {
+    message("No points of interest found within the specified geometries")
+    message("All POIs are outside your areas of interest")
+
+    # Add indicator showing these POIs are outside the input geometries
+    outside_pois$within_input_geom <- FALSE
+    outside_pois$input_source <- input_source
+
+    return(outside_pois)
   }
+
+  # Add indicator showing these POIs are within the input geometries
+  joined_data$within_input_geom <- TRUE
+  joined_data$input_source <- input_source
+
+
+  # Only use the POIs that are within the input geometries
+  final_result <- joined_data
+
+  # Add coordinates as explicit columns for easier access
+  coords <- st_coordinates(final_result)
+  final_result$longitude <- coords[, "X"]
+  final_result$latitude <- coords[, "Y"]
 
   message("OpenStreetMap data download complete!")
 
-  return(query_dt)
+  return(final_result)
 }
 
 
