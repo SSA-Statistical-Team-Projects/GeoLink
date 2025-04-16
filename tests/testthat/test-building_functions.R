@@ -153,3 +153,37 @@ test_that("Buildings works with two indicator:", {
 
 })
 
+#Test- D.
+test_that("Buildings works using a shapefile:", {
+
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("KEN", level = 2, tempdir()))
+
+    test_dt <- geolink_buildings(version = "v1.1",
+                                                  iso_code = "KEN",
+                                                  shp_dt = temp_gamd[temp_gamd$NAME_1 == "Nairobi",],
+                                                  indicators = "ALL")
+
+  suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames will be created correctly
+  expect_contains(colnames(test_dt), c("count","cv_length",
+                                       "density" ,"mean_area",
+                                       "mean_length",  "total_area",
+                                       "total_length", "urban" ))
+
+  #03 - Test col values are within the raster values
+  urban <- na.omit(test_dt$urban)
+  expect_true(all(urban >= 0 & urban <= 1),
+              info = "Values of urban should be between 0 and 1")
+  total_length <- na.omit(test_dt$total_length)
+  expect_true(all(total_length >= 2.768753 & total_length <= 6596.204),
+              info = "Values of urban should be between 2.768753 and 6596.204")
+  total_area <- na.omit(test_dt$total_area)
+  expect_true(all(total_area >= 0.04377888 & total_area <= 489605.3),
+              info = "Values of urban should be between 0.04377888 and 489605.3")
+}
+)

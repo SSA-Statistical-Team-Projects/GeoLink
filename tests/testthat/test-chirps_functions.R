@@ -75,13 +75,13 @@ test_that("Monthly chirps using a survey :", {
 test_that("Monthly chirps using a survey for stata users :", {
 
   suppressWarnings({ test_dt <- geolink_chirps(time_unit = "month",
-                                    start_date = "2020-01-01",
-                                    end_date = "2020-02-01",
-                                    survey_fn = "testdata/xy_hhgeo_dt.dta",
-                                    survey_lat = "y",
-                                    survey_lon = "x",
-                                    buffer_size = 1000,
-                                    extract_fun = "mean")
+                                               start_date = "2020-01-01",
+                                               end_date = "2020-02-01",
+                                               survey_fn = test_path("testdata/xy_hhgeo_dt.dta"),
+                                               survey_lat = "y",
+                                               survey_lon = "x",
+                                               buffer_size = 1000,
+                                               extract_fun = "mean")
   })
 
   #Write testing expressions below:
@@ -90,7 +90,8 @@ test_that("Monthly chirps using a survey for stata users :", {
               info = "Column 'rainfall_month1' is not present in test_dt")
 
   #02 - expect the length of test_dt be the same as the survey
-  expect_equal(length(test_dt$hhid), nrow(haven::read_dta("testdata/xy_hhgeo_dt.dta")))
+  expect_equal(length(test_dt$hhid),
+               nrow(haven::read_dta(test_path("testdata/xy_hhgeo_dt.dta"))))
 
   #Expect the radios of the buffer to be a 1000 m
   expect_equal(as.numeric(round(sqrt(st_area(test_dt[1,]) / pi))), 1000)
@@ -174,7 +175,31 @@ test_that("Error is thrown for invalid date range", {
 })
 
 
+#Test- F
+test_that("Annual chirps using a shapefile from geodata package:", {
 
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
+
+    test_dt <- geolink_chirps(time_unit = "annual",
+                                               start_date = "2020-01-01",
+                                               end_date = "2020-12-31",
+                                               shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",],
+                                               extract_fun = "mean")
+
+  suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames ro be created correctly
+  expect_contains(colnames(test_dt), "rainfall_annual1" )
+
+
+  #03 - Test that the mean column values is between 0 and 1444.34
+  expect_true(all(test_dt$rainfall_month1 >= 0 & test_dt$rainfall_month1 <= 1444.34),
+              info = "Values of rainfall_month1 should be between 0 and 1444.34")
+})
 
 
 

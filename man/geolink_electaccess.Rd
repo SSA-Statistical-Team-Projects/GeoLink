@@ -9,7 +9,7 @@ geolink_electaccess(
   end_date = NULL,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = 1000,
+  grid_size = NULL,
   survey_dt = NULL,
   survey_fn = NULL,
   survey_lat = NULL,
@@ -66,6 +66,7 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 \code{sf::read_sf()} function.
 }
 \examples{
+\dontrun{
 \donttest{
 
 
@@ -88,6 +89,6 @@ elect_survey_fn <- geolink_electaccess(start_date = "2019-01-01",
                                       survey_lon = "x",
                                       survey_lat = "y",
                                       buffer_size = 1000)
-}
+}}
 
 }

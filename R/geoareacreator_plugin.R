@@ -10,7 +10,8 @@
 #' @importFrom raster raster
 #' @importFrom raster cellStats
 #' @importFrom units set_units
-#' @import sf lwgeom
+#' @importFrom sf st_perimeter st_minimum_bounding_circle st_make_valid
+#' @importFrom lwgeom st_geod_area st_geod_length st_transform_proj st_snap_to_grid
 #'
 #' @export
 
@@ -214,4 +215,51 @@ create_query_bbox <- function(shp_dt = NULL,
 
 
 }
+
+#' A quick function to prepare shapefile objects prior to downloading spatial data
+#'
+#' @param shp_dt the shapefile object `sf data.frame`
+#' @param survey_dt the survey object `sf data.frame`
+#' @param shp_fn character, the shapefile filename path ending in .shp or json
+#' @param survey_fn character, the survey filename path ending in .dta
+#'
+#' @export
+#'
+
+prep_sf_obj_predownload <- function(shp_dt = NULL,
+                                    survey_dt = NULL,
+                                    shp_fn = NULL,
+                                    survey_fn = NULL){
+
+  # Ensure shapefile and survey are in the correct CRS
+  if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
+
+  } else if (!is.null(survey_dt)) {
+    sf_obj <- ensure_crs_4326(survey_dt)
+
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else if (!is.null(survey_fn)) { # Changed condition to `survey_fn`
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = NULL,
+      survey_crs = survey_crs)
+    sf_obj <- ensure_crs_4326(sf_obj)
+
+  } else {
+    print("Input a valid sf object or geosurvey")
+    sf_obj <- NULL  # Optional: Define a default value to avoid potential errors
+  }
+
+  return(sf_obj)
+
+}
+
+
 

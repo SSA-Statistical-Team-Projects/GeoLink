@@ -16,7 +16,7 @@
     conda_bin <- tryCatch(reticulate::conda_binary(), error = function(e) NULL)
 
     if (is.null(conda_bin) || !file.exists(conda_bin)) {
-      message("Conda not found. Installing Miniconda...")
+      packageStartupMessage("Conda not found. Installing Miniconda...")
       reticulate::install_miniconda()
       conda_bin <- reticulate::conda_binary()
 
@@ -25,20 +25,27 @@
       }
     }
 
-    message("Using Conda at: ", conda_bin)
+    packageStartupMessage("Using Conda at: ", conda_bin)
 
     # Check if our environment exists
     envs <- reticulate::conda_list()
     env_exists <- geo_env_name %in% envs$name
 
     if (!env_exists) {
-      message("Creating new conda environment for geospatial processing: ", geo_env_name)
+      packageStartupMessage("Creating new conda environment for geospatial processing: ", geo_env_name)
 
       # Create environment with geospatial packages from conda-forge
+      # Include specific versions of dependencies needed for GDAL/rasterio
       system2(conda_bin,
               c("create", "-y", "-n", geo_env_name,
                 "-c", "conda-forge",
-                "python=3.10", "numpy", "rasterio", "gdal", "tqdm", "certifi"),
+                "python=3.10",
+                "numpy",
+                "gdal>=3.6.0",
+                "libtiff>=4.6.1",  # Specifically include proper libtiff version
+                "rasterio",
+                "tqdm",
+                "certifi"),
               stdout = TRUE, stderr = TRUE)
 
       # Verify environment was created
@@ -47,24 +54,46 @@
 
       if (!env_exists) {
         # If creation failed, try a simplified approach
-        message("Standard creation failed. Trying simplified approach...")
+        packageStartupMessage("Standard creation failed. Trying simplified approach...")
         reticulate::conda_create(geo_env_name)
 
-        # Install packages individually
+        # Install base packages
         packages <- c("numpy", "tqdm", "certifi")
         for (pkg in packages) {
-          message("Installing ", pkg, " to conda environment...")
+          packageStartupMessage("Installing ", pkg, " to conda environment...")
           reticulate::conda_install(geo_env_name, pkg, channel = "conda-forge")
         }
 
-        # Install rasterio and gdal separately (they're more complex)
-        message("Installing geospatial packages to conda environment...")
+        # Install proper dependencies first
+        packageStartupMessage("Installing critical GDAL dependencies...")
         system2(conda_bin,
-                c("install", "-y", "-n", geo_env_name, "-c", "conda-forge", "rasterio", "gdal"),
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "libtiff>=4.6.1",  # Specific version required
+                  "proj",
+                  "libgdal",
+                  "libspatialite"),
+                stdout = TRUE, stderr = TRUE)
+
+        # Then install the main geospatial packages
+        packageStartupMessage("Installing geospatial packages to conda environment...")
+        system2(conda_bin,
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "gdal>=3.6.0",
+                  "rasterio"),
                 stdout = TRUE, stderr = TRUE)
       }
     } else {
-      message("Using existing conda environment: ", geo_env_name)
+      packageStartupMessage("Using existing conda environment: ", geo_env_name)
+
+      # Even if environment exists, check for and update the libtiff dependency
+      packageStartupMessage("Verifying GDAL dependencies are up to date...")
+      system2(conda_bin,
+              c("install", "-y", "-n", geo_env_name,
+                "-c", "conda-forge",
+                "libtiff>=4.6.1"),  # Ensure proper libtiff version
+              stdout = TRUE, stderr = TRUE)
     }
 
     # Get python path from this environment
@@ -73,6 +102,13 @@
 
     # Use this conda environment
     reticulate::use_condaenv(geo_env_name, required = TRUE)
+
+    # Set environment variable to ensure conda libs are used instead of system libs
+    Sys.setenv(LD_LIBRARY_PATH = paste0(
+      file.path(dirname(dirname(py_path)), "lib"),
+      ":",
+      Sys.getenv("LD_LIBRARY_PATH")
+    ))
 
     # Verify the environment works and has required packages
     # Also helps to "warm up" the environment
@@ -105,36 +141,60 @@ except ImportError:
         print('Error importing GDAL:', e)
         # This will be raised to R
         raise ImportError('GDAL package not available')
+
+# Explicitly check libtiff version through GDAL
+try:
+    from osgeo import gdal
+    drivers = [gdal.GetDriver(i).ShortName for i in range(gdal.GetDriverCount())]
+    if 'GTiff' in drivers:
+        print('GTiff driver is available')
+    else:
+        print('WARNING: GTiff driver not found')
+except Exception as e:
+    print('Error checking GDAL drivers:', e)
 ")
       TRUE
     }, error = function(e) {
-      message("Environment verification failed: ", conditionMessage(e))
+      packageStartupMessage("Environment verification failed: ", conditionMessage(e))
       # Don't stop here, we'll continue and try to fix
       FALSE
     })
 
     if (!success) {
       # Try to fix the environment
-      message("Attempting to fix package installation...")
+      packageStartupMessage("Attempting to fix package installation...")
 
-      # Use pip directly for some packages that might be problematic with conda
+      # Reinstall critical dependencies with specific versions
+      packageStartupMessage("Reinstalling GDAL dependencies with specific versions...")
+      system2(conda_bin,
+              c("install", "-y", "-n", geo_env_name,
+                "-c", "conda-forge",
+                "--force-reinstall",
+                "libtiff>=4.6.1",
+                "gdal>=3.6.0",
+                "rasterio"),
+              stdout = TRUE, stderr = TRUE)
+
+      # Use pip as a last resort
       pip_path <- file.path(dirname(py_path), "pip")
       if (!file.exists(pip_path)) {
         pip_path <- file.path(dirname(py_path), "pip.exe")
       }
 
       if (file.exists(pip_path)) {
-        message("Using pip at: ", pip_path)
+        packageStartupMessage("Using pip at: ", pip_path)
         system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
-        system2(pip_path, c("install", "rasterio", "numpy"), stdout = TRUE)
+        # In some cases, pip can resolve dependency issues better than conda
+        # But install minimal packages to avoid conflicts
+        system2(pip_path, c("install", "--upgrade", "rasterio"), stdout = TRUE)
       }
     }
 
     # Store environment in package namespace
     assign("pkg_env", pkg_env, envir = parent.env(environment()))
 
-    message("Python environment setup completed successfully")
-    message("Using Python at: ", pkg_env$python_path)
+    packageStartupMessage("Python environment setup completed successfully")
+    packageStartupMessage("Using Python at: ", pkg_env$python_path)
   }, error = function(e) {
     warning(paste(
       "Python environment setup failed:",

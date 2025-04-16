@@ -1,4 +1,5 @@
-#' @import data.table lubridate
+#' @importFrom lubridate wday second isoweek yday hour year month week minute mday quarter
+#' @importFrom data.table data.table
 
 chirpname_annual <- function(start_year,
                              end_year) {
