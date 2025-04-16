@@ -526,3 +526,50 @@ test_that("Test vegindex function: ",
             })
             expect_setequal(test_dt_func$ndvi_y2019_m04, test_dt$ndvi_y2019_m04)
           })
+
+
+# Test geolink_pollution
+test_that("Test geolink_pollution function: ",
+          {
+            suppressWarnings({ test_dt <- run_geolink("pollution",
+                                                      start_date = "2019-01-01",
+                                                      end_date = "2019-12-28",
+                                                      indicator = "no2",
+                                                      shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
+                                                      grid_size = 1000,
+                                                      extract_fun = "mean")
+
+            suggest_dt <- crsuggest::suggest_crs(shp_dt,
+                                                 units = "m")
+            })
+
+            #Write testing expressions below:
+            #01 - expect the colnames will be created correctly
+            expect_contains(colnames(test_dt), c("no2_y2019_m1"))
+
+            #03 - Test that the mean column values is between 0 and 1 based on the raster values
+
+            expect_true(all(test_dt$no2_y2019_m2[!is.na(test_dt$no2_y2019_m2)] >= -1 &
+                              test_dt$no2_y2019_m2[!is.na(test_dt$no2_y2019_m2)] <= 1),
+                        info = "Values of no2_y2019_m2 should be between -1 and 1")
+
+            #04 - Test that the number of unique polygons in the test_dt is equal to the number of unique polygons in the shapefile
+            expect_equal(length(unique(test_dt$poly_id)),
+                         suppressWarnings({
+                           length(gengrid2(shp_dt =
+                                             st_transform(shp_dt[shp_dt$ADM1_EN ==  "Abia",],
+                                                          crs = as.numeric(suggest_dt$crs_code[1])),
+                                         grid_size = 1000)$poly_id)}))
+
+            #05 - expect the test_dt_func to be equal to the test_dt
+            suppressWarnings({
+              test_dt_func <- geolink_pollution(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
+                                                start_date = "2019-01-01",
+                                                end_date = "2019-12-28",
+                                                indicator = "no2",
+                                                grid_size = 1000,
+                                                extract_fun = "mean")
+            })
+
+            expect_setequal(test_dt_func$no2_y2019_m2, test_dt$no2_y2019_m2)
+          })
