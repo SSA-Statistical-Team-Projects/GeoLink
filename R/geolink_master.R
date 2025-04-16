@@ -26,8 +26,7 @@ run_geolink <- function(
     iso_code = NULL,
     shp_dt = NULL,
     survey_dt = NULL,
-    ...
-) {
+    ...) {
   # Parameter suggestions for each data type
   param_suggestions <- list(
     "rainfall" = list(
