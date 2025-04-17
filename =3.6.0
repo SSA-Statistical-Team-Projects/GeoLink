@@ -1,0 +1,23 @@
+Channels:
+ - conda-forge
+ - defaults
+Platform: linux-64
+Collecting package metadata (repodata.json): ...working... done
+Solving environment: ...working... done
+
+## Package Plan ##
+
+  environment location: /home/lpv/.local/share/r-miniconda/envs/geolink_env
+
+  added / updated specs:
+    - gdal
+    - libtiff
+    - rasterio
+
+
+
+
+Downloading and Extracting Packages: ...working... done
+Preparing transaction: - done
+Verifying transaction: | done
+Executing transaction: - done
