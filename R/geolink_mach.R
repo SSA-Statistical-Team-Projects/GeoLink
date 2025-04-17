@@ -1657,11 +1657,11 @@ geolink_get_poi <- function(osm_key,
                             survey_crs = 4326,
                             grid_size = NULL) {
 
-  resolution = 1000
   max_retries = 3
   timeout = 300
   area_threshold = 1
 
+  # Validate OSM key-value pairs
   if (!osm_key %in% available_features()) {
     stop(sprintf("'%s' is not a valid OSM key", osm_key))
   }
@@ -1672,15 +1672,136 @@ geolink_get_poi <- function(osm_key,
     }
   }
 
+  # Set CRS to 4326 if data is provided as survey_dt
   if (!is.null(survey_dt)) {
     survey_dt <- ensure_crs_4326(survey_dt)
   }
 
   # Handle survey file input and projection
+  if (!is.null(survey_fn)) {
+    if (is.null(survey_lat) || is.null(survey_lon)) {
+      stop("Both survey_lat and survey_lon must be provided when using survey_fn")
+    }
+
+    # Read the survey file
+    tryCatch({
+      if (grepl("\\.dta$", survey_fn)) {
+        survey_dt <- haven::read_dta(survey_fn)
+      } else {
+        stop("Unsupported file format. Please provide .dta file")
+      }
+    }, error = function(e) {
+      stop(sprintf("Error reading survey file: %s", e$message))
+    })
+
+    # Convert to sf object with specified projection
+    survey_dt <- st_as_sf(survey_dt,
+                          coords = c(survey_lon, survey_lat),
+                          crs = survey_crs)
+
+    # Transform to EPSG:4326 if needed
+    if (st_crs(survey_dt)$epsg != 4326) {
+      survey_dt <- st_transform(survey_dt, 4326)
+    }
+  }
+
+  # Process input data using helper functions
+  if (!is.null(shp_dt)) {
+    sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
+      ensure_crs_4326()
+    input_source <- "shapefile"
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
+      ensure_crs_4326()
+    input_source <- "shapefile"
+  } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = buffer_size,
+      survey_crs = survey_crs) %>%
+      ensure_crs_4326()
+    input_source <- "survey"
+  } else {
+    stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
+  }
+
+  # Validate input data
+  if (nrow(sf_obj) == 0) {
+    stop("Input data is empty after filtering")
+  }
+  if (any(is.na(st_geometry(sf_obj)))) {
+    stop("Input contains invalid geometries")
+  }
+
+  # Suppress warnings
+  oldw <- getOption("warn")
+  options(warn = -1)
+  on.exit(options(warn = oldw))
+
+  # Get bounding box
+  bbox <- st_bbox(sf_obj)
+  bbox_area <- (bbox["xmax"] - bbox["xmin"]) * (bbox["ymax"] - bbox["ymin"])
+
+  # Process based on area size
+  if (bbox_area > area_threshold) {
+    message("Large area detected. Splitting into quadrants...")
+
+    # Split into quadrants
+    mid_x <- (bbox["xmax"] + bbox["xmin"]) / 2
+    mid_y <- (bbox["ymax"] + bbox["ymin"]) / 2
+
+    quadrants <- list(
+      q1 = c(xmin = bbox["xmin"], ymin = mid_y, xmax = mid_x, ymax = bbox["ymax"]),
+      q2 = c(xmin = mid_x, ymin = mid_y, xmax = bbox["xmax"], ymax = bbox["ymax"]),
+      q3 = c(xmin = bbox["xmin"], ymin = bbox["ymin"], xmax = mid_x, ymax = mid_y),
+      q4 = c(xmin = mid_x, ymin = bbox["ymin"], xmax = bbox["xmax"], ymax = mid_y)
+    )
+
+    # Process each quadrant
+    results_list <- lapply(quadrants, function(quad_bbox) {
+      process_bbox_quadrant(quad_bbox, osm_key, osm_value)
+    })
+
+    # Remove NULL results
+    results_list <- results_list[!sapply(results_list, is.null)]
+
+    if (length(results_list) == 0) {
+      message("No results found in any quadrant")
+      return(NULL)
+    }
+
+    # Get union of all column names
+    all_cols <- unique(unlist(lapply(results_list, names)))
+
+    # Ensure all data frames have the same columns
+    results_list <- lapply(results_list, function(df) {
+      missing_cols <- setdiff(all_cols, names(df))
+      if (length(missing_cols) > 0) {
+        for (col in missing_cols) {
+          df[[col]] <- NA
+        }
+      }
+      return(df[, all_cols])
+    })
+
+    # Combine results
+    results <- do.call(rbind, results_list)
+
+  } else {
+    message("Processing area as single unit...")
+    features <- get_osm_data(bbox, osm_key, osm_value, max_retries, timeout)
+    results <- features$osm_points %>%
+      filter(if_any(-c(osm_id, geometry), ~ !is.na(.x)))
+  }
 
   # Check if results exist
   if (is.null(results) || nrow(results) == 0) {
-
+    message("No points of interest found in the specified area")
+    return(NULL)
+  }
 
   message(sprintf("Found %d points of interest", nrow(results)))
 
@@ -3293,3 +3414,4 @@ geolink_pollution <- function(
 
   return(dt)
 }
+
