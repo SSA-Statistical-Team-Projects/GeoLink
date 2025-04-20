@@ -1,3 +1,10 @@
+# globals
+utils::globalVariables(c(
+  "survey_lat",
+  "survey_lon",
+  "survey_crs"
+))
+
 #' Another function to create a gridified shapefile and extract a raster if specified
 #'
 #' This function takes in only a shapefile and creates a square or hexagon polygon grid based on a specified

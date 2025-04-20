@@ -13,7 +13,7 @@ test_check("GeoLink")
 
 #Functions that passed tests
 #
-#usethis::use_test("chirps_functions") #Done
+# usethis::use_test("chirps_functions") #Done
 # usethis::use_test("postdownload_processor") #Done
 # usethis::use_test("elevation_functions") #Done
 # usethis::use_test("cropland_function")  # Done
@@ -21,15 +21,16 @@ test_check("GeoLink")
 # usethis::use_test("ntl_functions") # Done
 # usethis::use_test("population_functions") # Done
 # usethis::use_test("building_functions") # Done
-#usethis::use_test("geolink_CMIP6") # Done
-#usethis::use_test("geolink_terraclimate") # Done
-#usethis::use_test("geolink_get_poi") # Done
-#usethis::use_test("geolink_opencellid") # Done
-#usethis::use_test("geolink_electaccess") # Done
-#usethis::use_test("geolink_landcover") # Done
-#usethis::use_test("geolink_vegindex") # Done
+# usethis::use_test("geolink_CMIP6") # Done
+# usethis::use_test("geolink_terraclimate") # Done
+# usethis::use_test("geolink_get_poi") # Done
+# usethis::use_test("geolink_opencellid") # Done
+# usethis::use_test("geolink_electaccess") # Done
+# usethis::use_test("geolink_landcover") # Done
+# usethis::use_test("geolink_vegindex") # Done
+# usethis::use_test("geolink_pollution") # Done
 
-# 6 functions not working
-#usethis::use_test("geolink_pollution") # Not working
+# 0 functions not working
+
 
 
