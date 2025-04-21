@@ -1,3 +1,10 @@
+# globals
+utils::globalVariables(c(
+  "pull_date",
+  "year_month"
+))
+
+
 #' @importFrom lubridate wday second isoweek yday hour year month week minute mday quarter
 #' @importFrom data.table data.table
 

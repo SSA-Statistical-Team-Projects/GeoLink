@@ -2,6 +2,11 @@
 ####### A SET OF FUNCTIONS FOR HANDLING TILED RASTERS FROM MPC AND MORE .. #####
 ################################################################################
 
+# globals
+utils::globalVariables(c(
+  "i"
+))
+
 #' Convert a raster to data.table object
 #'
 #' @param x An object of class `Raster*`, typically from the `raster` package.

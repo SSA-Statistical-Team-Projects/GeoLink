@@ -1,3 +1,10 @@
+# globals
+utils::globalVariables(c(
+  "osm_id",
+  "input_id"
+
+))
+
 #' Download and Merge monthly rainfall chirp data into geocoded surveys
 #'
 #' Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period
@@ -858,7 +865,7 @@ geolink_buildings <- function(version,
         message("File downloaded successfully.")
 
         # Unzip the downloaded file
-        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
+        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
         message("File unzipped successfully.")
       } else {
         warning("Downloaded file may not be a ZIP file.")
@@ -877,7 +884,7 @@ geolink_buildings <- function(version,
         message("File downloaded successfully.")
 
         # Unzip the downloaded file
-        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
+        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
         message("File unzipped successfully.")
       } else {
         warning("Downloaded file may not be a ZIP file.")
@@ -1956,7 +1963,7 @@ geolink_electaccess <- function(
         if (grepl("\\.dta$", survey_fn)) {
           survey_dt <- haven::read_dta(survey_fn)
         } else if (grepl("\\.csv$", survey_fn)) {
-          survey_dt <- read.csv(survey_fn)
+          survey_dt <- utils::read.csv(survey_fn)
         } else {
           stop("Unsupported file format. Please provide .dta or .csv file")
         }
@@ -2534,7 +2541,7 @@ geolink_landcover <- function(start_date,
       if (grepl("\\.dta$", survey_fn)) {
         haven::read_dta(survey_fn)
       } else if (grepl("\\.csv$", survey_fn)) {
-        read.csv(survey_fn)
+        utils::read.csv(survey_fn)
       } else {
         stop("Unsupported file format. Please provide .dta or .csv file")
       }
@@ -2920,6 +2927,7 @@ create_empty_result <- function(sf_obj, start_date) {
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
 #' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
+#' @importFrom data.table :=
 #'
 #' @examples
 #' \dontrun{
@@ -3018,7 +3026,6 @@ geolink_vegindex <- function(
       colnames(date) <- c("year", "month", "day")
 
       return(date)
-
     })
 
   date_list <- data.table::data.table(do.call(rbind, date_list))
@@ -3039,7 +3046,6 @@ geolink_vegindex <- function(
 
   features_todl <- lapply(1:nrow(date_list),
     function(x){
-
       feat <- c()
       for (i in 1:length(it_obj$features)){
         if ((as.numeric(format(as.Date(it_obj$features[[i]]$properties$end_datetime), "%Y")) == date_list[x, .(year)] &
