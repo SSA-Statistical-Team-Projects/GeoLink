@@ -14,8 +14,8 @@ test_that("Electaccess using a shapefile: ",
 
             #03 - Test that the mean column values is between 0 and 1 based on the raster values
 
-            expect_true(all(test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] >= 0 &
-                              test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] <= 1),
+            expect_true(all(test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] >= 0 &
+                              test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] <= 1),
                         info = "Values of night proportion should be between 0 and 1")
           })
 #Test B
@@ -41,8 +41,8 @@ test_that("Electaccess using a survey: ",
 
             #03 - Test that the mean column values is between 0 and 1
 
-            expect_true(all(test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] >= 0 &
-                              test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] <= 1 ),
+            expect_true(all(test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] >= 0 &
+                              test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] <= 1 ),
                         info = "Values of night proportion should be between 0 and 1")
           })
 
@@ -69,8 +69,8 @@ test_that("Electaccess using a survey file from stata:",
 
             #03 - Test that the mean column values is between 0 and 1
 
-            expect_true(all(test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] >= 0 &
-                              test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] <= 1 ),
+            expect_true(all(test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] >= 0 &
+                              test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] <= 1 ),
                         info = "Values of night proportion should be between 0 and 1")
           })
 
@@ -106,7 +106,7 @@ test_that("Using a shapefile from geodata: ",{
   expect_contains(colnames(test_dt), c("night_proportion_2019", "lightscore_2019", "light_composite_2019", "estimated_brightness_2019"))
 
   #03 - Test that the mean column values is between 0 and 1 based on the raster values
-  expect_true(all(test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] >= 0 &
-                    test_dt$electaccess[!is.na(test_dt$night_proportion_2019)] <= 1),
+  expect_true(all(test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] >= 0 &
+                    test_dt$night_proportion_2019[!is.na(test_dt$night_proportion_2019)] <= 1),
               info = "Values of night proportion should be between 0 and 1")
 })

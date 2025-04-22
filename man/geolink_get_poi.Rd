@@ -14,9 +14,8 @@ geolink_get_poi(
   survey_lat = NULL,
   survey_lon = NULL,
   buffer_size = NULL,
-  survey_crs = NULL,
-  grid_size = NULL,
-  extract_fun = "mean"
+  survey_crs = 4326,
+  grid_size = NULL
 )
 }
 \arguments{
@@ -65,7 +64,7 @@ to pass a filepath for the location of the shapefile \code{shp_fn} which is read
 
 poi_survey_df <- geolink_get_poi(osm_key = "amenity",
                                 buffer_size = 2000,
-                                survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",],)
+                                survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 
 
 poi_survey_fn <- geolink_get_poi(

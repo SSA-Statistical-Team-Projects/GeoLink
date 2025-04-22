@@ -31,6 +31,7 @@ specifying the \code{crs}, simply using the 4 digit number will provide an error
 See default for example.
 }
 \examples{
+\dontrun{
 \donttest{
 
  #example usage with shapefile
@@ -38,5 +39,5 @@ See default for example.
                                   crs = "EPSG:4326",
                                   resolution = 0.1)
 
-}
+}}
 }

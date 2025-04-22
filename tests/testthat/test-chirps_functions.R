@@ -175,7 +175,31 @@ test_that("Error is thrown for invalid date range", {
 })
 
 
+#Test- F
+test_that("Annual chirps using a shapefile from geodata package:", {
 
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
+
+    test_dt <- geolink_chirps(time_unit = "annual",
+                                               start_date = "2020-01-01",
+                                               end_date = "2020-12-31",
+                                               shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",],
+                                               extract_fun = "mean")
+
+  suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames ro be created correctly
+  expect_contains(colnames(test_dt), "rainfall_annual1" )
+
+
+  #03 - Test that the mean column values is between 0 and 1444.34
+  expect_true(all(test_dt$rainfall_month1 >= 0 & test_dt$rainfall_month1 <= 1444.34),
+              info = "Values of rainfall_month1 should be between 0 and 1444.34")
+})
 
 
 

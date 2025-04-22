@@ -101,7 +101,7 @@ test_that("Annual NTL using a shapefile:", {
 })
 
 
-#Test- B
+#Test- D
 test_that("Annual ntl using a survey :", {
 
   suppressWarnings({ test_dt <- geolink_ntl(time_unit = "annual",
@@ -134,7 +134,31 @@ test_that("Annual ntl using a survey :", {
 )
 
 
+#Test- E
+test_that("Annual NTL using a shapefile from geodata package:", {
 
+  suppressWarnings({
+    temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
+
+    test_dt <- geolink_ntl(time_unit = "annual",
+                                            start_date = "2019-01-01",
+                                            end_date = "2019-12-01",
+                                            shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",],
+                                            indicator = "cf_cvg",
+                                            extract_fun = "mean")
+
+  suggest_dt <- crsuggest::suggest_crs(temp_gamd,
+                                       units = "m")
+  })
+
+  #Write testing expressions below:
+  #01 - expect the colnames ro be created correctly
+  expect_contains(colnames(test_dt), "ntl_annual1cf_cvg" )
+
+
+  expect_true(all(test_dt$ntl_annual1cf_cvg >= 0 & test_dt$ntl_annual1cf_cvg <= 100 ),
+              info = "Values of ntl_annual1cf_cvg should be between 0 and 100")
+})
 
 
 

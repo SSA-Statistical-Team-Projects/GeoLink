@@ -1,3 +1,10 @@
+# globals
+utils::globalVariables(c(
+  "survey_lat",
+  "survey_lon",
+  "survey_crs"
+))
+
 #' Another function to create a gridified shapefile and extract a raster if specified
 #'
 #' This function takes in only a shapefile and creates a square or hexagon polygon grid based on a specified
@@ -10,7 +17,8 @@
 #' @importFrom raster raster
 #' @importFrom raster cellStats
 #' @importFrom units set_units
-#' @import sf lwgeom
+#' @importFrom sf st_perimeter st_minimum_bounding_circle st_make_valid
+#' @importFrom lwgeom st_geod_area st_geod_length st_transform_proj st_snap_to_grid
 #'
 #' @export
 

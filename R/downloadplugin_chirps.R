@@ -1,3 +1,11 @@
+# globals
+utils::globalVariables(c(
+  "sub_dir",
+  "full_link",
+  "exist_status",
+  "shp_dt"
+))
+
 #' Download monthly rainfall chirp data
 #'
 #' Pull rainfall data from the CHIRPS data at monthly intervals for a specified period

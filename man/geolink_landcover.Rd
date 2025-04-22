@@ -43,7 +43,8 @@ geolink_landcover(
 
 \item{grid_size}{Numeric. Size of grid cells for tessellation (in meters)}
 
-\item{use_resampling}{Logical. Whether to resample rasters to a common resolution (default: TRUE)}
+\item{use_resampling}{Logical. Whether to resample rasters to a common resolution (default: TRUE)
+Using resampling might use a significant amount of memory.}
 
 \item{target_resolution}{Numeric. Target resolution for resampling in meters (default: 1000)}
 }
@@ -56,6 +57,7 @@ The data is downloaded in raster format and combined with shapefile and/or surve
 by the user. Source data: https://planetarycomputer.microsoft.com/dataset/io-lulc-annual-v02
 }
 \examples{
+\dontrun{
 \donttest{
 # Loading the survey data and shapefile
 data("hhgeo_dt")
@@ -68,8 +70,8 @@ data("shp_dt")
  end_date = "2019-12-31",
  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
  use_resampling = TRUE,
- target_resolution = 1000
- )
+ target_resolution = 1000)
+
 
 
  landcover_survey <- geolink_landcover(
@@ -80,7 +82,7 @@ data("shp_dt")
  use_resampling = TRUE,
  target_resolution = 1000)
 
-  )
-}
 
+}
+}
 }
