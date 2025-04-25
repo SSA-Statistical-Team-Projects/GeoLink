@@ -20,6 +20,48 @@
     pkg_env$os_type <- os_type
     packageStartupMessage("Detected operating system: ", os_type)
 
+    # Detect if running in a virtual machine
+    is_vm <- FALSE
+    vm_type <- "none"
+
+    # Check for common VM indicators
+    if (os_type == "Linux") {
+      # Check for common VM indicators in Linux
+      if (file.exists("/proc/cpuinfo")) {
+        cpu_info <- readLines("/proc/cpuinfo")
+        if (any(grepl("hypervisor", cpu_info, ignore.case = TRUE)) ||
+            any(grepl("VMware", cpu_info, ignore.case = TRUE)) ||
+            any(grepl("VirtualBox", cpu_info, ignore.case = TRUE)) ||
+            any(grepl("QEMU", cpu_info, ignore.case = TRUE))) {
+          is_vm <- TRUE
+
+          if (any(grepl("VMware", cpu_info, ignore.case = TRUE))) {
+            vm_type <- "VMware"
+          } else if (any(grepl("VirtualBox", cpu_info, ignore.case = TRUE))) {
+            vm_type <- "VirtualBox"
+          } else if (any(grepl("QEMU", cpu_info, ignore.case = TRUE))) {
+            vm_type <- "QEMU/KVM"
+          } else {
+            vm_type <- "Unknown"
+          }
+        }
+      }
+
+      # Additional check for Docker
+      if (file.exists("/.dockerenv") || any(grepl("docker", readLines("/proc/1/cgroup", warn = FALSE), ignore.case = TRUE))) {
+        is_vm <- TRUE
+        vm_type <- "Docker"
+      }
+    }
+
+    if (is_vm) {
+      packageStartupMessage("Detected virtual environment: ", vm_type)
+      pkg_env$is_vm <- TRUE
+      pkg_env$vm_type <- vm_type
+    } else {
+      pkg_env$is_vm <- FALSE
+    }
+
     # Check if conda is available
     conda_bin <- tryCatch(reticulate::conda_binary(), error = function(e) NULL)
 
@@ -59,9 +101,9 @@
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
-                  "libtiff>=4.6.1",
-                  "gdal>=3.6.0",
-                  "rasterio"),
+                  "libtiff>=4.7.0",
+                  "gdal>=3.8.0",
+                  "rasterio>=1.3.8"),
                 stdout = TRUE, stderr = TRUE)
       } else if (os_type == "Darwin") {
         packageStartupMessage("Configuring for macOS...")
@@ -71,46 +113,112 @@
                   "-c", "conda-forge",
                   "python=3.10",
                   "numpy",
-                  "gdal>=3.6.0",
-                  "libtiff>=4.6.1",
-                  "rasterio",
+                  "gdal>=3.8.0",
+                  "libtiff>=4.7.0",
+                  "rasterio>=1.3.8",
                   "tqdm",
                   "certifi"),
                 stdout = TRUE, stderr = TRUE)
       } else if (os_type == "Linux") {
         packageStartupMessage("Configuring for Linux...")
-        # Check if this is Ubuntu
+        # Check if this is Ubuntu or Debian
         is_ubuntu <- FALSE
+        is_debian <- FALSE
+        distro_name <- "Unknown Linux"
+
         if (file.exists("/etc/os-release")) {
           os_info <- readLines("/etc/os-release")
           is_ubuntu <- any(grepl("Ubuntu", os_info))
+          is_debian <- any(grepl("Debian", os_info))
+
+          # Extract distribution name for more helpful messages
+          id_line <- grep("^ID=", os_info, value = TRUE)
+          if (length(id_line) > 0) {
+            distro_name <- gsub("^ID=|\"", "", id_line[1])
+          }
+
+          name_line <- grep("^NAME=", os_info, value = TRUE)
+          if (length(name_line) > 0) {
+            distro_full_name <- gsub("^NAME=|\"", "", name_line[1])
+            packageStartupMessage("Detected Linux distribution: ", distro_full_name)
+          }
         }
 
-        if (is_ubuntu) {
-          packageStartupMessage("Detected Ubuntu Linux...")
-          # Ubuntu-specific approach
+        pkg_env$linux_distro <- distro_name
+
+        # VM-specific optimization for Linux
+        if (is_vm) {
+          packageStartupMessage("Applying VM-specific optimizations for ", vm_type, "...")
+
+          # For Docker/containers, use minimal installation
+          if (vm_type == "Docker") {
+            system2(conda_bin,
+                    c("create", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "python=3.10",
+                      "numpy",
+                      "gdal>=3.8.0",
+                      "libtiff>=4.7.0",
+                      "rasterio>=1.3.8",
+                      "tqdm",
+                      "certifi"),
+                    stdout = TRUE, stderr = TRUE)
+          } else {
+            # Other VMs - use parallel installation to speed up the process
+            system2(conda_bin,
+                    c("create", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "--no-deps",
+                      "python=3.10"),
+                    stdout = TRUE, stderr = TRUE)
+
+            # Install dependencies in small groups to improve reliability
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "numpy", "tqdm", "certifi"),
+                    stdout = TRUE, stderr = TRUE)
+
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "libtiff>=4.7.0", "proj"),
+                    stdout = TRUE, stderr = TRUE)
+
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "gdal>=3.8.0", "rasterio>=1.3.8"),
+                    stdout = TRUE, stderr = TRUE)
+          }
+        } else if (is_ubuntu || is_debian) {
+          packageStartupMessage("Configuring for ", distro_name, "...")
+          # Ubuntu/Debian-specific approach - use optimized settings for better compatibility
           system2(conda_bin,
                   c("create", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
                     "python=3.10",
                     "numpy",
-                    "gdal>=3.6.0",
-                    "libtiff>=4.6.1",
-                    "rasterio",
+                    "gdal>=3.8.0",
+                    "libtiff>=4.7.0",
+                    "rasterio>=1.3.8",
+                    "libspatialite",
                     "tqdm",
                     "certifi"),
                   stdout = TRUE, stderr = TRUE)
         } else {
-          # Generic Linux approach
+          # Generic Linux approach with more dependencies for better compatibility
           packageStartupMessage("Using generic Linux configuration...")
           system2(conda_bin,
                   c("create", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
                     "python=3.10",
                     "numpy",
-                    "gdal>=3.6.0",
-                    "libtiff>=4.6.1",
-                    "rasterio",
+                    "gdal>=3.8.0",
+                    "libtiff>=4.7.0",
+                    "rasterio>=1.3.8",
+                    "libspatialite",
+                    "sqlite",
                     "tqdm",
                     "certifi"),
                   stdout = TRUE, stderr = TRUE)
@@ -123,9 +231,9 @@
                   "-c", "conda-forge",
                   "python=3.10",
                   "numpy",
-                  "gdal>=3.6.0",
-                  "libtiff>=4.6.1",
-                  "rasterio",
+                  "gdal>=3.8.0",
+                  "libtiff>=4.7.0",
+                  "rasterio>=1.3.8",
                   "tqdm",
                   "certifi"),
                 stdout = TRUE, stderr = TRUE)
@@ -154,16 +262,31 @@
           system2(conda_bin,
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
-                    "libtiff>=4.6.1",
+                    "libtiff>=4.7.0",
                     "proj",
                     "libgdal"),
+                  stdout = TRUE, stderr = TRUE)
+        } else if (os_type == "Linux" && pkg_env$is_vm) {
+          # VM-specific handling for Linux
+          packageStartupMessage("Using VM-optimized dependency installation...")
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "--no-deps",
+                    "libtiff>=4.7.0"),
+                  stdout = TRUE, stderr = TRUE)
+
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "proj", "libgdal", "libspatialite"),
                   stdout = TRUE, stderr = TRUE)
         } else {
           # Unix-like systems (macOS and Linux)
           system2(conda_bin,
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
-                    "libtiff>=4.6.1",
+                    "libtiff>=4.7.0",
                     "proj",
                     "libgdal",
                     "libspatialite"),
@@ -172,22 +295,46 @@
 
         # Then install the main geospatial packages
         packageStartupMessage("Installing geospatial packages to conda environment...")
-        system2(conda_bin,
-                c("install", "-y", "-n", geo_env_name,
-                  "-c", "conda-forge",
-                  "gdal>=3.6.0",
-                  "rasterio"),
-                stdout = TRUE, stderr = TRUE)
+        if (os_type == "Linux" && pkg_env$is_vm) {
+          # For VMs, install one at a time to reduce memory pressure
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "gdal>=3.8.0"),
+                  stdout = TRUE, stderr = TRUE)
+
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "rasterio>=1.3.8"),
+                  stdout = TRUE, stderr = TRUE)
+        } else {
+          # Standard installation
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "gdal>=3.8.0",
+                    "rasterio>=1.3.8"),
+                  stdout = TRUE, stderr = TRUE)
+        }
       }
     } else {
       packageStartupMessage("Using existing conda environment: ", geo_env_name)
 
-      # Even if environment exists, check for and update the libtiff dependency
-      packageStartupMessage("Verifying GDAL dependencies are up to date...")
+      # Even if environment exists, update the libtiff dependency to 4.7
+      packageStartupMessage("Updating GDAL dependencies to latest versions...")
       system2(conda_bin,
               c("install", "-y", "-n", geo_env_name,
                 "-c", "conda-forge",
-                "libtiff>=4.6.1"),  # Ensure proper libtiff version
+                "libtiff>=4.7.0"),  # Ensure proper libtiff version
+              stdout = TRUE, stderr = TRUE)
+
+      # Also update GDAL and rasterio to compatible versions
+      system2(conda_bin,
+              c("install", "-y", "-n", geo_env_name,
+                "-c", "conda-forge",
+                "gdal>=3.8.0",
+                "rasterio>=1.3.8"),
               stdout = TRUE, stderr = TRUE)
     }
 
@@ -216,11 +363,20 @@
       ))
     } else {
       # Linux and others use LD_LIBRARY_PATH
-      Sys.setenv(LD_LIBRARY_PATH = paste0(
-        file.path(dirname(dirname(py_path)), "lib"),
-        ":",
-        Sys.getenv("LD_LIBRARY_PATH")
-      ))
+      # Add both lib and lib64 directories for better compatibility with various Linux distros
+      lib_path <- file.path(dirname(dirname(py_path)), "lib")
+      lib64_path <- file.path(dirname(dirname(py_path)), "lib64")
+
+      # Check if lib64 exists and add it if it does
+      if (dir.exists(lib64_path)) {
+        Sys.setenv(LD_LIBRARY_PATH = paste0(
+          lib_path, ":", lib64_path, ":", Sys.getenv("LD_LIBRARY_PATH")
+        ))
+      } else {
+        Sys.setenv(LD_LIBRARY_PATH = paste0(
+          lib_path, ":", Sys.getenv("LD_LIBRARY_PATH")
+        ))
+      }
     }
 
     # Verify the environment works and has required packages
@@ -261,8 +417,12 @@ try:
     drivers = [gdal.GetDriver(i).ShortName for i in range(gdal.GetDriverCount())]
     if 'GTiff' in drivers:
         print('GTiff driver is available')
+        # Try to get more detailed version info
+        gdal_info = gdal.VersionInfo('RELEASE_NAME')
+        print('GDAL detailed version:', gdal_info)
     else:
         print('WARNING: GTiff driver not found')
+        raise ImportError('GTiff driver not available - libtiff may be missing')
 except Exception as e:
     print('Error checking GDAL drivers:', e)
 ")
@@ -280,25 +440,53 @@ except Exception as e:
       # Reinstall critical dependencies with specific versions
       packageStartupMessage("Reinstalling GDAL dependencies with specific versions...")
 
-      if (os_type == "Windows") {
+      if (os_type == "Linux" && pkg_env$is_vm) {
+        # VM-specific repair for Linux
+        packageStartupMessage("Applying VM-specific fixes...")
+
+        # Try removing and reinstalling the packages
+        system2(conda_bin,
+                c("remove", "-y", "-n", geo_env_name,
+                  "gdal", "rasterio", "libtiff", "--force"),
+                stdout = TRUE, stderr = TRUE)
+
+        # Install dependencies one by one
+        system2(conda_bin,
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "libtiff>=4.7.0"),
+                stdout = TRUE, stderr = TRUE)
+
+        system2(conda_bin,
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "gdal>=3.8.0"),
+                stdout = TRUE, stderr = TRUE)
+
+        system2(conda_bin,
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "rasterio>=1.3.8"),
+                stdout = TRUE, stderr = TRUE)
+      } else if (os_type == "Windows") {
         # Windows-specific fix
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
                   "--force-reinstall",
-                  "libtiff>=4.6.1",
-                  "gdal>=3.6.0",
-                  "rasterio"),
+                  "libtiff>=4.7.0",
+                  "gdal>=3.8.0",
+                  "rasterio>=1.3.8"),
                 stdout = TRUE, stderr = TRUE)
       } else {
-        # macOS and Linux fix
+        # macOS and general Linux fix
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
                   "--force-reinstall",
-                  "libtiff>=4.6.1",
-                  "gdal>=3.6.0",
-                  "rasterio"),
+                  "libtiff>=4.7.0",
+                  "gdal>=3.8.0",
+                  "rasterio>=1.3.8"),
                 stdout = TRUE, stderr = TRUE)
       }
 
@@ -325,6 +513,13 @@ except Exception as e:
     packageStartupMessage("Python environment setup completed successfully")
     packageStartupMessage("Using Python at: ", pkg_env$python_path)
     packageStartupMessage("Operating system: ", pkg_env$os_type)
+
+    if (os_type == "Linux") {
+      packageStartupMessage("Linux distribution: ", pkg_env$linux_distro)
+      if (pkg_env$is_vm) {
+        packageStartupMessage("Running in virtual environment: ", pkg_env$vm_type)
+      }
+    }
   }, error = function(e) {
     warning(paste(
       "Python environment setup failed:",
