@@ -14,10 +14,10 @@ utils::globalVariables(c(
 #' @param grid_size numeric of length 1; representing the desired size of the grid in meters
 #' @param sqr logical; if TRUE, a square grid is created. If FALSE, a hexagonal polygon grid is created
 #'
+#' @import sf
 #' @importFrom raster raster
 #' @importFrom raster cellStats
 #' @importFrom units set_units
-#' @importFrom sf st_perimeter st_minimum_bounding_circle st_make_valid
 #' @importFrom lwgeom st_geod_area st_geod_length st_transform_proj st_snap_to_grid
 #'
 #' @export
