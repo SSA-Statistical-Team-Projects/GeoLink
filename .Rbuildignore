@@ -9,3 +9,5 @@
 ^\.github$
 ^inst/python/virtual_env$
 ^LICENSE\.md$
+^vignettes/\.quarto$
+^vignettes/*_files$

@@ -948,7 +948,7 @@ geolink_buildings <- function(version,
 
   print("Process Complete!!!")
 
-  unlink(tempdir(), recursive = TRUE)
+  unlink(paste0(tempdir(), "/NGA*"), recursive = TRUE)
 
   return(dt)
 
@@ -1010,7 +1010,7 @@ geolink_buildings <- function(version,
 #' @export
 #' @import rstac
 #' @importFrom httr GET http_type write_disk
-#' @importFrom rstac stac items_sign
+#' @importFrom rstac stac items_sign get_request
 #' @importFrom terra rast crs project ext nlyr time tapp
 #' @importFrom sf st_bbox st_transform st_as_sf
 #' @importFrom progress progress_bar

@@ -6,3 +6,5 @@
 .quarto
 'cell_towers.csv.gz'
 inst/python/virtual_env/
+inst/doc
+**/.quarto/

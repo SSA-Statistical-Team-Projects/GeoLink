@@ -62,7 +62,7 @@ download_reader <- function(url,
 
   opener_chr <- dict_dt[file_ext == tools::file_ext(temp_file), opener_function]
 
-  raster_obj <- do.call(opener_chr, list(temp_file))
+  do.call(opener_chr, list(temp_file)) ->  raster_obj
 
   # raster_obj <- crop(raster_obj, extent(shp_dt))
 
