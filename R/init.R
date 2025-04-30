@@ -88,20 +88,20 @@
 
         if (is_ubuntu) {
           packageStartupMessage("Detected Ubuntu Linux...")
-          # Ubuntu-specific approach
+          # Ubuntu-specific approach - MODIFIED to use libtiff6
           system2(conda_bin,
                   c("create", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
                     "python=3.10",
                     "numpy",
                     "gdal>=3.6.0",
-                    "libtiff>=4.6.1",
+                    "libtiff6",
                     "rasterio",
                     "tqdm",
                     "certifi"),
                   stdout = TRUE, stderr = TRUE)
         } else {
-          # Generic Linux approach
+          # Generic Linux approach - MODIFIED to use libtiff6
           packageStartupMessage("Using generic Linux configuration...")
           system2(conda_bin,
                   c("create", "-y", "-n", geo_env_name,
@@ -109,7 +109,7 @@
                     "python=3.10",
                     "numpy",
                     "gdal>=3.6.0",
-                    "libtiff>=4.6.1",
+                    "libtiff6",
                     "rasterio",
                     "tqdm",
                     "certifi"),
@@ -158,8 +158,18 @@
                     "proj",
                     "libgdal"),
                   stdout = TRUE, stderr = TRUE)
+        } else if (os_type == "Linux") {
+          # Linux systems - MODIFIED to use libtiff6
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "libtiff6",
+                    "proj",
+                    "libgdal",
+                    "libspatialite"),
+                  stdout = TRUE, stderr = TRUE)
         } else {
-          # Unix-like systems (macOS and Linux)
+          # Unix-like systems (macOS)
           system2(conda_bin,
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
@@ -184,11 +194,23 @@
 
       # Even if environment exists, check for and update the libtiff dependency
       packageStartupMessage("Verifying GDAL dependencies are up to date...")
-      system2(conda_bin,
-              c("install", "-y", "-n", geo_env_name,
-                "-c", "conda-forge",
-                "libtiff>=4.6.1"),  # Ensure proper libtiff version
-              stdout = TRUE, stderr = TRUE)
+
+      # OS-specific libtiff update
+      if (os_type == "Linux") {
+        # For Linux systems - MODIFIED to use libtiff6
+        system2(conda_bin,
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "libtiff6"),  # Use specific libtiff6 version
+                stdout = TRUE, stderr = TRUE)
+      } else {
+        # For Windows and macOS
+        system2(conda_bin,
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "libtiff>=4.6.1"),  # Ensure proper libtiff version
+                stdout = TRUE, stderr = TRUE)
+      }
     }
 
     # Get python path from this environment
@@ -290,8 +312,18 @@ except Exception as e:
                   "gdal>=3.6.0",
                   "rasterio"),
                 stdout = TRUE, stderr = TRUE)
+      } else if (os_type == "Linux") {
+        # Linux-specific fix - MODIFIED to use libtiff6
+        system2(conda_bin,
+                c("install", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "--force-reinstall",
+                  "libtiff6",
+                  "gdal>=3.6.0",
+                  "rasterio"),
+                stdout = TRUE, stderr = TRUE)
       } else {
-        # macOS and Linux fix
+        # macOS fix
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
