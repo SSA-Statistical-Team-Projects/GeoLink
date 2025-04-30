@@ -57,4 +57,15 @@ SystemRequirements: Python (>= 3.8), GDAL (>= 3.4.1), Rasterio (>= 1.2.10)
 Depends: 
     R (>= 3.5)
 RoxygenNote: 7.3.2
-Config/reticulate: list(packages = c("numpy", "rasterio", "tqdm", "certifi", "libtiff"))
+Config/reticulate: 
+  list(
+    packages = list(
+      list(package = "numpy"),
+      list(package = "rasterio", version = "1.3.0"),
+      list(package = "tqdm"),
+      list(package = "certifi"),
+      list(package = "libtiff", pip = TRUE, version = "4.6.1")
+    ),
+    conda = TRUE,
+    pip = TRUE
+  )

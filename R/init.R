@@ -77,7 +77,32 @@
 
     packageStartupMessage("Using Conda at: ", conda_bin)
 
-    # Check if our environment exists
+    # Install osmdata R package if not available
+    if (!requireNamespace("osmdata", quietly = TRUE)) {
+      packageStartupMessage("Installing osmdata package...")
+
+      # First make sure proj4 and dependencies are installed
+      if (os_type == "Linux") {
+        # For Ubuntu/Debian, suggest system packages if needed
+        if (file.exists("/etc/os-release")) {
+          os_info <- readLines("/etc/os-release")
+          if (any(grepl("Ubuntu", os_info)) || any(grepl("Debian", os_info))) {
+            packageStartupMessage("Note: You may need to install system libraries with:")
+            packageStartupMessage("sudo apt-get install -y libudunits2-dev libgdal-dev libgeos-dev libproj-dev")
+          }
+        }
+      }
+
+      # Try to install the osmdata package
+      tryCatch({
+        utils::install.packages("osmdata", repos = "https://cloud.r-project.org")
+      }, error = function(e) {
+        packageStartupMessage("Failed to install osmdata: ", conditionMessage(e))
+        packageStartupMessage("You may need to install system dependencies before installing osmdata.")
+      })
+    }
+
+    # Check if our conda environment exists
     envs <- reticulate::conda_list()
     env_exists <- geo_env_name %in% envs$name
 
@@ -96,13 +121,13 @@
                                   c("python=3.10", "numpy", "tqdm", "certifi"),
                                   channel = "conda-forge")
 
-        # Install GDAL with Windows-specific settings
+        # Install GDAL with Windows-specific settings - libtiff 4.6.1 specifically
         packageStartupMessage("Installing geospatial packages for Windows...")
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
-                  "libtiff>=4.7.0",
-                  "gdal>=3.8.0",
+                  "libtiff=4.6.1",
+                  "gdal>=3.6.0",
                   "rasterio>=1.3.8"),
                 stdout = TRUE, stderr = TRUE)
       } else if (os_type == "Darwin") {
@@ -113,8 +138,8 @@
                   "-c", "conda-forge",
                   "python=3.10",
                   "numpy",
-                  "gdal>=3.8.0",
-                  "libtiff>=4.7.0",
+                  "gdal>=3.6.0",
+                  "libtiff=4.6.1",
                   "rasterio>=1.3.8",
                   "tqdm",
                   "certifi"),
@@ -157,8 +182,8 @@
                       "-c", "conda-forge",
                       "python=3.10",
                       "numpy",
-                      "gdal>=3.8.0",
-                      "libtiff>=4.7.0",
+                      "gdal>=3.6.0",
+                      "libtiff=4.6.1",
                       "rasterio>=1.3.8",
                       "tqdm",
                       "certifi"),
@@ -179,16 +204,17 @@
                       "numpy", "tqdm", "certifi"),
                     stdout = TRUE, stderr = TRUE)
 
+            # Install EXACT version of libtiff
             system2(conda_bin,
                     c("install", "-y", "-n", geo_env_name,
                       "-c", "conda-forge",
-                      "libtiff>=4.7.0", "proj"),
+                      "libtiff=4.6.1", "proj"),
                     stdout = TRUE, stderr = TRUE)
 
             system2(conda_bin,
                     c("install", "-y", "-n", geo_env_name,
                       "-c", "conda-forge",
-                      "gdal>=3.8.0", "rasterio>=1.3.8"),
+                      "gdal>=3.6.0", "rasterio>=1.3.8"),
                     stdout = TRUE, stderr = TRUE)
           }
         } else if (is_ubuntu || is_debian) {
@@ -199,8 +225,8 @@
                     "-c", "conda-forge",
                     "python=3.10",
                     "numpy",
-                    "gdal>=3.8.0",
-                    "libtiff>=4.7.0",
+                    "gdal>=3.6.0",
+                    "libtiff=4.6.1",
                     "rasterio>=1.3.8",
                     "libspatialite",
                     "tqdm",
@@ -214,8 +240,8 @@
                     "-c", "conda-forge",
                     "python=3.10",
                     "numpy",
-                    "gdal>=3.8.0",
-                    "libtiff>=4.7.0",
+                    "gdal>=3.6.0",
+                    "libtiff=4.6.1",
                     "rasterio>=1.3.8",
                     "libspatialite",
                     "sqlite",
@@ -231,8 +257,8 @@
                   "-c", "conda-forge",
                   "python=3.10",
                   "numpy",
-                  "gdal>=3.8.0",
-                  "libtiff>=4.7.0",
+                  "gdal>=3.6.0",
+                  "libtiff=4.6.1",
                   "rasterio>=1.3.8",
                   "tqdm",
                   "certifi"),
@@ -262,7 +288,7 @@
           system2(conda_bin,
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
-                    "libtiff>=4.7.0",
+                    "libtiff=4.6.1",
                     "proj",
                     "libgdal"),
                   stdout = TRUE, stderr = TRUE)
@@ -273,7 +299,7 @@
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
                     "--no-deps",
-                    "libtiff>=4.7.0"),
+                    "libtiff=4.6.1"),
                   stdout = TRUE, stderr = TRUE)
 
           system2(conda_bin,
@@ -286,7 +312,7 @@
           system2(conda_bin,
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
-                    "libtiff>=4.7.0",
+                    "libtiff=4.6.1",
                     "proj",
                     "libgdal",
                     "libspatialite"),
@@ -300,7 +326,7 @@
           system2(conda_bin,
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
-                    "gdal>=3.8.0"),
+                    "gdal>=3.6.0"),
                   stdout = TRUE, stderr = TRUE)
 
           system2(conda_bin,
@@ -313,7 +339,7 @@
           system2(conda_bin,
                   c("install", "-y", "-n", geo_env_name,
                     "-c", "conda-forge",
-                    "gdal>=3.8.0",
+                    "gdal>=3.6.0",
                     "rasterio>=1.3.8"),
                   stdout = TRUE, stderr = TRUE)
         }
@@ -321,19 +347,19 @@
     } else {
       packageStartupMessage("Using existing conda environment: ", geo_env_name)
 
-      # Even if environment exists, update the libtiff dependency to 4.7
-      packageStartupMessage("Updating GDAL dependencies to latest versions...")
+      # Even if environment exists, update the libtiff dependency to exact 4.6.1 version
+      packageStartupMessage("Updating GDAL dependencies to compatible versions...")
       system2(conda_bin,
               c("install", "-y", "-n", geo_env_name,
                 "-c", "conda-forge",
-                "libtiff>=4.7.0"),  # Ensure proper libtiff version
+                "libtiff=4.6.1"),  # Ensure proper libtiff version
               stdout = TRUE, stderr = TRUE)
 
       # Also update GDAL and rasterio to compatible versions
       system2(conda_bin,
               c("install", "-y", "-n", geo_env_name,
                 "-c", "conda-forge",
-                "gdal>=3.8.0",
+                "gdal>=3.6.0",
                 "rasterio>=1.3.8"),
               stdout = TRUE, stderr = TRUE)
     }
@@ -376,6 +402,19 @@
         Sys.setenv(LD_LIBRARY_PATH = paste0(
           lib_path, ":", Sys.getenv("LD_LIBRARY_PATH")
         ))
+      }
+    }
+
+    # If on Linux, add explicit system library path for Ubuntu/Debian
+    if (os_type == "Linux") {
+      if (file.exists("/etc/os-release")) {
+        os_info <- readLines("/etc/os-release")
+        if (any(grepl("Ubuntu", os_info)) || any(grepl("Debian", os_info))) {
+          # Add system libraries to path
+          Sys.setenv(LD_LIBRARY_PATH = paste0(
+            "/usr/lib/x86_64-linux-gnu", ":", Sys.getenv("LD_LIBRARY_PATH")
+          ))
+        }
       }
     }
 
@@ -454,13 +493,13 @@ except Exception as e:
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
-                  "libtiff>=4.7.0"),
+                  "libtiff=4.6.1"),
                 stdout = TRUE, stderr = TRUE)
 
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
-                  "gdal>=3.8.0"),
+                  "gdal>=3.6.0"),
                 stdout = TRUE, stderr = TRUE)
 
         system2(conda_bin,
@@ -474,8 +513,8 @@ except Exception as e:
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
                   "--force-reinstall",
-                  "libtiff>=4.7.0",
-                  "gdal>=3.8.0",
+                  "libtiff=4.6.1",
+                  "gdal>=3.6.0",
                   "rasterio>=1.3.8"),
                 stdout = TRUE, stderr = TRUE)
       } else {
@@ -484,8 +523,8 @@ except Exception as e:
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
                   "--force-reinstall",
-                  "libtiff>=4.7.0",
-                  "gdal>=3.8.0",
+                  "libtiff=4.6.1",
+                  "gdal>=3.6.0",
                   "rasterio>=1.3.8"),
                 stdout = TRUE, stderr = TRUE)
       }
@@ -502,6 +541,23 @@ except Exception as e:
         # In some cases, pip can resolve dependency issues better than conda
         # But install minimal packages to avoid conflicts
         system2(pip_path, c("install", "--upgrade", "rasterio"), stdout = TRUE)
+      }
+    }
+
+    # Make sure osmdata is loaded
+    if (requireNamespace("osmdata", quietly = TRUE)) {
+      packageStartupMessage("osmdata package is available")
+    } else {
+      packageStartupMessage("WARNING: osmdata package is not available, some functions may not work")
+      packageStartupMessage("Try installing manually with: install.packages('osmdata')")
+
+      # For Ubuntu/Debian, suggest system packages
+      if (os_type == "Linux" && file.exists("/etc/os-release")) {
+        os_info <- readLines("/etc/os-release")
+        if (any(grepl("Ubuntu", os_info)) || any(grepl("Debian", os_info))) {
+          packageStartupMessage("You may need to run the following first:")
+          packageStartupMessage("sudo apt-get install -y libudunits2-dev libgdal-dev libgeos-dev libproj-dev")
+        }
       }
     }
 
