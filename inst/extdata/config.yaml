@@ -1,0 +1,49 @@
+# GeoLink Ubuntu Configuration
+
+# Package settings
+package:
+  name: geolink
+  version: 0.1.0
+
+# Operating system specific configuration
+os:
+  linux:
+    ubuntu:
+      enabled: true
+      dependencies:
+        system:
+          - python3-gdal
+          - python3-rasterio
+          - libgdal-dev
+          - gdal-bin
+        pip:
+          - numpy==1.24.3
+          - tqdm
+          - certifi
+
+# Python environment settings
+python:
+  version: "3.10"
+  conda_env_name: "geolink_env"
+  use_system_python: true
+  fallback_to_conda: true
+
+# GDAL configuration
+gdal:
+  min_version: "3.4.1"
+  required: true
+
+# Rasterio configuration
+rasterio:
+  min_version: "1.2.10"
+  required: true
+
+# Installation settings
+installation:
+  prompt_user: true
+  use_sudo: true
+  terminal_options:
+    - x-terminal-emulator
+    - gnome-terminal
+    - xterm
+  verify_imports: true

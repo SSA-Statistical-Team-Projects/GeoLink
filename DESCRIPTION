@@ -35,7 +35,7 @@ Imports:
     progress,
     R.utils,
     raster,
-    reticulate,
+    reticulate (>= 1.26),
     rstac,
     rvest,
     sf,
@@ -45,12 +45,16 @@ Imports:
     units,
     crsuggest,
     dbscan,
-    dplyr
+    dplyr,
+    yaml,
+    utils
 Suggests:
     testthat (>= 3.0.0)
+    knitr,
+    rmarkdown
+Config/testthat/edition: 3
+SystemRequirements: Python (>= 3.8), GDAL (>= 3.4.1), Rasterio (>= 1.2.10)
 Depends: 
     R (>= 3.5)
-SystemRequirements: Python (>= 3.7)
 RoxygenNote: 7.3.2
-Config/testthat/edition: 3
-Config/reticulate: list(packages = c("numpy", "rasterio", "tqdm", "certifi"))
+Config/reticulate: list(packages = c("numpy", "rasterio", "tqdm", "certifi", "libtiff"))
