@@ -83,66 +83,221 @@ geolink_landcover <- function(start_date,
   # Get current Python configuration from package environment
   pkg_env <- get("pkg_env", envir = asNamespace("GeoLink"))
   geo_env_name <- pkg_env$conda_env_name
+  os_type <- pkg_env$os_type
 
-  # Check if the current Python path exists
-  current_python_path <- pkg_env$python_path
-  python_exists <- !is.null(current_python_path) && file.exists(current_python_path)
+  # Function to run a system command with proper error handling
+  run_system_cmd <- function(cmd, args, error_msg = "Command failed") {
+    result <- try({
+      output <- system2(cmd, args, stdout = TRUE, stderr = TRUE)
+      list(success = TRUE, output = output)
+    }, silent = TRUE)
 
-  # If Python path doesn't exist, try to update it
-  if (!python_exists) {
-    # Try to get the updated Python path from the conda environment
-    tryCatch({
-      updated_python_path <- reticulate::conda_python(geo_env_name)
-      if (!is.null(updated_python_path) && file.exists(updated_python_path)) {
-        # Update the path in the package environment
-        pkg_env$python_path <- updated_python_path
-        assign("pkg_env", pkg_env, envir = asNamespace("GeoLink"))
-        current_python_path <- updated_python_path
-        python_exists <- TRUE
-        message("Updated Python path to: ", current_python_path)
-      }
-    }, error = function(e) {
-      warning("Failed to update Python path: ", conditionMessage(e))
-    })
+    if (inherits(result, "try-error") || !result$success) {
+      warning(paste(error_msg, ":", conditionMessage(result)))
+      return(FALSE)
+    }
+    return(TRUE)
   }
 
-  # Try to use conda environment
-  env_setup_success <- try({
-    reticulate::use_condaenv(geo_env_name, required = TRUE)
-    TRUE
-  }, silent = TRUE)
+  # Function to verify and repair Python environment
+  verify_and_repair_env <- function() {
+    # Get current paths from package environment
+    current_python_path <- pkg_env$python_path
 
-  # If conda fails, try direct Python path
-  if (inherits(env_setup_success, "try-error")) {
-    if (python_exists) {
-      reticulate::use_python(current_python_path, required = TRUE)
-    } else {
-      # Last resort: try to find Python through conda again
-      tryCatch({
-        # Try to recreate and find the conda environment
-        if (!is.null(geo_env_name)) {
-          envs <- reticulate::conda_list()
-          if (geo_env_name %in% envs$name) {
-            new_py_path <- reticulate::conda_python(geo_env_name)
-            if (file.exists(new_py_path)) {
-              # Update the package environment
-              pkg_env$python_path <- new_py_path
-              assign("pkg_env", pkg_env, envir = asNamespace("GeoLink"))
-              reticulate::use_python(new_py_path, required = TRUE)
-              message("Recovered Python path: ", new_py_path)
-            } else {
-              stop("Conda environment exists but Python executable not found")
-            }
-          } else {
-            stop("Conda environment not found")
-          }
+    # Check if path exists
+    if (is.null(current_python_path) || !file.exists(current_python_path)) {
+      message("Python path not found or invalid. Attempting to locate...")
+
+      # Try to find the conda environment
+      envs <- try(reticulate::conda_list(), silent = TRUE)
+      if (!inherits(envs, "try-error") && geo_env_name %in% envs$name) {
+        # Found the environment, get its Python
+        new_py_path <- try(reticulate::conda_python(geo_env_name), silent = TRUE)
+        if (!inherits(new_py_path, "try-error") && !is.null(new_py_path) && file.exists(new_py_path)) {
+          # Update the path in the package environment
+          pkg_env$python_path <- new_py_path
+          assign("pkg_env", pkg_env, envir = asNamespace("GeoLink"))
+          current_python_path <- new_py_path
+          message("Located Python at: ", current_python_path)
         } else {
-          stop("No conda environment name specified")
+          # If conda_python fails, try direct conda command
+          conda_bin <- try(reticulate::conda_binary(), silent = TRUE)
+          if (!inherits(conda_bin, "try-error") && file.exists(conda_bin)) {
+            cmd_result <- system2(conda_bin, c("info", "--json"), stdout = TRUE)
+            if (length(cmd_result) > 0) {
+              conda_info <- try(jsonlite::fromJSON(paste(cmd_result, collapse = "")), silent = TRUE)
+              if (!inherits(conda_info, "try-error") && !is.null(conda_info$envs)) {
+                # Search for our environment path
+                for (env_path in conda_info$envs) {
+                  if (grepl(paste0(geo_env_name, "$"), env_path)) {
+                    # Find Python within this environment
+                    if (os_type == "Windows") {
+                      possible_py <- file.path(env_path, "python.exe")
+                    } else {
+                      possible_py <- file.path(env_path, "bin", "python")
+                    }
+                    if (file.exists(possible_py)) {
+                      pkg_env$python_path <- possible_py
+                      assign("pkg_env", pkg_env, envir = asNamespace("GeoLink"))
+                      current_python_path <- possible_py
+                      message("Located Python at: ", current_python_path)
+                      break
+                    }
+                  }
+                }
+              }
+            }
+          }
         }
-      }, error = function(e) {
-        stop("Failed to configure Python environment: ", conditionMessage(e))
-      })
+      }
+
+      # If still not found, create a new environment
+      if (is.null(current_python_path) || !file.exists(current_python_path)) {
+        message("Python environment not found. Creating new environment...")
+        conda_bin <- try(reticulate::conda_binary(), silent = TRUE)
+        if (!inherits(conda_bin, "try-error") && file.exists(conda_bin)) {
+          # Create a new environment
+          run_system_cmd(conda_bin,
+                         c("create", "-y", "-n", geo_env_name, "python=3.10"),
+                         "Failed to create conda environment")
+
+          # Get the new Python path
+          new_py_path <- try(reticulate::conda_python(geo_env_name), silent = TRUE)
+          if (!inherits(new_py_path, "try-error") && !is.null(new_py_path) && file.exists(new_py_path)) {
+            pkg_env$python_path <- new_py_path
+            assign("pkg_env", pkg_env, envir = asNamespace("GeoLink"))
+            current_python_path <- new_py_path
+            message("Created new Python environment at: ", current_python_path)
+
+            # Install required packages in the new environment
+            if (os_type == "Linux") {
+              pip_path <- file.path(dirname(new_py_path), "pip")
+              if (file.exists(pip_path)) {
+                run_system_cmd(pip_path, c("install", "numpy", "gdal", "rasterio"),
+                               "Failed to install packages")
+              } else {
+                run_system_cmd(conda_bin,
+                               c("install", "-y", "-n", geo_env_name,
+                                 "-c", "conda-forge", "numpy", "gdal", "rasterio", "libtiff6"),
+                               "Failed to install packages")
+              }
+            } else {
+              run_system_cmd(conda_bin,
+                             c("install", "-y", "-n", geo_env_name,
+                               "-c", "conda-forge", "numpy", "gdal", "rasterio", "libtiff>=4.6.1"),
+                             "Failed to install packages")
+            }
+          }
+        }
+      }
     }
+
+    # At this point, we should have a valid Python path or have failed completely
+    if (is.null(current_python_path) || !file.exists(current_python_path)) {
+      stop("Failed to locate or create a valid Python environment")
+    }
+
+    # Activate the Python environment
+    message("Activating Python at: ", current_python_path)
+    reticulate::use_python(current_python_path, required = TRUE)
+
+    # Verify GDAL and rasterio are available
+    verify_result <- try({
+      reticulate::py_run_string("
+import sys
+print('Python executable:', sys.executable)
+
+# Test imports
+try:
+    import numpy
+    print('NumPy available')
+except ImportError:
+    raise ImportError('NumPy not available')
+
+try:
+    from osgeo import gdal
+    print('GDAL available')
+except ImportError:
+    try:
+        import gdal
+        print('GDAL available (direct import)')
+    except ImportError:
+        raise ImportError('GDAL not available')
+
+try:
+    import rasterio
+    print('Rasterio available')
+except ImportError:
+    raise ImportError('Rasterio not available')
+      ")
+      TRUE
+    }, silent = TRUE)
+
+    # If verification fails, try to repair
+    if (inherits(verify_result, "try-error")) {
+      message("Python environment verification failed. Attempting repairs...")
+
+      # Get pip path
+      pip_path <- file.path(dirname(current_python_path), "pip")
+      if (os_type == "Windows") {
+        pip_path <- file.path(dirname(current_python_path), "pip.exe")
+      }
+
+      # Try to repair with pip if available
+      if (file.exists(pip_path)) {
+        message("Using pip to repair environment...")
+        run_system_cmd(pip_path, c("install", "--upgrade", "pip"), "Pip upgrade failed")
+        run_system_cmd(pip_path, c("install", "--upgrade", "numpy"), "NumPy installation failed")
+        run_system_cmd(pip_path, c("install", "--upgrade", "gdal"), "GDAL installation failed")
+        run_system_cmd(pip_path, c("install", "--upgrade", "rasterio"), "Rasterio installation failed")
+      } else {
+        # Fallback to conda
+        conda_bin <- try(reticulate::conda_binary(), silent = TRUE)
+        if (!inherits(conda_bin, "try-error") && file.exists(conda_bin)) {
+          message("Using conda to repair environment...")
+          if (os_type == "Linux") {
+            run_system_cmd(conda_bin,
+                           c("install", "-y", "-n", geo_env_name, "-c", "conda-forge",
+                             "numpy", "gdal", "rasterio", "libtiff6"),
+                           "Conda package installation failed")
+          } else {
+            run_system_cmd(conda_bin,
+                           c("install", "-y", "-n", geo_env_name, "-c", "conda-forge",
+                             "numpy", "gdal", "rasterio", "libtiff>=4.6.1"),
+                           "Conda package installation failed")
+          }
+        }
+      }
+
+      # Verify again after repair
+      verify_again <- try({
+        reticulate::py_run_string("
+import sys
+try:
+    import numpy
+    from osgeo import gdal
+    import rasterio
+    print('All required packages available')
+except ImportError as e:
+    raise ImportError(f'Required package still missing after repair: {e}')
+        ")
+        TRUE
+      }, silent = TRUE)
+
+      if (inherits(verify_again, "try-error")) {
+        warning("Failed to repair Python environment. Proceeding with caution...")
+        return(FALSE)
+      }
+    }
+
+    return(TRUE)
+  }
+
+  # Verify and set up Python environment
+  env_ready <- verify_and_repair_env()
+
+  if (!env_ready) {
+    warning("Python environment may not be fully functional. Some operations might fail.")
   }
 
   # Configure SSL certificates

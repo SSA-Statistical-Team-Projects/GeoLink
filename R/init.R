@@ -86,34 +86,81 @@
           is_ubuntu <- any(grepl("Ubuntu", os_info))
         }
 
-        if (is_ubuntu) {
-          packageStartupMessage("Detected Ubuntu Linux...")
-          # Ubuntu-specific approach - MODIFIED to use libtiff6
-          system2(conda_bin,
-                  c("create", "-y", "-n", geo_env_name,
-                    "-c", "conda-forge",
-                    "python=3.10",
-                    "numpy",
-                    "gdal>=3.6.0",
-                    "libtiff6",
-                    "rasterio",
-                    "tqdm",
-                    "certifi"),
-                  stdout = TRUE, stderr = TRUE)
+        # Create base environment first for Linux/Ubuntu
+        packageStartupMessage("Creating base Python environment...")
+        system2(conda_bin,
+                c("create", "-y", "-n", geo_env_name,
+                  "-c", "conda-forge",
+                  "python=3.10",
+                  "numpy",
+                  "tqdm",
+                  "certifi",
+                  "pip"),
+                stdout = TRUE, stderr = TRUE)
+
+        # Get python and pip paths
+        py_path <- reticulate::conda_python(geo_env_name)
+        pkg_env$python_path <- py_path
+
+        pip_path <- file.path(dirname(py_path), "pip")
+        if (!file.exists(pip_path)) {
+          pip_path <- file.path(dirname(py_path), "pip3")
+        }
+
+        if (file.exists(pip_path)) {
+          packageStartupMessage("Installing dependencies via pip for Linux...")
+
+          # Install required system libraries if possible
+          if (is_ubuntu) {
+            packageStartupMessage("Detected Ubuntu Linux, installing system dependencies...")
+            # We can't guarantee system installs will work in R package, so we focus on pip
+          }
+
+          # Install base dependencies through pip
+          packageStartupMessage("Installing base dependencies with pip...")
+          system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
+
+          # Install GDAL and rasterio through pip
+          packageStartupMessage("Installing GDAL and libtiff6 dependencies...")
+          system2(pip_path, c("install", "wheel", "setuptools"), stdout = TRUE)
+
+          # First install critical dependencies for GDAL and rasterio
+          packageStartupMessage("Installing critical dependencies for geospatial libraries...")
+          system2(pip_path, c("install", "cython"), stdout = TRUE)
+
+          # Then install GDAL
+          packageStartupMessage("Installing GDAL...")
+          system2(pip_path, c("install", "--no-binary=gdal", "GDAL>=3.6.0"), stdout = TRUE)
+
+          # Now install rasterio
+          packageStartupMessage("Installing rasterio...")
+          system2(pip_path, c("install", "--no-binary=rasterio", "rasterio"), stdout = TRUE)
+
+          # Install additional required packages
+          packageStartupMessage("Installing additional required packages...")
+          system2(pip_path, c("install", "pyproj", "fiona", "shapely"), stdout = TRUE)
         } else {
-          # Generic Linux approach - MODIFIED to use libtiff6
-          packageStartupMessage("Using generic Linux configuration...")
-          system2(conda_bin,
-                  c("create", "-y", "-n", geo_env_name,
-                    "-c", "conda-forge",
-                    "python=3.10",
-                    "numpy",
-                    "gdal>=3.6.0",
-                    "libtiff6",
-                    "rasterio",
-                    "tqdm",
-                    "certifi"),
-                  stdout = TRUE, stderr = TRUE)
+          packageStartupMessage("Pip not found, falling back to conda for Linux...")
+          # Fall back to conda if pip is not available
+          if (is_ubuntu) {
+            packageStartupMessage("Using conda for Ubuntu Linux...")
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "gdal>=3.6.0",
+                      "libtiff6",
+                      "rasterio"),
+                    stdout = TRUE, stderr = TRUE)
+          } else {
+            packageStartupMessage("Using conda for generic Linux...")
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "gdal>=3.6.0",
+                      "libtiff6",
+                      "rasterio"),
+                    stdout = TRUE, stderr = TRUE)
+          }
         }
       } else {
         # Generic approach for other OS
@@ -141,70 +188,104 @@
         reticulate::conda_create(geo_env_name)
 
         # Install base packages
-        packages <- c("numpy", "tqdm", "certifi")
+        packages <- c("numpy", "tqdm", "certifi", "pip")
         for (pkg in packages) {
           packageStartupMessage("Installing ", pkg, " to conda environment...")
           reticulate::conda_install(geo_env_name, pkg, channel = "conda-forge")
         }
 
-        # Install proper dependencies first - with OS-specific tweaks
-        packageStartupMessage("Installing critical GDAL dependencies...")
+        # Get python and pip paths
+        py_path <- reticulate::conda_python(geo_env_name)
+        pip_path <- file.path(dirname(py_path), "pip")
         if (os_type == "Windows") {
-          # Windows often needs special handling
-          system2(conda_bin,
-                  c("install", "-y", "-n", geo_env_name,
-                    "-c", "conda-forge",
-                    "libtiff>=4.6.1",
-                    "proj",
-                    "libgdal"),
-                  stdout = TRUE, stderr = TRUE)
-        } else if (os_type == "Linux") {
-          # Linux systems - MODIFIED to use libtiff6
-          system2(conda_bin,
-                  c("install", "-y", "-n", geo_env_name,
-                    "-c", "conda-forge",
-                    "libtiff6",
-                    "proj",
-                    "libgdal",
-                    "libspatialite"),
-                  stdout = TRUE, stderr = TRUE)
-        } else {
-          # Unix-like systems (macOS)
-          system2(conda_bin,
-                  c("install", "-y", "-n", geo_env_name,
-                    "-c", "conda-forge",
-                    "libtiff>=4.6.1",
-                    "proj",
-                    "libgdal",
-                    "libspatialite"),
-                  stdout = TRUE, stderr = TRUE)
+          pip_path <- file.path(dirname(py_path), "pip.exe")
         }
 
-        # Then install the main geospatial packages
-        packageStartupMessage("Installing geospatial packages to conda environment...")
-        system2(conda_bin,
-                c("install", "-y", "-n", geo_env_name,
-                  "-c", "conda-forge",
-                  "gdal>=3.6.0",
-                  "rasterio"),
-                stdout = TRUE, stderr = TRUE)
+        # For Linux and Ubuntu, try to use pip
+        if (os_type == "Linux" && file.exists(pip_path)) {
+          packageStartupMessage("Trying fallback pip installation for Linux...")
+          system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
+          system2(pip_path, c("install", "wheel", "setuptools", "cython"), stdout = TRUE)
+          system2(pip_path, c("install", "GDAL>=3.6.0"), stdout = TRUE)
+          system2(pip_path, c("install", "rasterio"), stdout = TRUE)
+        } else {
+          # Install proper dependencies first - with OS-specific tweaks
+          packageStartupMessage("Installing critical GDAL dependencies...")
+          if (os_type == "Windows") {
+            # Windows often needs special handling
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "libtiff>=4.6.1",
+                      "proj",
+                      "libgdal"),
+                    stdout = TRUE, stderr = TRUE)
+          } else if (os_type == "Linux") {
+            # Linux systems - MODIFIED to use libtiff6
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "libtiff6",
+                      "proj",
+                      "libgdal",
+                      "libspatialite"),
+                    stdout = TRUE, stderr = TRUE)
+          } else {
+            # Unix-like systems (macOS)
+            system2(conda_bin,
+                    c("install", "-y", "-n", geo_env_name,
+                      "-c", "conda-forge",
+                      "libtiff>=4.6.1",
+                      "proj",
+                      "libgdal",
+                      "libspatialite"),
+                    stdout = TRUE, stderr = TRUE)
+          }
+
+          # Then install the main geospatial packages
+          packageStartupMessage("Installing geospatial packages to conda environment...")
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "gdal>=3.6.0",
+                    "rasterio"),
+                  stdout = TRUE, stderr = TRUE)
+        }
       }
     } else {
       packageStartupMessage("Using existing conda environment: ", geo_env_name)
 
-      # Even if environment exists, check for and update the libtiff dependency
+      # Even if environment exists, check for and update the dependencies
       packageStartupMessage("Verifying GDAL dependencies are up to date...")
 
-      # OS-specific libtiff update
+      # Get python and pip paths
+      py_path <- reticulate::conda_python(geo_env_name)
+      pkg_env$python_path <- py_path
+
+      # OS-specific dependency update
       if (os_type == "Linux") {
-        # For Linux systems - MODIFIED to use libtiff6
-        system2(conda_bin,
-                c("install", "-y", "-n", geo_env_name,
-                  "-c", "conda-forge",
-                  "libtiff6"),  # Use specific libtiff6 version
-                stdout = TRUE, stderr = TRUE)
+        # For Linux systems, attempt pip update if available
+        pip_path <- file.path(dirname(py_path), "pip")
+        if (!file.exists(pip_path)) {
+          pip_path <- file.path(dirname(py_path), "pip3")
+        }
+
+        if (file.exists(pip_path)) {
+          packageStartupMessage("Updating dependencies with pip for Linux...")
+          system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
+          system2(pip_path, c("install", "--upgrade", "GDAL>=3.6.0"), stdout = TRUE)
+          system2(pip_path, c("install", "--upgrade", "rasterio"), stdout = TRUE)
+        } else {
+          # Fall back to conda
+          packageStartupMessage("Pip not found, using conda for updates...")
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "libtiff6"),  # Use specific libtiff6 version
+                  stdout = TRUE, stderr = TRUE)
+        }
       } else {
-        # For Windows and macOS
+        # For Windows and macOS, use conda
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
@@ -213,7 +294,7 @@
       }
     }
 
-    # Get python path from this environment
+    # Get python path from this environment (even if already set above)
     py_path <- reticulate::conda_python(geo_env_name)
     pkg_env$python_path <- py_path
 
@@ -299,26 +380,40 @@ except Exception as e:
       # Try to fix the environment - with OS-specific fixes
       packageStartupMessage("Attempting to fix package installation...")
 
-      # Reinstall critical dependencies with specific versions
-      packageStartupMessage("Reinstalling GDAL dependencies with specific versions...")
+      # Get current python path
+      py_path <- pkg_env$python_path
 
-      if (os_type == "Windows") {
+      if (os_type == "Linux") {
+        # For Linux try pip first
+        pip_path <- file.path(dirname(py_path), "pip")
+        if (os_type == "Windows") {
+          pip_path <- file.path(dirname(py_path), "pip.exe")
+        }
+
+        if (file.exists(pip_path)) {
+          packageStartupMessage("Using pip for Linux repair...")
+          system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
+          system2(pip_path, c("install", "--upgrade", "--force-reinstall", "GDAL>=3.6.0"), stdout = TRUE)
+          system2(pip_path, c("install", "--upgrade", "--force-reinstall", "rasterio"), stdout = TRUE)
+        } else {
+          # Fall back to conda for Linux
+          packageStartupMessage("Pip not found, using conda for repair...")
+          system2(conda_bin,
+                  c("install", "-y", "-n", geo_env_name,
+                    "-c", "conda-forge",
+                    "--force-reinstall",
+                    "libtiff6",
+                    "gdal>=3.6.0",
+                    "rasterio"),
+                  stdout = TRUE, stderr = TRUE)
+        }
+      } else if (os_type == "Windows") {
         # Windows-specific fix
         system2(conda_bin,
                 c("install", "-y", "-n", geo_env_name,
                   "-c", "conda-forge",
                   "--force-reinstall",
                   "libtiff>=4.6.1",
-                  "gdal>=3.6.0",
-                  "rasterio"),
-                stdout = TRUE, stderr = TRUE)
-      } else if (os_type == "Linux") {
-        # Linux-specific fix - MODIFIED to use libtiff6
-        system2(conda_bin,
-                c("install", "-y", "-n", geo_env_name,
-                  "-c", "conda-forge",
-                  "--force-reinstall",
-                  "libtiff6",
                   "gdal>=3.6.0",
                   "rasterio"),
                 stdout = TRUE, stderr = TRUE)
@@ -334,14 +429,14 @@ except Exception as e:
                 stdout = TRUE, stderr = TRUE)
       }
 
-      # Use pip as a last resort
+      # Use pip as a last resort for all platforms
       pip_path <- file.path(dirname(py_path), "pip")
       if (os_type == "Windows") {
         pip_path <- file.path(dirname(py_path), "pip.exe")
       }
 
       if (file.exists(pip_path)) {
-        packageStartupMessage("Using pip at: ", pip_path)
+        packageStartupMessage("Using pip as last resort at: ", pip_path)
         system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
         # In some cases, pip can resolve dependency issues better than conda
         # But install minimal packages to avoid conflicts
