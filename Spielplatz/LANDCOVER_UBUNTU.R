@@ -10,7 +10,9 @@ geolink_landcover <- function(start_date,
                               survey_crs = 4326,
                               grid_size = NULL,
                               use_resampling = TRUE,
-                              target_resolution = 1000) {
+                              target_resolution = 1000,
+                              max_memory_gb = 2, # Control memory usage
+                              chunk_size = 500) { # Process in chunks
 
   # Convert dates
   start_date <- as.Date(start_date)
@@ -386,13 +388,12 @@ except ImportError as e:
     list(values = 11, summary = "Rangeland")
   )
 
-
   # Download rasters
   for (i in seq_along(stac_result$features)) {
     feature <- stac_result$features[[i]]
 
     if (is.null(feature$assets$data$href)) {
-      print(paste("Feature", i, "has no data URL"))
+      message(paste("Feature", i, "has no data URL"))
       next
     }
 
@@ -400,7 +401,7 @@ except ImportError as e:
     url <- feature$assets$data$href
     raster_path <- file.path(temp_dir, paste0(year, "_", i, "_raster.tif"))
 
-    print(paste("Downloading raster for year", year))
+    message(paste("Downloading raster for year", year))
 
     # Try to download the file
     download_success <- try({
@@ -408,7 +409,7 @@ except ImportError as e:
         url,
         httr::write_disk(raster_path, overwrite = TRUE),
         httr::config(ssl_verifypeer = FALSE),
-        httr::timeout(300)
+        httr::timeout(600) # Increased timeout
       )
 
       httr::status_code(response) == 200
@@ -434,6 +435,33 @@ except ImportError as e:
 
   # SECTION 5: PROCESS RASTERS AND EXTRACT DATA -----------------------------
 
+  # Configure Terra memory management
+  terra::terraOptions(memfrac = 0.5) # Use at most 50% of RAM
+
+  # Set GDAL options for improved performance
+  gdal_options <- character(0)
+  if (os_type == "Linux" || os_type == "Darwin") {
+    gdal_options <- c("GDAL_CACHEMAX=500") # 500MB cache
+  }
+
+  # Process large sf objects in chunks to avoid memory issues
+  process_in_chunks <- function(sf_object, chunk_size) {
+    total_features <- nrow(sf_object)
+    if (total_features <= chunk_size) {
+      return(list(sf_object))
+    }
+
+    chunks <- list()
+    for (i in seq(1, total_features, by = chunk_size)) {
+      end_idx <- min(i + chunk_size - 1, total_features)
+      chunks[[length(chunks) + 1]] <- sf_object[i:end_idx, ]
+    }
+    return(chunks)
+  }
+
+  # Convert max_memory_gb to bytes for internal use
+  max_memory_bytes <- max_memory_gb * 1024 * 1024 * 1024
+
   # Process each year's rasters
   results_list <- list()
 
@@ -451,40 +479,100 @@ except ImportError as e:
     # Apply resampling if requested
     if (use_resampling) {
       processed_paths <- try({
-        resample_rasters(
+        # Set GDAL environment variables
+        old_options <- Sys.getenv(names(gdal_options))
+        for (opt in names(gdal_options)) {
+          Sys.setenv(opt = gdal_options[opt])
+        }
+
+        # Call resampling function with error handling
+        result <- resample_rasters(
           input_files = raster_paths,
           output_folder = file.path(temp_dir, "resampled", year),
           target_resolution = target_resolution
         )
+
+        # Restore environment
+        for (opt in names(old_options)) {
+          Sys.setenv(opt = old_options[opt])
+        }
+
+        result
       }, silent = TRUE)
 
       if (!inherits(processed_paths, "try-error") && length(processed_paths) > 0) {
         raster_paths <- processed_paths
+      } else {
+        warning(paste("Resampling failed for year", year, "- using original rasters"))
       }
     }
 
     # Mosaic rasters if needed
     if (length(raster_paths) > 1) {
+      # Set GDAL environment variables
+      old_options <- Sys.getenv(names(gdal_options))
+      for (opt in names(gdal_options)) {
+        Sys.setenv(opt = gdal_options[opt])
+      }
+
       mosaic_path <- try({
         mosaic_rasters(input_files = raster_paths)
       }, silent = TRUE)
 
-      if (!inherits(mosaic_path, "try-error")) {
+      # Restore environment
+      for (opt in names(old_options)) {
+        Sys.setenv(opt = old_options[opt])
+      }
+
+      if (!inherits(mosaic_path, "try-error") && file.exists(mosaic_path)) {
         raster_path <- mosaic_path
       } else {
+        message(paste("Mosaic failed for year", year, "- using first raster only"))
         raster_path <- raster_paths[1]
       }
     } else {
       raster_path <- raster_paths[1]
     }
 
-    # Load the raster
-    raster <- try({
-      terra::rast(raster_path)
-    }, silent = TRUE)
+    # Load the raster with memory management
+    # Try loading with different options if it fails
+    load_attempts <- 0
+    max_attempts <- 3
+    raster <- NULL
 
-    if (inherits(raster, "try-error")) {
-      warning(paste("Failed to load raster for year", year))
+    while (load_attempts < max_attempts && is.null(raster)) {
+      load_attempts <- load_attempts + 1
+
+      raster <- try({
+        if (load_attempts == 1) {
+          # First attempt: normal loading
+          terra::rast(raster_path)
+        } else if (load_attempts == 2) {
+          # Second attempt: use gdal options
+          old_options <- Sys.getenv(names(gdal_options))
+          for (opt in names(gdal_options)) {
+            Sys.setenv(opt = gdal_options[opt])
+          }
+          result <- terra::rast(raster_path)
+          for (opt in names(old_options)) {
+            Sys.setenv(opt = old_options[opt])
+          }
+          result
+        } else {
+          # Last attempt: use vsimem for in-memory processing
+          terra::rast(raster_path, vsi = TRUE)
+        }
+      }, silent = TRUE)
+
+      if (inherits(raster, "try-error")) {
+        raster <- NULL
+        gc() # Force garbage collection
+        Sys.sleep(2) # Wait a bit before retrying
+      }
+    }
+
+    if (is.null(raster)) {
+      warning(paste("Failed to load raster for year", year, "after multiple attempts"))
       next
     }
 
@@ -501,22 +589,41 @@ except ImportError as e:
     # Extract land cover proportions
     message(paste("Extracting land cover proportions for year:", year))
 
-    # Create results dataframe
-    year_results <- sf::st_drop_geometry(sf_obj)
+    # Break sf object into chunks to avoid memory issues
+    sf_chunks <- process_in_chunks(sf_obj, chunk_size)
+    message(paste("Processing in", length(sf_chunks), "chunks"))
 
-    # Initialize all land cover columns to 0
-    for (col in all_column_names) {
-      year_results[[col]] <- 0
-    }
+    # Process each chunk
+    year_results_list <- list()
 
-    # Extract values using exactextractr
-    extracted_values <- try({
-      exactextractr::exact_extract(raster, sf::st_make_valid(sf_obj),
-                                   coverage_area = TRUE)
-    }, silent = TRUE)
+    for (chunk_idx in seq_along(sf_chunks)) {
+      message(paste("Processing chunk", chunk_idx, "of", length(sf_chunks)))
+      current_chunk <- sf_chunks[[chunk_idx]]
 
-    if (!inherits(extracted_values, "try-error")) {
-      # Process extracted values
+      # Create results dataframe for current chunk
+      chunk_results <- sf::st_drop_geometry(current_chunk)
+
+      # Initialize all land cover columns to 0
+      for (col in all_column_names) {
+        chunk_results[[col]] <- 0
+      }
+
+      # Extract values using exactextractr
+      extracted_values <- try({
+        # Ensure valid geometries
+        valid_sf <- sf::st_make_valid(current_chunk)
+
+        # Set memory limits before extraction
+        exactextractr::exact_extract(raster, valid_sf, coverage_area = TRUE)
+      }, silent = TRUE)
+
+      if (inherits(extracted_values, "try-error")) {
+        warning(paste("Extraction failed for chunk", chunk_idx, "in year", year))
+        warning(conditionMessage(attr(extracted_values, "condition")))
+        next
+      }
+
+      # Process extracted values with better error handling
       for (i in seq_along(extracted_values)) {
         ev <- extracted_values[[i]]
 
@@ -524,10 +631,9 @@ except ImportError as e:
           next
         }
 
-        # Calculate total area
-        total_area <- sum(ev$coverage_area, na.rm = TRUE)
-
-        if (total_area <= 0) {
+        # Calculate total area with error checking
+        total_area <- try(sum(ev$coverage_area, na.rm = TRUE), silent = TRUE)
+        if (inherits(total_area, "try-error") || is.na(total_area) || total_area <= 0) {
           next
         }
 
@@ -536,25 +642,45 @@ except ImportError as e:
           class_val <- class_values[class_idx]
           class_name <- class_names[class_idx]
 
-          class_rows <- ev$value == class_val
+          # Safely check class rows
+          class_rows <- try(ev$value == class_val, silent = TRUE)
+          if (inherits(class_rows, "try-error") || !any(class_rows, na.rm = TRUE)) {
+            next
+          }
 
-          if (any(class_rows, na.rm = TRUE)) {
-            class_area <- sum(ev$coverage_area[class_rows], na.rm = TRUE)
-            year_results[i, class_name] <- round((class_area / total_area) * 100, 2)
+          class_area <- try(sum(ev$coverage_area[class_rows], na.rm = TRUE), silent = TRUE)
+          if (!inherits(class_area, "try-error") && !is.na(class_area) && class_area > 0) {
+            chunk_results[i, class_name] <- round((class_area / total_area) * 100, 2)
           }
         }
 
         # Calculate no_data percentage
-        na_rows <- is.na(ev$value)
-        if (any(na_rows)) {
-          na_area <- sum(ev$coverage_area[na_rows], na.rm = TRUE)
-          year_results[i, "no_data"] <- round((na_area / total_area) * 100, 2)
+        na_rows <- try(is.na(ev$value), silent = TRUE)
+        if (!inherits(na_rows, "try-error") && any(na_rows, na.rm = TRUE)) {
+          na_area <- try(sum(ev$coverage_area[na_rows], na.rm = TRUE), silent = TRUE)
+          if (!inherits(na_area, "try-error") && !is.na(na_area) && na_area > 0) {
+            chunk_results[i, "no_data"] <- round((na_area / total_area) * 100, 2)
+          }
         }
       }
+
+      chunk_results$year <- year
+      year_results_list[[chunk_idx]] <- chunk_results
+
+      # Clean up to free memory
+      rm(extracted_values, chunk_results, current_chunk)
+      gc()
     }
 
-    year_results$year <- year
-    results_list[[year]] <- year_results
+    # Combine chunk results
+    if (length(year_results_list) > 0) {
+      year_results <- do.call(rbind, year_results_list)
+      results_list[[year]] <- year_results
+    }
+
+    # Clean up raster to free memory
+    rm(raster)
+    gc()
   }
 
   # SECTION 6: COMBINE RESULTS AND RETURN ------------------------------------
@@ -566,8 +692,33 @@ except ImportError as e:
   }
 
   # Combine results and add geometries
-  result_df <- do.call(rbind, results_list)
-  final_result <- sf::st_sf(result_df, geometry = sf::st_geometry(sf_obj)[rep(1:nrow(sf_obj), length(results_list))])
+  result_df <- try(do.call(rbind, results_list), silent = TRUE)
+
+  if (inherits(result_df, "try-error")) {
+    warning("Error combining results: ", conditionMessage(attr(result_df, "condition")))
+    return(create_empty_result(sf_obj, start_date))
+  }
+
+  # Safely create final spatial object
+  final_result <- try({
+    sf::st_sf(result_df, geometry = sf::st_geometry(sf_obj)[rep(1:nrow(sf_obj), length(results_list))])
+  }, silent = TRUE)
+
+  if (inherits(final_result, "try-error")) {
+    warning("Error creating final spatial object: ", conditionMessage(attr(final_result, "condition")))
+    # Try a safer approach
+    safe_result <- try({
+      result_df$geometry <- NULL # Remove any existing geometry column
+      sf::st_as_sf(result_df, geometry = sf::st_geometry(sf_obj)[rep(1:nrow(sf_obj), length(results_list))])
+    }, silent = TRUE)
+
+    if (inherits(safe_result, "try-error")) {
+      warning("Failed to create spatial object. Returning non-spatial dataframe.")
+      return(result_df)
+    } else {
+      return(safe_result)
+    }
+  }
 
   return(final_result)
 }
@@ -576,9 +727,8 @@ except ImportError as e:
 create_empty_result <- function(sf_obj, start_date) {
   empty_result <- sf::st_drop_geometry(sf_obj)
 
-  land_cover_classes <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops",
-                          "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
-
+  land_cover_classes <- c("no_data", "water", "trees", "flooded_vegetation", "crops",
+                          "built_area", "bare_ground", "snow/ice", "clouds", "rangeland")
 
   for (col in land_cover_classes) {
     empty_result[[col]] <- NA
