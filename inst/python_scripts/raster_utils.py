@@ -12,19 +12,24 @@ import concurrent.futures
 import multiprocessing as mp
 import warnings
 import traceback
+import subprocess
+import xml.etree.ElementTree as ET
+import shutil
 
-def ensure_crs_4326(raster_path, force_check=True, output_dir=None, use_tmp=False):
+def ensure_crs_4326(raster_path, force_check=True, output_dir=None, use_tmp=False, use_vrt=True):
     """
     Ensures a raster is in EPSG:4326, reprojecting if necessary.
+    Uses VRT for reprojection when possible to avoid creating large files.
     
     Args:
         raster_path: Path to the input raster
         force_check: Whether to force CRS checking
         output_dir: Directory to save output (if None, uses input directory)
         use_tmp: If True, uses a temporary directory instead of output_dir
+        use_vrt: If True, uses VRT instead of creating a new GeoTIFF file
         
     Returns:
-        Path to 4326-projected raster
+        Path to 4326-projected raster (either VRT or GeoTIFF)
     """
     try:
         print(f"Ensuring CRS 4326 for {raster_path}")
@@ -32,16 +37,18 @@ def ensure_crs_4326(raster_path, force_check=True, output_dir=None, use_tmp=Fals
         if not input_path.exists():
             raise FileNotFoundError(f"Input file not found: {input_path}")
         
-        # Determine output path
+        # Determine output path and extension
+        extension = ".vrt" if use_vrt else input_path.suffix
+        
         if use_tmp:
             tmp_dir = tempfile.mkdtemp()
-            output_path = Path(tmp_dir) / f"{input_path.stem}_4326{input_path.suffix}"
+            output_path = Path(tmp_dir) / f"{input_path.stem}_4326{extension}"
         elif output_dir:
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
-            output_path = output_dir / f"{input_path.stem}_4326{input_path.suffix}"
+            output_path = output_dir / f"{input_path.stem}_4326{extension}"
         else:
-            output_path = input_path.parent / f"{input_path.stem}_4326{input_path.suffix}"
+            output_path = input_path.parent / f"{input_path.stem}_4326{extension}"
         
         with rasterio.open(str(input_path)) as src:
             src_crs = src.crs
@@ -80,16 +87,53 @@ def ensure_crs_4326(raster_path, force_check=True, output_dir=None, use_tmp=Fals
                 *src.bounds
             )
             
+            print(f"Reprojecting to 4326: output dims={width}x{height}")
+            
+            if use_vrt:
+                # Create a VRT for reprojection
+                try:
+                    # Use GDAL command-line tools to create the VRT
+                    gdal_command = [
+                        "gdalwarp",
+                        "-of", "VRT",
+                        "-t_srs", "EPSG:4326",
+                        str(input_path),
+                        str(output_path)
+                    ]
+                    
+                    # Add nodata if specified
+                    if src.nodata is not None:
+                        gdal_command.extend(["-srcnodata", str(src.nodata), "-dstnodata", str(src.nodata)])
+                    
+                    # Execute the command
+                    print(f"Running: {' '.join(gdal_command)}")
+                    subprocess.run(gdal_command, check=True)
+                    
+                    # Verify VRT was created
+                    if output_path.exists():
+                        print(f"Created VRT for reprojection: {output_path}")
+                        
+                        # Verify the VRT
+                        with rasterio.open(str(output_path)) as dst:
+                            print(f"VRT info: dims={dst.width}x{dst.height}, crs={dst.crs}")
+                            
+                        return str(output_path)
+                    else:
+                        print("VRT creation failed, falling back to standard reprojection")
+                except Exception as e:
+                    print(f"Error creating VRT: {e}")
+                    print("Falling back to standard reprojection")
+            
+            # Fall back to standard reprojection if VRT failed or is not requested
             # Setup output metadata
             meta = src.meta.copy()
             meta.update({
                 'crs': CRS.from_epsg(4326),
                 'transform': transform,
                 'width': width,
-                'height': height
+                'height': height,
+                'driver': 'GTiff'  # Explicitly set to GTiff if not using VRT
             })
-            
-            print(f"Reprojecting to 4326: output dims={width}x{height}")
             
             # Process in a simple way for most reliable results
             with rasterio.open(str(output_path), 'w', **meta) as dst:
@@ -126,26 +170,120 @@ def ensure_crs_4326(raster_path, force_check=True, output_dir=None, use_tmp=Fals
         raise
 
 
+def create_vrt_raster(input_file, output_file, target_resolution=None, 
+                     resampling_method="nearest", target_crs="EPSG:4326"):
+    """
+    Create a Virtual Raster (VRT) from an input raster with optional resampling
+    
+    Args:
+        input_file: Path to input raster file
+        output_file: Path to output VRT file
+        target_resolution: Target resolution in degrees if resampling
+        resampling_method: Resampling method (default: nearest)
+        target_crs: Target CRS (default: EPSG:4326)
+        
+    Returns:
+        Path to VRT file
+    """
+    try:
+        print(f"Creating VRT for {input_file}")
+        
+        # Convert paths to Path objects and resolve them
+        input_path = Path(input_file).resolve()
+        output_path = Path(output_file).resolve()
+        
+        # Create output directory if it doesn't exist
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Build the gdalwarp command
+        gdal_command = ["gdalwarp", "-of", "VRT"]
+        
+        # Add CRS if specified
+        if target_crs:
+            gdal_command.extend(["-t_srs", target_crs])
+        
+        # Add resolution if specified
+        if target_resolution:
+            # For 4326, convert meters to degrees (approximate at equator)
+            if target_crs == "EPSG:4326" and isinstance(target_resolution, (int, float)):
+                degree_resolution = target_resolution / 111320
+                print(f"Target resolution: {target_resolution}m = {degree_resolution} degrees")
+                gdal_command.extend(["-tr", str(degree_resolution), str(degree_resolution)])
+            else:
+                # Use resolution as-is if not in 4326 or if already in units compatible with target CRS
+                gdal_command.extend(["-tr", str(target_resolution), str(target_resolution)])
+        
+        # Add resampling method
+        gdal_command.extend(["-r", resampling_method])
+        
+        # Add input and output files
+        gdal_command.extend([str(input_path), str(output_path)])
+        
+        # Run the command
+        print(f"Running: {' '.join(gdal_command)}")
+        subprocess.run(gdal_command, check=True)
+        
+        # Verify the VRT was created
+        if not output_path.exists():
+            raise FileNotFoundError(f"VRT file was not created: {output_path}")
+        
+        # Verify the VRT with rasterio
+        with rasterio.open(str(output_path)) as vrt:
+            print(f"VRT info: dims={vrt.width}x{vrt.height}, crs={vrt.crs}")
+            
+            # Try to read some data to verify VRT is valid
+            try:
+                sample_data = vrt.read(1, window=Window(0, 0, min(100, vrt.width), min(100, vrt.height)))
+                print(f"VRT sample data shape: {sample_data.shape}")
+            except Exception as e:
+                print(f"Warning: Could not read sample data from VRT: {e}")
+        
+        return str(output_path)
+        
+    except Exception as e:
+        print(f"Error creating VRT for {input_file}: {e}")
+        traceback.print_exc()
+        raise
+
+
 def resample_raster(input_file, output_file, target_resolution=1000, 
-                    resampling_method=Resampling.nearest):
+                    resampling_method=Resampling.nearest, use_vrt=True):
     """
     Resample a single raster to a target resolution while ensuring EPSG:4326 CRS.
+    Uses VRT by default for efficiency.
     
     Args:
         input_file: Path to input raster file
         output_file: Path to output raster file
         target_resolution: Target resolution in meters (default: 1000m or 1km)
         resampling_method: Resampling method (default: nearest neighbor)
+        use_vrt: If True, creates a VRT instead of a GeoTIFF
         
     Returns:
-        Path to resampled raster file
+        Path to resampled raster file (VRT or GeoTIFF)
     """
     try:
         print(f"Resampling raster {input_file} to {target_resolution}m resolution")
         
         # First ensure input is in EPSG:4326
-        input_file = ensure_crs_4326(input_file)
+        input_file = ensure_crs_4326(input_file, use_vrt=use_vrt)
         
+        # If VRT is requested, create a resampled VRT
+        if use_vrt:
+            # Force output extension to be .vrt
+            output_path = Path(output_file)
+            if output_path.suffix.lower() != '.vrt':
+                output_file = str(output_path.with_suffix('.vrt'))
+            
+            # Create VRT with target resolution
+            return create_vrt_raster(
+                input_file=input_file,
+                output_file=output_file,
+                target_resolution=target_resolution,
+                resampling_method="nearest" if resampling_method == Resampling.nearest else "bilinear"
+            )
+        
+        # If not using VRT, proceed with normal resampling
         # Convert paths to Path objects and resolve them
         input_path = Path(input_file).resolve()
         output_path = Path(output_file).resolve()
@@ -237,15 +375,17 @@ def resample_raster(input_file, output_file, target_resolution=1000,
         raise RuntimeError(f"Resampling failed for {input_file}: {e}")
 
 
-def resample_rasters(input_files, output_folder, target_resolution=1000, n_jobs=None):
+def resample_rasters(input_files, output_folder, target_resolution=1000, n_jobs=None, use_vrt=True):
     """
     Resample multiple rasters to a common resolution in EPSG:4326.
+    Uses VRTs by default for efficiency.
     
     Args:
         input_files: List of input raster files or single file path
         output_folder: Folder to save resampled rasters
         target_resolution: Target resolution in meters (default: 1000m or 1km)
         n_jobs: Number of parallel jobs (not used in simplified version)
+        use_vrt: If True, creates VRTs instead of GeoTIFFs
         
     Returns:
         List of paths to resampled raster files
@@ -275,11 +415,16 @@ def resample_rasters(input_files, output_folder, target_resolution=1000, n_jobs=
     for input_file in valid_files:
         try:
             print(f"Processing file: {input_file}")
-            output_file = output_folder / f"{input_file.stem}_resampled.tif"
+            
+            # Determine output file extension based on use_vrt
+            extension = ".vrt" if use_vrt else ".tif"
+            output_file = output_folder / f"{input_file.stem}_resampled{extension}"
+            
             resampled_path = resample_raster(
                 input_file=str(input_file),
                 output_file=str(output_file),
-                target_resolution=target_resolution
+                target_resolution=target_resolution,
+                use_vrt=use_vrt
             )
             resampled_files.append(resampled_path)
         except Exception as e:
@@ -292,16 +437,17 @@ def resample_rasters(input_files, output_folder, target_resolution=1000, n_jobs=
     return resampled_files
 
 
-def mosaic_rasters(input_files, output_file=None):
+def create_vrt_mosaic(input_files, output_file=None, nodata_value=None):
     """
-    Mosaic multiple rasters into a single raster.
+    Create a virtual mosaic (VRT) from multiple input rasters.
     
     Args:
         input_files: List of input raster file paths
-        output_file: Path to output mosaic file (optional, generates temp file if None)
+        output_file: Path to output VRT file (optional, generates temp file if None)
+        nodata_value: NoData value to use in the VRT
         
     Returns:
-        Path to mosaic raster
+        Path to VRT mosaic file
     """
     try:
         # Basic validation
@@ -326,8 +472,111 @@ def mosaic_rasters(input_files, output_file=None):
         # Create output path if not provided
         if output_file is None:
             temp_dir = tempfile.mkdtemp()
-            output_file = os.path.join(temp_dir, "mosaic.tif")
+            output_file = os.path.join(temp_dir, "mosaic.vrt")
+        else:
+            # Ensure output has .vrt extension
+            output_path = Path(output_file)
+            if output_path.suffix.lower() != '.vrt':
+                output_file = str(output_path.with_suffix('.vrt'))
         
+        print(f"Creating VRT mosaic of {len(valid_files)} rasters to {output_file}")
+        
+        # Ensure output directory exists
+        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+        
+        # Build gdalbuildvrt command
+        cmd = ["gdalbuildvrt"]
+        
+        # Add options
+        if nodata_value is not None:
+            cmd.extend(["-vrtnodata", str(nodata_value)])
+        
+        # Add output and input files
+        cmd.append(output_file)
+        cmd.extend([str(f) for f in valid_files])
+        
+        # Execute command
+        print(f"Running: {' '.join(cmd)}")
+        subprocess.run(cmd, check=True)
+        
+        # Verify the VRT was created
+        if not os.path.exists(output_file):
+            raise FileNotFoundError(f"VRT file was not created: {output_file}")
+        
+        # Verify the VRT with rasterio
+        with rasterio.open(output_file) as vrt:
+            print(f"VRT mosaic info: dims={vrt.width}x{vrt.height}, crs={vrt.crs}")
+            try:
+                # Try to read a small sample to verify
+                sample_data = vrt.read(1, window=Window(0, 0, min(100, vrt.width), min(100, vrt.height)))
+                print(f"VRT sample data shape: {sample_data.shape}")
+            except Exception as e:
+                print(f"Warning: Could not read sample data from VRT: {e}")
+        
+        return output_file
+        
+    except Exception as e:
+        print(f"Error creating VRT mosaic: {e}")
+        traceback.print_exc()
+        if valid_files and len(valid_files) > 0:
+            # Return the first file in case of error
+            return str(valid_files[0])
+        else:
+            raise
+
+
+def mosaic_rasters(input_files, output_file=None, use_vrt=True):
+    """
+    Mosaic multiple rasters into a single raster.
+    Uses VRT by default for efficiency.
+    
+    Args:
+        input_files: List of input raster file paths
+        output_file: Path to output mosaic file (optional, generates temp file if None)
+        use_vrt: If True, creates a VRT mosaic instead of a GeoTIFF
+        
+    Returns:
+        Path to mosaic raster (VRT or GeoTIFF)
+    """
+    try:
+        # Basic validation
+        if isinstance(input_files, (str, Path)):
+            input_files = [input_files]
+        
+        valid_files = []
+        for file in input_files:
+            file_path = Path(str(file)).resolve()
+            if file_path.exists():
+                valid_files.append(file_path)
+            else:
+                warnings.warn(f"Input file not found: {file_path}")
+        
+        if len(valid_files) == 0:
+            raise ValueError("No valid input files found")
+        
+        if len(valid_files) == 1:
+            print(f"Only one valid file found, returning it: {valid_files[0]}")
+            return str(valid_files[0])
+        
+        # Create output path if not provided
+        if output_file is None:
+            temp_dir = tempfile.mkdtemp()
+            if use_vrt:
+                output_file = os.path.join(temp_dir, "mosaic.vrt")
+            else:
+                output_file = os.path.join(temp_dir, "mosaic.tif")
+        else:
+            # Adjust extension based on use_vrt
+            if use_vrt:
+                output_path = Path(output_file)
+                if output_path.suffix.lower() != '.vrt':
+                    output_file = str(output_path.with_suffix('.vrt'))
+        
+        # If VRT is requested, create a VRT mosaic
+        if use_vrt:
+            return create_vrt_mosaic(valid_files, output_file)
+        
+        # Otherwise, create a physical mosaic (original implementation)
         print(f"Mosaicking {len(valid_files)} rasters to {output_file}")
         
         # Ensure output directory exists
@@ -396,3 +645,56 @@ def mosaic_rasters(input_files, output_file=None):
             return str(input_files[0])
         else:
             raise
+
+
+def optimize_vrt_for_performance(vrt_file, max_datasets_open=500):
+    """
+    Optimize a VRT file for better performance by adjusting parameters.
+    
+    Args:
+        vrt_file: Path to VRT file
+        max_datasets_open: Maximum number of datasets to keep open
+        
+    Returns:
+        Path to optimized VRT file
+    """
+    try:
+        vrt_path = Path(vrt_file)
+        if not vrt_path.exists() or vrt_path.suffix.lower() != '.vrt':
+            print(f"File is not a VRT or doesn't exist: {vrt_file}")
+            return vrt_file
+        
+        # Parse the VRT XML
+        tree = ET.parse(vrt_file)
+        root = tree.getroot()
+        
+        # Add a hint about the maximum number of datasets to keep open
+        hint_elem = ET.Element('OpenOptions')
+        max_open_elem = ET.Element('Option')
+        max_open_elem.set('name', 'GDAL_MAX_DATASET_POOL_SIZE')
+        max_open_elem.text = str(max_datasets_open)
+        hint_elem.append(max_open_elem)
+        
+        # Add other optimization options if needed
+        cache_elem = ET.Element('Option')
+        cache_elem.set('name', 'GDAL_CACHEMAX')
+        cache_elem.text = '500'  # 500MB cache
+        hint_elem.append(cache_elem)
+        
+        # Add the hints to the root
+        root.append(hint_elem)
+        
+        # Create a backup of the original VRT
+        backup_file = f"{vrt_file}.bak"
+        shutil.copy2(vrt_file, backup_file)
+        
+        # Write the modified VRT
+        tree.write(vrt_file)
+        
+        print(f"Optimized VRT file: {vrt_file}")
+        return vrt_file
+        
+    except Exception as e:
+        print(f"Error optimizing VRT: {e}")
+        traceback.print_exc()
+        return vrt_file
