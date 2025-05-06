@@ -10,9 +10,10 @@ geolink_landcover <- function(start_date,
                               survey_crs = 4326,
                               grid_size = NULL,
                               use_resampling = TRUE,
-                              target_resolution = 1000,
-                              max_memory_gb = 2, # Control memory usage
-                              chunk_size = 500) { # Process in chunks
+                              target_resolution = 1000) {
+
+  max_memory_gb = 2
+  chunk_size = 500
 
   # Convert dates
   start_date <- as.Date(start_date)
