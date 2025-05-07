@@ -2520,14 +2520,33 @@ geolink_landcover <- function(start_date,
                               use_resampling = TRUE,
                               target_resolution = 1000) {
 
-  # Check if system is Ubuntu and override use_resampling if needed
-  if (grepl("ubuntu", tolower(Sys.info()["sysname"])) ||
-      grepl("ubuntu", tolower(Sys.info()["release"]))) {
-    if (use_resampling) {
-      original_value <- use_resampling
-      use_resampling <- FALSE
-      message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
+  # More robust Ubuntu detection
+  is_ubuntu <- FALSE
+
+  # Try multiple detection methods
+  if (file.exists("/etc/os-release")) {
+    os_info <- readLines("/etc/os-release")
+    is_ubuntu <- any(grepl("ubuntu", tolower(os_info), fixed = TRUE))
+  }
+
+  # Fallback detection methods
+  if (!is_ubuntu && file.exists("/etc/lsb-release")) {
+    lsb_info <- readLines("/etc/lsb-release")
+    is_ubuntu <- any(grepl("ubuntu", tolower(lsb_info), fixed = TRUE))
+  }
+
+  # Additional check with system command
+  if (!is_ubuntu) {
+    sys_info <- try(system("lsb_release -a", intern = TRUE), silent = TRUE)
+    if (!inherits(sys_info, "try-error")) {
+      is_ubuntu <- any(grepl("ubuntu", tolower(sys_info), fixed = TRUE))
     }
+  }
+
+  # Override use_resampling if on Ubuntu
+  if (is_ubuntu && use_resampling) {
+    use_resampling <- FALSE
+    message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
   }
 
   # Convert dates
