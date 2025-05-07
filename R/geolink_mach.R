@@ -68,7 +68,7 @@ utils::globalVariables(c(
 #' df <- geolink_chirps(time_unit = "month",
 #'                      start_date = "2020-01-01",
 #'                      end_date = "2020-02-01",
-#'                      survey_fn = "testdata/xy_hhgeo_dt.dta",
+#'                      survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
 #'                      survey_lat = "y",
 #'                      survey_lon = "x",
 #'                      buffer_size = 1000,
@@ -2268,20 +2268,20 @@ geolink_electaccess <- function(
 #' \donttest{
 #'
 #' # Example usage
-#' opencellid_shp <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_shp <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
 #'
-#' opencellid_shp_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_shp_fn <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                         shp_fn = "tests/testthat/testdata/shp_dt.shp")
 #'
 #'
-#' opencellid_survey <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_survey <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                         buffer_size = 2000,
 #'                                         survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 #'
 #'
-#' opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                            buffer_size = 1000,
 #'                                            survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
 #'                                            survey_lon = "x",
@@ -2901,24 +2901,6 @@ geolink_landcover <- function(start_date,
 
   return(final_result)
 }
-
-# Helper function to create empty result
-create_empty_result <- function(sf_obj, start_date) {
-  empty_result <- sf::st_drop_geometry(sf_obj)
-
-  land_cover_classes <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops",
-                          "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
-
-
-  for (col in land_cover_classes) {
-    empty_result[[col]] <- NA
-  }
-
-  empty_result$year <- format(start_date, "%Y")
-  return(sf::st_sf(empty_result, geometry = sf::st_geometry(sf_obj)))
-}
-
-
 
 
 #' Download vegetation index data
