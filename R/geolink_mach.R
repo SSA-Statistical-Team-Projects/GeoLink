@@ -2498,15 +2498,13 @@ geolink_opencellid <- function(cell_tower_file,
 #'
 #' }
 #'}
-#' @export
 #' @import sf rstac terra
 #' @importFrom haven read_dta
 #' @importFrom httr GET write_disk config timeout status_code
 #' @importFrom exactextractr exact_extract
 #' @importFrom reticulate use_condaenv use_python py_run_string source_python
 #'
-#'
-
+#' @export
 
 geolink_landcover <- function(start_date,
                               end_date,
@@ -2522,9 +2520,40 @@ geolink_landcover <- function(start_date,
                               use_resampling = TRUE,
                               target_resolution = 1000) {
 
+  # More robust Ubuntu detection
+  is_ubuntu <- FALSE
+
+  # Try multiple detection methods
+  if (file.exists("/etc/os-release")) {
+    os_info <- readLines("/etc/os-release")
+    is_ubuntu <- any(grepl("ubuntu", tolower(os_info), fixed = TRUE))
+  }
+
+  # Fallback detection methods
+  if (!is_ubuntu && file.exists("/etc/lsb-release")) {
+    lsb_info <- readLines("/etc/lsb-release")
+    is_ubuntu <- any(grepl("ubuntu", tolower(lsb_info), fixed = TRUE))
+  }
+
+  # Additional check with system command
+  if (!is_ubuntu) {
+    sys_info <- try(system("lsb_release -a", intern = TRUE), silent = TRUE)
+    if (!inherits(sys_info, "try-error")) {
+      is_ubuntu <- any(grepl("ubuntu", tolower(sys_info), fixed = TRUE))
+    }
+  }
+
+  # Override use_resampling if on Ubuntu
+  if (is_ubuntu && use_resampling) {
+    use_resampling <- FALSE
+    message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
+  }
+
   # Convert dates
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
+
+  # Rest of the function remains unchanged
 
   # SECTION 1: PROCESS INPUT DATA ---------------------------------------------
 
@@ -2896,10 +2925,6 @@ create_empty_result <- function(sf_obj, start_date) {
   empty_result$year <- format(start_date, "%Y")
   return(sf::st_sf(empty_result, geometry = sf::st_geometry(sf_obj)))
 }
-
-
-
-
 
 
 
