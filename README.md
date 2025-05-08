@@ -379,6 +379,38 @@ If you encounter errors, try these common solutions:
     `sf::st_make_valid()`
 5.  **Projection errors**: Ensure input data has defined coordinate
     systems
+    
+    
+#### Benchmarking
+
+`GeoLink` offers straightforward access to a wide range of geospatial
+variables without requiring expertise in the data or the tools needed to
+access them. When compared to packages such as `BlackMarbleR`, `chirps`,
+`climateR`, and `cmip6`, `GeoLink` shows mixed performance results in
+terms of speed. Using microbenchmark to evaluate `GeoLink`'s performance
+alongside these different packages, we have compiled the results (in
+seconds) in the table below.
+
+However, other packages involve additional steps and require technical
+expertise, which can lengthen the time needed to achieve the desired
+results. For example, `BlackMarbleR` necessitates a subscription to a
+website and produces raster data instead of vector data (such as a
+shapefile). The `cimp6` package failed to obtain rasters in 7 out of 10
+attempts, whereas `GeoLink` successfully collected data in all
+instances. Additionally, `climateR` provides daily raster data that
+needs to be summarized into monthly or yearly figures.
+
+| Variable        | Package        | min    | lq     | mean   | median | uq     | max    | neval |
+|--------|--------|--------|--------|--------|--------|--------|--------|--------|
+| Nightime lights | `BlackMarbleR` | 7.77   | 8.05   | 8.28   | 8.33   | 8.55   | 8.67   | 10    |
+|                 | `GeoLink`      | 30.22  | 34.54  | 37.68  | 36.50  | 40.51  | 47.96  | 10    |
+| CHIRPS          | `CHIRPS`       | 138.99 | 139.53 | 148.70 | 144.09 | 154.15 | 174.31 | 10    |
+|                 | `GeoLink`      | 6.36   | 7.01   | 7.39   | 7.28   | 7.65   | 9.20   | 10    |
+| TerraClimate    | `climateR`     | 1.20   | 1.30   | 1.31   | 1.32   | 1.34   | 1.35   | 10    |
+|                 | `GeoLink`      | 5.40   | 6.42   | 10.69  | 8.31   | 11.44  | 30.15  | 10    |
+| CMIP6           | `cmip6`        | 11.06  | 11.43  | 16.91  | 17.79  | 20.69  | 24.18  | 10    |
+|                 | `GeoLink`      | 335.36 | 347.13 | 356.53 | 352.17 | 365.97 | 380.32 | 10    |
+
 
 ## 🤝 Contributing
 

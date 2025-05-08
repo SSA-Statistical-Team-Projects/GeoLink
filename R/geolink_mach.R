@@ -2933,9 +2933,10 @@ geolink_landcover <- function(start_date,
 #' \donttest{
 #'
 #'  #example usage
-#' df <- geolink_vegindex(shp_dt = shp_dt,
+#' df <- geolink_vegindex(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
 #'                              start_date = "2019-01-01",
 #'                              end_date = "2019-12-31",
+#'                              indicator = "NDVI",
 #'                              extract_fun = "mean",
 #'                              buffer_size = 1000,
 #'                              survey_crs = 4326)
@@ -3148,15 +3149,16 @@ geolink_vegindex <- function(
 #' \donttest{
 #'
 #'  #example usage
-#' df <- geolink_pollution(shp_dt = shp_dt,
-#'                              start_date = "2019-01-01",
-#'                              end_date = "2019-12-31",
-#'                              extract_fun = "mean",
-#'                              buffer_size = 1000,
-#'                              survey_crs = 4326)
+#' df <- geolink_pollution(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
+#'                          start_date = "2018-06-01",
+#'                          end_date = "2018-09-28",
+#'                          indicator = "no2",
+#'                          grid_size = 1000,
+#'                          extract_fun = "mean")
 #'
 #'
 #' }}
+#'
 #'@export
 
 geolink_pollution <- function(
