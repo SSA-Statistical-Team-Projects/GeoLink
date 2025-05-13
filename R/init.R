@@ -1,16 +1,12 @@
 .onLoad <- function(libname, pkgname) {
-  # More robust way to handle sink connections
+  # Better sink management - fixed for Ubuntu
   tryCatch({
-    # Only try to close sinks if there are any open
-    if (sink.number() > 0) {
-      # Close any open sink connections
-      while (sink.number() > 0) {
-        tryCatch(sink(), warning = function(w) {
-          # Suppress the "no sink to remove" warning
-          if (!grepl("no sink to remove", w$message)) {
-            warning(w)
-          }
-        })
+    # Check if sink.number() is available and if there are any sinks to close
+    if (exists("sink.number") && is.function(sink.number) && sink.number() > 0) {
+      # Use a safer approach for closing sinks
+      for (i in 1:sink.number()) {
+        # Suppress warnings completely when closing sinks
+        suppressWarnings(sink(file = NULL, type = "output"))
       }
     }
   }, error = function(e) {
