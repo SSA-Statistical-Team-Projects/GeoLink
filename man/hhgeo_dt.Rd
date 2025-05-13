@@ -5,7 +5,7 @@
 \alias{hhgeo_dt}
 \title{Nigeria GHS 2018/19 Data}
 \format{
-A \code{data.table} and \code{data.frame} object with 5116 rows and 42 variables:
+A \code{data.table} and \code{data.frame} object with 5116 rows and 48 variables:
 \describe{
 \item{hhid}{Household ID}
 \item{dist_road2}{Distance to the nearest road}

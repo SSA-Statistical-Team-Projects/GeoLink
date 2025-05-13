@@ -471,3 +471,20 @@ process_year_data <- function(year, sf_obj, session_temp_dir, resample_resolutio
 
   return(sf_result)
 }
+
+
+# Helper function to create empty result
+create_empty_result <- function(sf_obj, start_date) {
+  empty_result <- sf::st_drop_geometry(sf_obj)
+
+  land_cover_classes <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops",
+                          "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
+
+
+  for (col in land_cover_classes) {
+    empty_result[[col]] <- NA
+  }
+
+  empty_result$year <- format(start_date, "%Y")
+  return(sf::st_sf(empty_result, geometry = sf::st_geometry(sf_obj)))
+}

@@ -1,3 +1,10 @@
+# globals
+utils::globalVariables(c(
+  "osm_id",
+  "input_id"
+
+))
+
 #' Download and Merge monthly rainfall chirp data into geocoded surveys
 #'
 #' Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period
@@ -61,7 +68,7 @@
 #' df <- geolink_chirps(time_unit = "month",
 #'                      start_date = "2020-01-01",
 #'                      end_date = "2020-02-01",
-#'                      survey_fn = "testdata/xy_hhgeo_dt.dta",
+#'                      survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
 #'                      survey_lat = "y",
 #'                      survey_lon = "x",
 #'                      buffer_size = 1000,
@@ -858,7 +865,7 @@ geolink_buildings <- function(version,
         message("File downloaded successfully.")
 
         # Unzip the downloaded file
-        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
+        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
         message("File unzipped successfully.")
       } else {
         warning("Downloaded file may not be a ZIP file.")
@@ -877,7 +884,7 @@ geolink_buildings <- function(version,
         message("File downloaded successfully.")
 
         # Unzip the downloaded file
-        unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
+        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
         message("File unzipped successfully.")
       } else {
         warning("Downloaded file may not be a ZIP file.")
@@ -941,7 +948,7 @@ geolink_buildings <- function(version,
 
   print("Process Complete!!!")
 
-  unlink(tempdir(), recursive = TRUE)
+  unlink(paste0(tempdir(), "/NGA*"), recursive = TRUE)
 
   return(dt)
 
@@ -1003,7 +1010,7 @@ geolink_buildings <- function(version,
 #' @export
 #' @import rstac
 #' @importFrom httr GET http_type write_disk
-#' @importFrom rstac stac items_sign
+#' @importFrom rstac stac items_sign get_request
 #' @importFrom terra rast crs project ext nlyr time tapp
 #' @importFrom sf st_bbox st_transform st_as_sf
 #' @importFrom progress progress_bar
@@ -1657,11 +1664,11 @@ geolink_get_poi <- function(osm_key,
                             survey_crs = 4326,
                             grid_size = NULL) {
 
-  resolution = 1000
   max_retries = 3
   timeout = 300
   area_threshold = 1
 
+  # Validate OSM key-value pairs
   if (!osm_key %in% available_features()) {
     stop(sprintf("'%s' is not a valid OSM key", osm_key))
   }
@@ -1672,15 +1679,136 @@ geolink_get_poi <- function(osm_key,
     }
   }
 
+  # Set CRS to 4326 if data is provided as survey_dt
   if (!is.null(survey_dt)) {
     survey_dt <- ensure_crs_4326(survey_dt)
   }
 
   # Handle survey file input and projection
+  if (!is.null(survey_fn)) {
+    if (is.null(survey_lat) || is.null(survey_lon)) {
+      stop("Both survey_lat and survey_lon must be provided when using survey_fn")
+    }
+
+    # Read the survey file
+    tryCatch({
+      if (grepl("\\.dta$", survey_fn)) {
+        survey_dt <- haven::read_dta(survey_fn)
+      } else {
+        stop("Unsupported file format. Please provide .dta file")
+      }
+    }, error = function(e) {
+      stop(sprintf("Error reading survey file: %s", e$message))
+    })
+
+    # Convert to sf object with specified projection
+    survey_dt <- st_as_sf(survey_dt,
+                          coords = c(survey_lon, survey_lat),
+                          crs = survey_crs)
+
+    # Transform to EPSG:4326 if needed
+    if (st_crs(survey_dt)$epsg != 4326) {
+      survey_dt <- st_transform(survey_dt, 4326)
+    }
+  }
+
+  # Process input data using helper functions
+  if (!is.null(shp_dt)) {
+    sf_obj <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size) %>%
+      ensure_crs_4326()
+    input_source <- "shapefile"
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size) %>%
+      ensure_crs_4326()
+    input_source <- "shapefile"
+  } else if (!is.null(survey_dt) || !is.null(survey_fn)) {
+    sf_obj <- zonalstats_prepsurvey(
+      survey_dt = survey_dt,
+      survey_fn = survey_fn,
+      survey_lat = survey_lat,
+      survey_lon = survey_lon,
+      buffer_size = buffer_size,
+      survey_crs = survey_crs) %>%
+      ensure_crs_4326()
+    input_source <- "survey"
+  } else {
+    stop("Please provide either a shapefile (shp_dt/shp_fn) or survey data (survey_dt/survey_fn)")
+  }
+
+  # Validate input data
+  if (nrow(sf_obj) == 0) {
+    stop("Input data is empty after filtering")
+  }
+  if (any(is.na(st_geometry(sf_obj)))) {
+    stop("Input contains invalid geometries")
+  }
+
+  # Suppress warnings
+  oldw <- getOption("warn")
+  options(warn = -1)
+  on.exit(options(warn = oldw))
+
+  # Get bounding box
+  bbox <- st_bbox(sf_obj)
+  bbox_area <- (bbox["xmax"] - bbox["xmin"]) * (bbox["ymax"] - bbox["ymin"])
+
+  # Process based on area size
+  if (bbox_area > area_threshold) {
+    message("Large area detected. Splitting into quadrants...")
+
+    # Split into quadrants
+    mid_x <- (bbox["xmax"] + bbox["xmin"]) / 2
+    mid_y <- (bbox["ymax"] + bbox["ymin"]) / 2
+
+    quadrants <- list(
+      q1 = c(xmin = bbox["xmin"], ymin = mid_y, xmax = mid_x, ymax = bbox["ymax"]),
+      q2 = c(xmin = mid_x, ymin = mid_y, xmax = bbox["xmax"], ymax = bbox["ymax"]),
+      q3 = c(xmin = bbox["xmin"], ymin = bbox["ymin"], xmax = mid_x, ymax = mid_y),
+      q4 = c(xmin = mid_x, ymin = bbox["ymin"], xmax = bbox["xmax"], ymax = mid_y)
+    )
+
+    # Process each quadrant
+    results_list <- lapply(quadrants, function(quad_bbox) {
+      process_bbox_quadrant(quad_bbox, osm_key, osm_value)
+    })
+
+    # Remove NULL results
+    results_list <- results_list[!sapply(results_list, is.null)]
+
+    if (length(results_list) == 0) {
+      message("No results found in any quadrant")
+      return(NULL)
+    }
+
+    # Get union of all column names
+    all_cols <- unique(unlist(lapply(results_list, names)))
+
+    # Ensure all data frames have the same columns
+    results_list <- lapply(results_list, function(df) {
+      missing_cols <- setdiff(all_cols, names(df))
+      if (length(missing_cols) > 0) {
+        for (col in missing_cols) {
+          df[[col]] <- NA
+        }
+      }
+      return(df[, all_cols])
+    })
+
+    # Combine results
+    results <- do.call(rbind, results_list)
+
+  } else {
+    message("Processing area as single unit...")
+    features <- get_osm_data(bbox, osm_key, osm_value, max_retries, timeout)
+    results <- features$osm_points %>%
+      filter(if_any(-c(osm_id, geometry), ~ !is.na(.x)))
+  }
 
   # Check if results exist
   if (is.null(results) || nrow(results) == 0) {
-
+    message("No points of interest found in the specified area")
+    return(NULL)
+  }
 
   message(sprintf("Found %d points of interest", nrow(results)))
 
@@ -1835,7 +1963,7 @@ geolink_electaccess <- function(
         if (grepl("\\.dta$", survey_fn)) {
           survey_dt <- haven::read_dta(survey_fn)
         } else if (grepl("\\.csv$", survey_fn)) {
-          survey_dt <- read.csv(survey_fn)
+          survey_dt <- utils::read.csv(survey_fn)
         } else {
           stop("Unsupported file format. Please provide .dta or .csv file")
         }
@@ -2140,20 +2268,20 @@ geolink_electaccess <- function(
 #' \donttest{
 #'
 #' # Example usage
-#' opencellid_shp <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_shp <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 #'
 #'
-#' opencellid_shp_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_shp_fn <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                         shp_fn = "tests/testthat/testdata/shp_dt.shp")
 #'
 #'
-#' opencellid_survey <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_survey <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                         buffer_size = 2000,
 #'                                         survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 #'
 #'
-#' opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+#' opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
 #'                                            buffer_size = 1000,
 #'                                            survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
 #'                                            survey_lon = "x",
@@ -2370,15 +2498,13 @@ geolink_opencellid <- function(cell_tower_file,
 #'
 #' }
 #'}
-#' @export
 #' @import sf rstac terra
 #' @importFrom haven read_dta
 #' @importFrom httr GET write_disk config timeout status_code
 #' @importFrom exactextractr exact_extract
 #' @importFrom reticulate use_condaenv use_python py_run_string source_python
 #'
-#'
-
+#' @export
 
 geolink_landcover <- function(start_date,
                               end_date,
@@ -2394,9 +2520,32 @@ geolink_landcover <- function(start_date,
                               use_resampling = TRUE,
                               target_resolution = 1000) {
 
+  is_ubuntu <- FALSE
+
+  if (file.exists("/etc/os-release")) {
+    os_info <- readLines("/etc/os-release")
+    is_ubuntu <- any(grepl("ubuntu", tolower(os_info), fixed = TRUE))
+  }
+  if (!is_ubuntu && file.exists("/etc/lsb-release")) {
+    lsb_info <- readLines("/etc/lsb-release")
+    is_ubuntu <- any(grepl("ubuntu", tolower(lsb_info), fixed = TRUE))
+  }
+  if (!is_ubuntu) {
+    sys_info <- try(system("lsb_release -a", intern = TRUE), silent = TRUE)
+    if (!inherits(sys_info, "try-error")) {
+      is_ubuntu <- any(grepl("ubuntu", tolower(sys_info), fixed = TRUE))
+    }
+  }
+  if (is_ubuntu && use_resampling) {
+    use_resampling <- FALSE
+    message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
+  }
+
   # Convert dates
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
+
+  # Rest of the function remains unchanged
 
   # SECTION 1: PROCESS INPUT DATA ---------------------------------------------
 
@@ -2413,7 +2562,7 @@ geolink_landcover <- function(start_date,
       if (grepl("\\.dta$", survey_fn)) {
         haven::read_dta(survey_fn)
       } else if (grepl("\\.csv$", survey_fn)) {
-        read.csv(survey_fn)
+        utils::read.csv(survey_fn)
       } else {
         stop("Unsupported file format. Please provide .dta or .csv file")
       }
@@ -2753,28 +2902,6 @@ geolink_landcover <- function(start_date,
   return(final_result)
 }
 
-# Helper function to create empty result
-create_empty_result <- function(sf_obj, start_date) {
-  empty_result <- sf::st_drop_geometry(sf_obj)
-
-  land_cover_classes <- c("No Data", "Water", "Trees", "Flooded vegetation", "Crops",
-                          "Built area", "Bare ground", "Snow/ice", "Clouds", "Rangeland")
-
-
-  for (col in land_cover_classes) {
-    empty_result[[col]] <- NA
-  }
-
-  empty_result$year <- format(start_date, "%Y")
-  return(sf::st_sf(empty_result, geometry = sf::st_geometry(sf_obj)))
-}
-
-
-
-
-
-
-
 
 #' Download vegetation index data
 #'
@@ -2799,15 +2926,17 @@ create_empty_result <- function(sf_obj, start_date) {
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
 #' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
+#' @importFrom data.table :=
 #'
 #' @examples
 #' \dontrun{
 #' \donttest{
 #'
 #'  #example usage
-#' df <- geolink_vegindex(shp_dt = shp_dt,
+#' df <- geolink_vegindex(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
 #'                              start_date = "2019-01-01",
 #'                              end_date = "2019-12-31",
+#'                              indicator = "NDVI",
 #'                              extract_fun = "mean",
 #'                              buffer_size = 1000,
 #'                              survey_crs = 4326)
@@ -2897,7 +3026,6 @@ geolink_vegindex <- function(
       colnames(date) <- c("year", "month", "day")
 
       return(date)
-
     })
 
   date_list <- data.table::data.table(do.call(rbind, date_list))
@@ -2918,7 +3046,6 @@ geolink_vegindex <- function(
 
   features_todl <- lapply(1:nrow(date_list),
     function(x){
-
       feat <- c()
       for (i in 1:length(it_obj$features)){
         if ((as.numeric(format(as.Date(it_obj$features[[i]]$properties$end_datetime), "%Y")) == date_list[x, .(year)] &
@@ -3022,15 +3149,16 @@ geolink_vegindex <- function(
 #' \donttest{
 #'
 #'  #example usage
-#' df <- geolink_pollution(shp_dt = shp_dt,
-#'                              start_date = "2019-01-01",
-#'                              end_date = "2019-12-31",
-#'                              extract_fun = "mean",
-#'                              buffer_size = 1000,
-#'                              survey_crs = 4326)
+#' df <- geolink_pollution(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
+#'                          start_date = "2018-06-01",
+#'                          end_date = "2018-09-28",
+#'                          indicator = "no2",
+#'                          grid_size = 1000,
+#'                          extract_fun = "mean")
 #'
 #'
 #' }}
+#'
 #'@export
 
 geolink_pollution <- function(
@@ -3293,3 +3421,4 @@ geolink_pollution <- function(
 
   return(dt)
 }
+

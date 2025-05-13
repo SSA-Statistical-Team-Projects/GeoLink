@@ -1,3 +1,8 @@
+# globals
+utils::globalVariables(c(
+  "ntl_date"
+))
+
 #' Download Monthly Night Time Lights Data
 #'
 #' Functions to download night time lights data from NASA's Earth Observation

@@ -2,7 +2,7 @@
 #'
 #' The full household geovars dataset from the Nigerian General Household Survey 2018/19.
 #'
-#' @format A `data.table` and `data.frame` object with 5116 rows and 42 variables:
+#' @format A `data.table` and `data.frame` object with 5116 rows and 48 variables:
 #' \describe{
 #'   \item{hhid}{Household ID}
 #'   \item{dist_road2}{Distance to the nearest road}
@@ -31,3 +31,19 @@
 #'
 #' @source World Bank Subnational Boundary Repository
 "shp_dt"
+
+#' Population data for Nigeria
+#'
+#' Population data for second administrative divisions (local government areas.)
+#'
+#'@format A `data.frame` containing 773 areas with identifiers and total population.
+#' \describe{
+#'   \item{ADM2_EN}{Admin 2 division names, i.e. Local Government Area names}
+#'   \item{ADM2_PCODE}{Admin 2 codes, i.e. Local Government Area codes}
+#'   \item{T_TL}{Total population for area}
+#'   \item{...}{For more information see <https://data.humdata.org/dataset/cod-ps-nga>}
+#' }
+#' @source Humanitarian Data Exchange
+"popHDX_dt"
+
+

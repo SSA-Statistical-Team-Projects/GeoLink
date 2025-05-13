@@ -2,6 +2,16 @@
 ################## INTERNAL FUNCTIONS TO SUPPORT DOWNLOADING ###################
 ################################################################################
 
+# globals
+utils::globalVariables(c(
+  "opener_function",
+  "shp_dt",
+  "i",
+  "lon",
+  "lat",
+  "geometry"
+))
+
 #' Basic function for downloading
 #' @param dsn a folder location
 #' @param url a link URL
@@ -11,7 +21,7 @@
 download_worker <- function(dsn,
                             url) {
 
-  download.file(url = url,
+  utils::download.file(url = url,
                 destfile = paste(dsn, basename(url), sep = "/"),
                 mode = "wb")
 
@@ -43,7 +53,7 @@ download_reader <- function(url,
 
   temp_file <- tempfile(fileext = ext)
 
-  download.file(url = url,
+  utils::download.file(url = url,
                 destfile = temp_file,
                 mode = "wb",
                 ...)
@@ -52,7 +62,7 @@ download_reader <- function(url,
 
   opener_chr <- dict_dt[file_ext == tools::file_ext(temp_file), opener_function]
 
-  raster_obj <- do.call(opener_chr, list(temp_file))
+  do.call(opener_chr, list(temp_file)) ->  raster_obj
 
   # raster_obj <- crop(raster_obj, extent(shp_dt))
 
