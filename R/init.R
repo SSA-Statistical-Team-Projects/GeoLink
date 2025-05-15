@@ -1,13 +1,11 @@
 .onLoad <- function(libname, pkgname) {
-  # Better sink management - fixed for Ubuntu
+  # Better sink management - using two-step sink closing approach
   tryCatch({
     # Check if sink.number() is available and if there are any sinks to close
     if (exists("sink.number") && is.function(sink.number) && sink.number() > 0) {
-      # Use a safer approach for closing sinks
-      for (i in 1:sink.number()) {
-        # Suppress warnings completely when closing sinks
-        suppressWarnings(sink(file = NULL, type = "output"))
-      }
+      # Close existing sinks in proper order - first output, then message
+      sink() # Close output sink
+      sink() # Close message sink
     }
   }, error = function(e) {
     # If anything goes wrong, just log it and continue
