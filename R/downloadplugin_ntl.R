@@ -147,7 +147,7 @@ get_annual_ntl <- function(year,
   )
 
   ### find the list of links on the page
-  webpage <- rvest::read_html(url_link)
+  webpage <- rvest::read_html(httr::GET(url_link, config = httr::config(ssl_verifypeer = FALSE)))
 
   download_links <- webpage %>%
     rvest::html_nodes("a") %>%
