@@ -17,6 +17,9 @@ utils::globalVariables(c(
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
 #' @param grid_size A numeric, the grid size to be used in meters
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
@@ -47,6 +50,9 @@ utils::globalVariables(c(
 #' a .dta file which is read in with `haven::read_dta()` package. Likewise, the user is permitted
 #' to pass a filepath for the location of the shapefile `shp_fn` which is read in with the
 #' `sf::read_sf()` function.
+#' In addition, raster download is now possible by setting `return_raster` argument to `TRUE`. This
+#' will only return a raster however, to carry out zonal statistics estimation, set argument to `FALSE`
+#' and specify other arguments as need. See examples below.
 #'
 #'
 #' @examples
@@ -54,14 +60,19 @@ utils::globalVariables(c(
 #' \dontrun{
 #' \donttest{
 #'
+#' ## raster download to the extent of a shapefile
+#' df <- geolink_chirps(time_unit = "month",
+#'                      start_date = "2020-01-01",
+#'                      end_date = "2020-03-01",
+#'                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+#'                      return_raster = TRUE)
 #'
-#' #examples
+#' #examples of zonal statistics computation for a tesselated shapefile
 #' df <- geolink_chirps(time_unit = "month",
 #'                      start_date = "2020-01-01",
 #'                      end_date = "2020-03-01",
 #'                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
 #'                      grid_size = 1000,
-#'                      survey_dt = hhgeo_dt,
 #'                      extract_fun = "mean")
 #'
 #'
@@ -76,6 +87,25 @@ utils::globalVariables(c(
 #'
 #' }}
 #'
+#'
+#'#examples of zonal statistics computation with weights
+#'
+#' fpath <- system.file("extdata", "pop.tif", package = "GeoLink")
+#' pop_raster <- terra:raster(fpath)
+#'
+#'
+#' df <- geolink_chirps(time_unit = "month",
+#'                      start_date = "2020-01-01",
+#'                      end_date = "2020-03-01",
+#'                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+#'                      grid_size = 1000,
+#'                      survey_dt = hhgeo_dt,
+#'                      extract_fun = "mean",
+#'                      weight_raster = pop_raster)
+#'
+#'
+#'
+#'
 #' @export
 #' @importFrom raster raster stack brick crop projectRaster
 #' @importFrom haven read_dta
@@ -89,6 +119,7 @@ geolink_chirps <- function(time_unit = NULL,
                            end_date,
                            shp_dt = NULL,
                            shp_fn = NULL,
+                           return_raster = FALSE,
                            grid_size = NULL,
                            survey_dt = NULL,
                            survey_fn = NULL,
@@ -96,23 +127,8 @@ geolink_chirps <- function(time_unit = NULL,
                            survey_lon = NULL,
                            buffer_size = NULL,
                            extract_fun = "mean",
-                           survey_crs = 4326) {
-
-  # # Only apply ensure_crs_4326 if the spatial inputs are not NULL
-  # if (!is.null(shp_dt)) {
-  #   shp_dt <- ensure_crs_4326(shp_dt)
-  # } else if (!is.null(shp_fn)) {
-  #   # If shp_dt is NULL but shp_fn exists, read the file and ensure CRS
-  #   shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
-  # }
-  #
-  # if (!is.null(survey_dt)) {
-  #   survey_dt <- ensure_crs_4326(survey_dt)
-  # } else if (!is.null(survey_fn)) {
-  #   # If survey_dt is NULL but survey_fn exists, read the file and ensure CRS
-  #   survey_dt <- ensure_crs_4326(haven::read_dta(survey_fn))
-  # }
-
+                           survey_crs = 4326,
+                           weight_raster = NULL) {
 
   ## download the data
   if (time_unit == "month") {
@@ -160,7 +176,9 @@ geolink_chirps <- function(time_unit = NULL,
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = name_set)
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
 
   print("Process Complete!!!")

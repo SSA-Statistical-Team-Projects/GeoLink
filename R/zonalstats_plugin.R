@@ -163,6 +163,81 @@ zonalstats_prepshp <- function(shp_dt,
 }
 
 
+#' A function to harmonize the weight raster with the raster to be extracted
+#'
+#' This function will check and resample the weighting raster to match the data
+#' raster which is to be extracted from. This step is necessary before zonal
+#' statistics estimation that requires the use of weights
+#'
+#' @param raster_objs a list of rasters
+#' @param weight_raster a list of weighting rasters of length 1 or the equal in length to
+#' `raster_objs`
+#' @param method see `terra::resample` for details
+#'
+#' @importFrom terra compareGeom resample
+#'
+#'
+
+harmonize_weights <- function(raster_objs,
+                              weight_raster,
+                              method = "bilinear"){
+
+  ### ensure the length of data raster and weighting raster objects are the same
+
+  if (length(raster_objs) != length(weight_raster) & length(weight_raster) != 1){
+    stop("raster_objs and weight_raster must be the same length")
+  }
+
+  ## ensure weighting raster(s) is/are the same length as raster_objs
+  if (length(raster_objs) > 1 & length(weight_raster) == 1){
+
+    weight_raster <- do.call(c,
+                             rep(weight_raster,
+                                 length(raster_objs)))
+
+  }
+
+  ### creating an empty vector the length of weighting raster
+  aligned_weights <- vector("list", length(weight_raster))
+
+  ### ensure the raster types adjustments
+  for (i in seq_along(raster_objs)) {
+
+    r_main <- raster_objs[[i]]
+    r_weight <- weight_raster[[i]]
+
+    if (!inherits(r_main, "SpatRaster") || !inherits(r_weight, "SpatRaster")) {
+
+      warning(paste("Item", i, "is not a SpatRaster; skipping."))
+
+      aligned_weights[[i]] <- NA
+
+      next
+
+    }
+
+    # Compare geometry: resolution, extent, CRS, alignment
+    if (terra::compareGeom(r_main, r_weight, stopOnError = FALSE)) {
+
+      aligned_weights[[i]] <- r_weight  # Already aligned
+
+    } else {
+
+      message(paste("Resampling weights raster for item", i, "to match geometry."))
+
+      aligned_weights[[i]] <- terra::resample(r_weight, r_main, method = method)
+
+    }
+  }
+
+  return(aligned_weights)
+
+
+}
+
+
+
+
 #' A function to compute zonal statistics from multiple rasters into one shapefile
 #' object
 #'
@@ -170,9 +245,11 @@ zonalstats_prepshp <- function(shp_dt,
 #' @param raster_objs a list of raster objects to be extracted from
 #' @param extract_fun function to be extracted
 #' @param name_set a nameset which will be created for the variables
+#' @param weight_raster a list of weighting rasters of length 1 or the
+#' equal in length to `raster_objs`
 #'
 #'
-#' @details A parallelization option will be added
+#' @details A parallelization option will be added at
 #' some point
 #'
 #' @export
@@ -183,7 +260,8 @@ zonalstats_prepshp <- function(shp_dt,
 compute_zonalstats <- function(shp_dt,
                                raster_objs,
                                extract_fun,
-                               name_set) {
+                               name_set,
+                               weight_raster) {
   # Validate inputs
   if (is.null(shp_dt) || is.null(raster_objs)) {
     warning("Input shapefile or raster objects are NULL. Cannot proceed.")
@@ -227,21 +305,58 @@ compute_zonalstats <- function(shp_dt,
     stop("Could not transform shapefile CRS: ", e$message)
   })
 
-  # Extract values for each raster
-  for (i in seq_along(raster_objs)) {
-    tryCatch({
-      shp_dt[[name_set[i]]] <-
-        exactextractr::exact_extract(
-          x = raster_objs[[i]],
-          y = shp_dt,
-          fun = extract_fun
-        )
-    }, error = function(e) {
-      warning(paste("Could not extract values for", name_set[i], ":", e$message))
-      # Optionally, you can skip this raster or fill with NA
-      shp_dt[[name_set[i]]] <- NA
-    })
+  ### use weights if weight_raster is specified, else don't!
+  if (!is.null(weight_raster)){
+
+    ### convert rasters to spat raster for both raster types
+    weight_raster <- lapply(as.list(weight_raster), rast)
+
+    raster_objs <- lapply(raster_objs, rast)
+
+    ## harmonize weighting raster to match raster_objs
+    weight_raster <- harmonize_weights(raster_objs = raster_objs,
+                                       weight_raster = weight_raster)
+
+
+    # Extract values for each raster
+    for (i in seq_along(raster_objs)) {
+      tryCatch({
+        shp_dt[[name_set[i]]] <-
+          exactextractr::exact_extract(
+            x = raster_objs[[i]],
+            y = shp_dt,
+            fun = extract_fun,
+            weights = weight_raster[[i]]
+          )
+      }, error = function(e) {
+        warning(paste("Could not extract values for", name_set[i], ":", e$message))
+        # Optionally, you can skip this raster or fill with NA
+        shp_dt[[name_set[i]]] <- NA
+      })
+    }
+
+
+  } else {
+
+    # Extract values for each raster
+    for (i in seq_along(raster_objs)) {
+      tryCatch({
+        shp_dt[[name_set[i]]] <-
+          exactextractr::exact_extract(
+            x = raster_objs[[i]],
+            y = shp_dt,
+            fun = extract_fun
+          )
+      }, error = function(e) {
+        warning(paste("Could not extract values for", name_set[i], ":", e$message))
+        # Optionally, you can skip this raster or fill with NA
+        shp_dt[[name_set[i]]] <- NA
+      })
+    }
+
+
   }
+
 
   return(shp_dt)
 }
@@ -266,7 +381,10 @@ postdownload_processor <- function(raster_objs,
                                    name_set,
                                    shp_dt = NULL,
                                    shp_fn = NULL,
-                                   grid_size = 1000) {
+                                   grid_size = 1000,
+                                   return_raster,
+                                   weight_raster) {
+
 
   # Create the required survey and shapefile frames
   if (!is.null(shp_fn)) {
@@ -295,13 +413,28 @@ postdownload_processor <- function(raster_objs,
     })
   }
 
+  if (return_raster == TRUE){
+
+    if (!is.null(shp_dt)){
+      raster_objs <-
+        lapply(X = raster_objs,
+               FUN = raster::crop,
+               y = shp_dt)
+    }
+
+
+    return(raster_objs)
+
+  }
+
   # Extract raster into shapefile
   if (!is.null(shp_dt)) {
     shp_dt <- compute_zonalstats(
       shp_dt = shp_dt,
       raster_objs = raster_objs,
       extract_fun = extract_fun,
-      name_set = name_set
+      name_set = name_set,
+      weight_raster = weight_raster
     )
   }
 
@@ -312,9 +445,23 @@ postdownload_processor <- function(raster_objs,
         shp_dt = survey_dt,
         raster_objs = raster_objs,
         extract_fun = extract_fun,
-        name_set = name_set
+        name_set = name_set,
+        weight_raster = weight_raster
       )
     }
+
+  ### adding some lines to ensure output is returned for STATA users
+  if (!is.null(shp_fn)){
+
+    return(shp_dt %>% st_drop_geometry())
+
+  }
+
+  if (!is.null(survey_fn)){
+
+    return(survey_dt %>% st_drop_geometry())
+
+  }
 
     # Only attempt st_as_sf if survey_dt is not NULL
     tryCatch({
@@ -328,6 +475,7 @@ postdownload_processor <- function(raster_objs,
       return(shp_dt)
     })
   }
+
 
   return(shp_dt)
 }
