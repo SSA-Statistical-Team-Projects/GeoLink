@@ -76,22 +76,27 @@ utils::globalVariables(c(
 #'                      extract_fun = "mean")
 #'
 #'
+#' ### estimating how much rainfall occurred within a certain distance of a household
+#' ### assuming the user specifies the file location of a .dta file i.e. for STATA
+#' ### users who do not normally use R
+#'
+#' temp_dir <- tempfile(fileext = ".dta")
+#'
+#' haven::write_dta(hhgeo_dt, temp_dir) ## assuming has stored .dta file locally
+#'
 #' df <- geolink_chirps(time_unit = "month",
 #'                      start_date = "2020-01-01",
 #'                      end_date = "2020-02-01",
-#'                      survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
+#'                      survey_fn = temp_dir,
 #'                      survey_lat = "y",
 #'                      survey_lon = "x",
 #'                      buffer_size = 1000,
 #'                      extract_fun = "mean")
 #'
-#' }}
-#'
-#'
-#'#examples of zonal statistics computation with weights
+#' ## examples of zonal statistics computation with weights
 #'
 #' fpath <- system.file("extdata", "pop.tif", package = "GeoLink")
-#' pop_raster <- terra:raster(fpath)
+#' pop_raster <- terra::rast(fpath)
 #'
 #'
 #' df <- geolink_chirps(time_unit = "month",
@@ -99,9 +104,13 @@ utils::globalVariables(c(
 #'                      end_date = "2020-03-01",
 #'                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
 #'                      grid_size = 1000,
-#'                      survey_dt = hhgeo_dt,
 #'                      extract_fun = "mean",
 #'                      weight_raster = pop_raster)
+#'
+#'
+#' }}
+#'
+#'
 #'
 #'
 #'
