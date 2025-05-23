@@ -20,7 +20,7 @@ chirpname_annual <- function(start_year,
 
   year_dt <- data.table::data.table(
     year = year_list,
-    version = "chirps-v2.0.",
+    version = "chirps-v3.0.",
     ext = ".tif"
   )
 
@@ -41,7 +41,7 @@ chirpname_annual <- function(start_year,
 chirpname_monthly <- function(start_date,
                               end_date,
                               repo_interval = "month",
-                              filename_tag = "chirps-v2.0.",
+                              filename_tag = "chirps-v3.0.",
                               file_ext = ".tif.gz") {
   time_list <- check_valid_month(
     start_date = start_date,

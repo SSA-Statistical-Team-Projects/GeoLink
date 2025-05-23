@@ -22,13 +22,13 @@ utils::globalVariables(c(
 
 get_month_chirps <- function(start_date,
                              end_date,
-                             link_base = "https://data.chc.ucsb.edu/products/CHIRPS-2.0/") {
+                             link_base = "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/") {
   dt <- chirpname_monthly(
     start_date = start_date,
     end_date = end_date
   )
 
-  dt[, sub_dir := "global_monthly/tifs/"]
+  dt[, sub_dir := "monthly/global/tifs/"]
 
   dt[, full_link := paste0(
     link_base,
@@ -64,7 +64,7 @@ get_month_chirps <- function(start_date,
 
 get_annual_chirps <- function(start_year,
                               end_year,
-                              link_base = "https://data.chc.ucsb.edu/products/CHIRPS-2.0/",
+                              link_base = "https://data.chc.ucsb.edu/products/CHIRPS/v3.0/",
                               cores = 1L) {
   dt <- chirpname_annual(
     start_year = start_year,
@@ -73,7 +73,7 @@ get_annual_chirps <- function(start_year,
 
   dt <- data.table(filename = dt)
 
-  dt[, sub_dir := "global_annual/tifs/"]
+  dt[, sub_dir := "annual/global/tifs/"]
 
   dt[, full_link := paste0(
     link_base,
