@@ -1,17 +1,4 @@
 .onLoad <- function(libname, pkgname) {
-  # Better sink management - using two-step sink closing approach
-  tryCatch({
-    # Check if sink.number() is available and if there are any sinks to close
-    if (exists("sink.number") && is.function(sink.number) && sink.number() > 0) {
-      # Close existing sinks in proper order - first output, then message
-      sink() # Close output sink
-      sink() # Close message sink
-    }
-  }, error = function(e) {
-    # If anything goes wrong, just log it and continue
-    packageStartupMessage("Note: Could not properly close sink connections: ", conditionMessage(e))
-  })
-
   tryCatch({
     # Create package environment to store configuration
     pkg_env <- new.env(parent = emptyenv())
