@@ -1,19 +1,4 @@
 .onLoad <- function(libname, pkgname) {
-  # Better sink management - fixed for Ubuntu
-  tryCatch({
-    # Check if sink.number() is available and if there are any sinks to close
-    if (exists("sink.number") && is.function(sink.number) && sink.number() > 0) {
-      # Use a safer approach for closing sinks
-      for (i in 1:sink.number()) {
-        # Suppress warnings completely when closing sinks
-        suppressWarnings(sink(file = NULL, type = "output"))
-      }
-    }
-  }, error = function(e) {
-    # If anything goes wrong, just log it and continue
-    packageStartupMessage("Note: Could not properly close sink connections: ", conditionMessage(e))
-  })
-
   tryCatch({
     # Create package environment to store configuration
     pkg_env <- new.env(parent = emptyenv())
