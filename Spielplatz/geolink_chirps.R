@@ -7,6 +7,12 @@
 fpath <- system.file("extdata", "pop.tif", package = "GeoLink")
 pop_raster <- terra::rast(fpath)
 
+chirps_list <- list.files(path = "tests/testthat/testdata",
+                          pattern = "^chirps.*\\.tif$",
+                          full.names = TRUE) %>%
+  lapply(X = .,
+         FUN = terra::rast)
+
 ## raster download to the extent of a shapefile
 raster_obj <-
 geolink_chirps(time_unit = "month",
@@ -30,3 +36,17 @@ df <- geolink_chirps(time_unit = "month",
                      grid_size = 1000,
                      extract_fun = "mean",
                      weight_raster = pop_raster)
+
+compute_zonalstats(shp_dt = shp_dt,
+                   raster_objs = chirps_list,
+                   extract_fun = "mean",
+                   name_set = c("av1", "av2", "av3"),
+                   weight_raster = list(pop_raster))
+
+
+
+
+
+
+
+

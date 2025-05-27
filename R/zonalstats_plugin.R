@@ -245,7 +245,7 @@ harmonize_weights <- function(raster_objs,
 #' @param raster_objs a list of raster objects to be extracted from
 #' @param extract_fun function to be extracted
 #' @param name_set a nameset which will be created for the variables
-#' @param weight_raster a list of weighting rasters of length 1 or the
+#' @param weight_raster a raster object or a list of weighting rasters or the
 #' equal in length to `raster_objs`
 #'
 #'
@@ -308,10 +308,8 @@ compute_zonalstats <- function(shp_dt,
   ### use weights if weight_raster is specified, else don't!
   if (!is.null(weight_raster)){
 
-    ### convert rasters to spat raster for both raster types
-    weight_raster <- lapply(as.list(weight_raster), rast)
-
-    raster_objs <- lapply(raster_objs, rast)
+    # ### convert rasters to spat raster for both raster types
+    # raster_objs <- lapply(raster_objs, rast)
 
     ## harmonize weighting raster to match raster_objs
     weight_raster <- harmonize_weights(raster_objs = raster_objs,
