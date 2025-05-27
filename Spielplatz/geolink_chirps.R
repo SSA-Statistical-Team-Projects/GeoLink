@@ -13,7 +13,7 @@ chirps_list <- list.files(path = "tests/testthat/testdata",
   lapply(X = .,
          FUN = terra::rast)
 
-## raster download to the extent of a shapefile
+# raster download to the extent of a shapefile
 raster_obj <-
 geolink_chirps(time_unit = "month",
                start_date = "2020-01-01",
@@ -34,14 +34,8 @@ df <- geolink_chirps(time_unit = "month",
                      end_date = "2020-03-01",
                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                      grid_size = 1000,
-                     extract_fun = "mean",
+                     extract_fun = "weighted_mean",
                      weight_raster = pop_raster)
-
-compute_zonalstats(shp_dt = shp_dt,
-                   raster_objs = chirps_list,
-                   extract_fun = "mean",
-                   name_set = c("av1", "av2", "av3"),
-                   weight_raster = list(pop_raster))
 
 
 

@@ -33,6 +33,7 @@ utils::globalVariables(c(
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @param survey_crs A numeric, the default is 4326
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
 #'
 #'
 #' @details Rainfall data is sourced from the Climate Hazards Group InfraRed Precipitation
@@ -104,7 +105,7 @@ utils::globalVariables(c(
 #'                      end_date = "2020-03-01",
 #'                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
 #'                      grid_size = 1000,
-#'                      extract_fun = "mean",
+#'                      extract_fun = "weighted_mean",
 #'                      weight_raster = pop_raster)
 #'
 #'
@@ -165,9 +166,11 @@ geolink_chirps <- function(time_unit = NULL,
 
   # Replace -9999.9999 values with NA in downloaded rasters
   raster_objs <- lapply(raster_objs, function(raster_obj) {
-    raster_obj[raster_obj == -9999.9999] <- NA
+    raster_obj[raster_obj <= -9999] <- NA
     return(raster_obj)
   })
+
+  raster_objs <- lapply(raster_objs, terra::rast)
 
   name_set <- paste0("rainfall_", time_unit, 1:length(raster_objs))
 

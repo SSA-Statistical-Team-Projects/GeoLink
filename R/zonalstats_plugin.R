@@ -191,9 +191,10 @@ harmonize_weights <- function(raster_objs,
   ## ensure weighting raster(s) is/are the same length as raster_objs
   if (length(raster_objs) > 1 & length(weight_raster) == 1){
 
-    weight_raster <- do.call(c,
-                             rep(weight_raster,
-                                 length(raster_objs)))
+    weight_raster <- replicate(length(raster_objs),
+                               weight_raster,
+                               simplify = FALSE)
+
 
   }
 
