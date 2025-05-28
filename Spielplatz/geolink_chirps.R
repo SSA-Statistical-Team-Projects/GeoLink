@@ -38,7 +38,7 @@ df <- geolink_chirps(time_unit = "month",
                      weight_raster = pop_raster)
 
 
-
+#### lets map the plot
 
 
 
