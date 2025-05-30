@@ -78,46 +78,55 @@ zonalstats_prepsurvey <- function(survey_dt,
                                   survey_lat = NULL,
                                   survey_lon = NULL,
                                   buffer_size = NULL,
-                                  survey_crs){
+                                  survey_crs = 4326){
 
-  ### read in stata file and convert to an sf/data.frame obj
-
-  if (is.null(survey_fn) == FALSE) {
-
+  if (!is.null(survey_fn)) {
     survey_dt <- haven::read_dta(survey_fn)
-
-    ### we are assuming it is crs 4326 but there is no systematic
-    ### way of automating the process of knowing
     survey_dt <- st_as_sf(survey_dt,
                           coords = c(survey_lon, survey_lat),
                           crs = survey_crs)
-
   }
 
-
-  if (is.null(buffer_size) == FALSE) {
-
-    if (!("m" %in% st_crs(survey_dt)$units)) {
-
-      suggest_dt <- crsuggest::suggest_crs(survey_dt,
-                                           units = "m")
-
-      survey_dt <- st_transform(survey_dt,
-                                crs = as.numeric(suggest_dt$crs_code[1]))
-
+  if (!is.null(survey_dt)) {
+    if ("geometry" %in% names(survey_dt) && !"sf" %in% class(survey_dt)) {
+      survey_dt <- st_as_sf(survey_dt, crs = survey_crs)
+    }
+    else if (!"sf" %in% class(survey_dt)) {
+      if (!is.null(survey_lat) && !is.null(survey_lon)) {
+        if (survey_lon %in% names(survey_dt) && survey_lat %in% names(survey_dt)) {
+          survey_dt <- st_as_sf(survey_dt,
+                                coords = c(survey_lon, survey_lat),
+                                crs = survey_crs,
+                                remove = FALSE)
+        } else {
+          stop(paste("Columns", survey_lon, "and/or", survey_lat, "not found in survey_dt"))
+        }
+      } else {
+        stop("survey_dt is not an sf object, has no geometry column, and survey_lat/survey_lon are not specified.")
+      }
     }
 
+    if ("sf" %in% class(survey_dt) && is.na(st_crs(survey_dt))) {
+      st_crs(survey_dt) <- survey_crs
+    }
+  }
 
-    survey_dt <- sf::st_buffer(survey_dt,
-                               dist = buffer_size)
+  if (!is.null(buffer_size) && !is.null(survey_dt)) {
+    if (!("m" %in% st_crs(survey_dt)$units)) {
+      suggest_dt <- crsuggest::suggest_crs(survey_dt, units = "m")
+      survey_dt <- st_transform(survey_dt,
+                                crs = as.numeric(suggest_dt$crs_code[1]))
+    }
 
+    survey_dt <- sf::st_buffer(survey_dt, dist = buffer_size)
 
-
+    survey_dt <- ensure_crs_4326(survey_dt)
   }
 
   return(survey_dt)
-
 }
+
+
 
 #' A function to process raster downloads and compute zonal statistics for shapefiles
 #' and geocoded surveys
@@ -384,18 +393,35 @@ postdownload_processor <- function(raster_objs,
                                    return_raster,
                                    weight_raster) {
 
-
   # Create the required survey and shapefile frames
   if (!is.null(shp_fn)) {
     shp_dt <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size)
   }
-
   if (!is.null(shp_dt)) {
     shp_dt <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size)
   }
 
   # Process survey data only if it's not NULL
   if (!is.null(survey_dt) || !is.null(survey_fn)) {
+    # Check if survey_dt has CRS, if not assign the survey_crs
+    if (!is.null(survey_dt)) {
+      # Check if it's already an sf object
+      if (!"sf" %in% class(survey_dt)) {
+        # If lat/lon columns are provided, create sf object
+        if (!is.null(survey_lat) && !is.null(survey_lon)) {
+          survey_dt <- sf::st_as_sf(survey_dt,
+                                    coords = c(survey_lon, survey_lat),
+                                    crs = survey_crs,
+                                    remove = FALSE)
+        }
+      } else {
+        # If it's already sf but missing CRS, assign it
+        if (is.na(sf::st_crs(survey_dt))) {
+          sf::st_crs(survey_dt) <- survey_crs
+        }
+      }
+    }
+
     # Safely prepare survey data
     survey_dt <- tryCatch({
       zonalstats_prepsurvey(
@@ -410,20 +436,28 @@ postdownload_processor <- function(raster_objs,
       warning("Error preparing survey data: ", e$message)
       return(NULL)
     })
+
+    # Ensure survey data is in correct CRS
+    if (!is.null(survey_dt)) {
+      sf_obj <- ensure_crs_4326(survey_dt)
+    }
+  } else if (!is.null(shp_dt)) {
+    sf_obj <- ensure_crs_4326(shp_dt)
+  } else if (!is.null(shp_fn)) {
+    sf_obj <- sf::read_sf(shp_fn)
+    sf_obj <- ensure_crs_4326(sf_obj)
+  } else {
+    print("Input a valid sf object or geosurvey")
+    sf_obj <- NULL
   }
 
-  if (return_raster == TRUE){
-
-    if (!is.null(shp_dt)){
-      raster_objs <-
-        lapply(X = raster_objs,
-               FUN = raster::crop,
-               y = shp_dt)
+  if (return_raster == TRUE) {
+    if (!is.null(shp_dt)) {
+      raster_objs <- lapply(X = raster_objs,
+                            FUN = raster::crop,
+                            y = shp_dt)
     }
-
-
     return(raster_objs)
-
   }
 
   # Extract raster into shapefile
@@ -449,32 +483,27 @@ postdownload_processor <- function(raster_objs,
       )
     }
 
-  ### adding some lines to ensure output is returned for STATA users
-  if (!is.null(shp_fn)){
-
-    return(shp_dt %>% st_drop_geometry())
-
-  }
-
-  if (!is.null(survey_fn)){
-
-    return(survey_dt %>% st_drop_geometry())
-
-  }
+    ### adding some lines to ensure output is returned for STATA users
+    if (!is.null(shp_fn)) {
+      return(shp_dt %>% st_drop_geometry())
+    }
+    if (!is.null(survey_fn)) {
+      return(survey_dt %>% st_drop_geometry())
+    }
 
     # Only attempt st_as_sf if survey_dt is not NULL
     tryCatch({
-      #shp_dt <- st_as_sf(shp_dt, crs = st_crs(raster_objs[[1]])$input)
-      survey_dt <- st_as_sf(survey_dt, crs = st_crs(raster_objs[[1]])$input)
-     # shp_dt <- st_join(survey_dt, shp_dt)
-
+      # Ensure survey_dt has CRS before proceeding
+      if (is.na(sf::st_crs(survey_dt))) {
+        survey_dt <- sf::st_set_crs(survey_dt, sf::st_crs(raster_objs[[1]])$input)
+      }
+      survey_dt <- sf::st_as_sf(survey_dt, crs = sf::st_crs(raster_objs[[1]])$input)
       return(survey_dt)
     }, error = function(e) {
       warning("Error processing survey data: ", e$message)
       return(shp_dt)
     })
   }
-
 
   return(shp_dt)
 }

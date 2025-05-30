@@ -140,6 +140,7 @@ geolink_chirps <- function(time_unit = NULL,
                            survey_crs = 4326,
                            weight_raster = NULL) {
 
+
   ## download the data
   if (time_unit == "month") {
 
@@ -173,7 +174,6 @@ geolink_chirps <- function(time_unit = NULL,
   raster_objs <- lapply(raster_objs, terra::rast)
 
   name_set <- paste0("rainfall_", time_unit, 1:length(raster_objs))
-
 
   ## create the name for the variables
 
