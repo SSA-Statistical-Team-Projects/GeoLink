@@ -17,9 +17,6 @@ utils::globalVariables(c(
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
-#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
-#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
-#' source is downloaded.
 #' @param grid_size A numeric, the grid size to be used in meters
 #' @param survey_dt An object of class "sf", "data.frame", a geocoded household survey i.e.
 #' a household survey with latitude and longitude values.
@@ -33,6 +30,9 @@ utils::globalVariables(c(
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @param survey_crs A numeric, the default is 4326
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
 #' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
 #'
 #'
@@ -112,10 +112,6 @@ utils::globalVariables(c(
 #' }}
 #'
 #'
-#'
-#'
-#'
-#'
 #' @export
 #' @importFrom raster raster stack brick crop projectRaster
 #' @importFrom haven read_dta
@@ -129,7 +125,6 @@ geolink_chirps <- function(time_unit = NULL,
                            end_date,
                            shp_dt = NULL,
                            shp_fn = NULL,
-                           return_raster = FALSE,
                            grid_size = NULL,
                            survey_dt = NULL,
                            survey_fn = NULL,
@@ -138,6 +133,7 @@ geolink_chirps <- function(time_unit = NULL,
                            buffer_size = NULL,
                            extract_fun = "mean",
                            survey_crs = 4326,
+                           return_raster = FALSE,
                            weight_raster = NULL) {
 
 
@@ -231,6 +227,10 @@ geolink_chirps <- function(time_unit = NULL,
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum" for annual data and "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
 #' for monthly data
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
 #'
 #' @inheritParams get_annual_ntl
 #' @inheritParams get_month_ntl
@@ -310,7 +310,9 @@ geolink_ntl <- function(time_unit = "annual",
                         survey_lon = NULL,
                         extract_fun = "mean",
                         buffer_size = NULL,
-                        survey_crs = 4326) {
+                        survey_crs = 4326,
+                        return_raster = FALSE,
+                        weight_raster = NULL) {
 
   # Only apply ensure_crs_4326 if the spatial inputs are not NULL
   if (!is.null(shp_dt)) {
@@ -378,7 +380,9 @@ geolink_ntl <- function(time_unit = "annual",
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = name_set)
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
   print("Process Complete!!!")
 
@@ -422,6 +426,11 @@ geolink_ntl <- function(time_unit = "annual",
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @param survey_crs A numeric, the default is 4326
 #' @param file_location A path to the folder where the downloaded data should be stored.
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
 #'
 #' @details Population data is sourced from WorldPop.
 #' The data is extracted into a shapefile provided by user. An added service for tesselating/gridding
@@ -486,7 +495,9 @@ geolink_population <- function(start_year = NULL,
                                buffer_size = NULL,
                                extract_fun = "mean",
                                survey_crs = 4326,
-                               file_location = tempdir()) {
+                               file_location = tempdir(),
+                               return_raster = FALSE,
+                               weight_raster = NULL) {
 
   clear_temp = TRUE
 
@@ -667,7 +678,9 @@ geolink_population <- function(start_year = NULL,
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = name_set)
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
   print("Process Complete!!!")
 
@@ -706,6 +719,11 @@ geolink_population <- function(start_year = NULL,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -736,7 +754,9 @@ geolink_elevation <- function(iso_code,
                               survey_lon = NULL,
                               buffer_size = NULL,
                               extract_fun = "mean",
-                              survey_crs = 4326){
+                              survey_crs = 4326,
+                              return_raster = FALSE,
+                              weight_raster = NULL){
 
   # Only apply ensure_crs_4326 if the spatial inputs are not NULL
   if (!is.null(shp_dt)) {
@@ -803,7 +823,9 @@ geolink_elevation <- function(iso_code,
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = name_set)
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
   print("Process Complete!!!")
 
@@ -846,6 +868,11 @@ geolink_elevation <- function(iso_code,
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
 #' @param indicators character, default = "ALL", the set of indicators of interest
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -882,7 +909,9 @@ geolink_buildings <- function(version,
                               buffer_size = NULL,
                               extract_fun = "mean",
                               survey_crs = 4326,
-                              indicators = "ALL"){
+                              indicators = "ALL",
+                              return_raster = FALSE,
+                              weight_raster = NULL){
 
   temp_dir <- tempdir()
 
@@ -974,7 +1003,9 @@ geolink_buildings <- function(version,
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = name_set)
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
   print("Process Complete!!!")
 
@@ -1019,6 +1050,11 @@ geolink_buildings <- function(version,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
@@ -1058,7 +1094,9 @@ geolink_CMIP6 <- function(start_date,
                           survey_lon = NULL,
                           buffer_size = NULL,
                           extract_fun = "mean",
-                          survey_crs = 4326) {
+                          survey_crs = 4326,
+                          return_raster = FALSE,
+                          weight_raster = NULL) {
 
   # # Ensure shapefile and survey are in the correct CRS
   # if (!is.null(shp_dt)) {
@@ -1214,7 +1252,9 @@ geolink_CMIP6 <- function(start_date,
     extract_fun = extract_fun,
     buffer_size = buffer_size,
     survey_crs = survey_crs,
-    name_set = name_set
+    name_set = name_set,
+    return_raster = return_raster,
+    weight_raster = weight_raster
   )
 
   # Save the dataframe in the global environment
@@ -1261,6 +1301,12 @@ geolink_CMIP6 <- function(start_date,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
+#'
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -1292,7 +1338,9 @@ geolink_cropland <- function(source = "WorldCover",
                              survey_lon = NULL,
                              buffer_size = NULL,
                              extract_fun = "mean",
-                             survey_crs = 4326){
+                             survey_crs = 4326,
+                             return_raster = FALSE,
+                             weight_raster = NULL){
 
   raster_objs <- geodata::cropland(source = source, path = tempdir())
 
@@ -1322,7 +1370,9 @@ geolink_cropland <- function(source = "WorldCover",
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = name_set)
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
 
   print("Process Complete!!!")
@@ -1362,6 +1412,11 @@ geolink_cropland <- function(source = "WorldCover",
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -1398,7 +1453,9 @@ geolink_worldclim <- function(iso_code,
                               survey_lon = NULL,
                               buffer_size = NULL,
                               extract_fun = "mean",
-                              survey_crs = 4326){
+                              survey_crs = 4326,
+                              return_raster = FALSE,
+                              weight_raster = NULL){
 
   # Only apply ensure_crs_4326 if the spatial inputs are not NULL
   if (!is.null(shp_dt)) {
@@ -1460,7 +1517,9 @@ geolink_worldclim <- function(iso_code,
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = name_set)
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
 
 
@@ -1502,6 +1561,12 @@ geolink_worldclim <- function(iso_code,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
+#'
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -1537,7 +1602,9 @@ geolink_terraclimate <- function(var,
                                  survey_lon = NULL,
                                  buffer_size = NULL,
                                  extract_fun = "mean",
-                                 survey_crs = 4326) {
+                                 survey_crs = 4326,
+                                 return_raster = FALSE,
+                                 weight_raster = NULL) {
   # Add httr package
   if (!requireNamespace("httr", quietly = TRUE)) {
     stop("Package 'httr' is needed for this function to work. Please install it.")
@@ -1610,7 +1677,9 @@ geolink_terraclimate <- function(var,
                                  extract_fun = extract_fun,
                                  buffer_size = buffer_size,
                                  survey_crs = survey_crs,
-                                 name_set = name_set)
+                                 name_set = name_set,
+                                 return_raster = return_raster,
+                                 weight_raster = weight_raster)
     print("Process Complete!!!")
     # Clean up temp directory after successful processing
     unlink(destination, force = TRUE)
@@ -1635,6 +1704,13 @@ geolink_terraclimate <- function(var,
 #' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
 #' @param grid_size A numeric, the grid size to be used as a buffer around survey points.
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
+#'
+#'
 #'
 #' @details This function downloads open street maps (osm) datapoints based on osn_key and osm_value
 #' arguments passed to the function. The full details for osm_key and osm_value arguments
@@ -1692,7 +1768,9 @@ geolink_get_poi <- function(osm_key,
                             survey_lon = NULL,
                             buffer_size = NULL,
                             survey_crs = 4326,
-                            grid_size = NULL) {
+                            grid_size = NULL,
+                            return_raster = FALSE,
+                            weight_raster = NULL) {
 
   max_retries = 3
   timeout = 300
@@ -1901,6 +1979,12 @@ geolink_get_poi <- function(osm_key,
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
 #' @param survey_crs A numeric, the default is 4326
 #' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
+#'
 #'
 #' @details This function downloads and processes the following electrification access indicators, lightscore,
 #' light-composite, nightime proportion and estimated brightness.
@@ -1965,7 +2049,9 @@ geolink_electaccess <- function(
     survey_lon = NULL,
     buffer_size = NULL,
     extract_fun = "mean",
-    survey_crs = 4326
+    survey_crs = 4326,
+    return_raster = FALSE,
+    weight_raster = NULL
 ) {
 
   mosaic_and_crop = TRUE
@@ -2259,7 +2345,9 @@ geolink_electaccess <- function(
     extract_fun = extract_fun,
     buffer_size = buffer_size,
     survey_crs = survey_crs,
-    name_set = name_set
+    name_set = name_set,
+    return_raster = return_raster,
+    weight_raster = weight_raster
   )
 
   print("Process Complete!!!")
@@ -2288,6 +2376,12 @@ geolink_electaccess <- function(
 #' @param grid_size A numeric, the grid size to be used in meters
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
+#'
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -2336,7 +2430,9 @@ geolink_opencellid <- function(cell_tower_file,
                                buffer_size = NULL,
                                survey_crs = 4326,
                                extract_fun = "mean",
-                               grid_size = NULL) {
+                               grid_size = NULL,
+                               return_raster = FALSE,
+                               weight_raster = NULL) {
 
   resolution = 1000
   name_set = "cell_towers"
@@ -2496,6 +2592,12 @@ geolink_opencellid <- function(cell_tower_file,
 #' @param use_resampling Logical. Whether to resample rasters to a common resolution (default: TRUE)
 #' Using resampling might use a significant amount of memory.
 #' @param target_resolution Numeric. Target resolution for resampling in meters (default: 1000)
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
+#'
 #'
 #' @return An sf object with land cover classifications by year
 #'
@@ -2548,7 +2650,9 @@ geolink_landcover <- function(start_date,
                               survey_crs = 4326,
                               grid_size = NULL,
                               use_resampling = TRUE,
-                              target_resolution = 1000) {
+                              target_resolution = 1000,
+                              return_raster = FALSE,
+                              weight_raster = NULL) {
 
   is_ubuntu <- FALSE
 
@@ -2952,6 +3056,12 @@ geolink_landcover <- function(start_date,
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
+#'
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
@@ -2990,7 +3100,9 @@ geolink_vegindex <- function(
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326
+  survey_crs = 4326,
+  return_raster = FALSE,
+  weight_raster = NULL
   ){
 
   if (indicator != "NDVI" & indicator != "EVI"){
@@ -3136,7 +3248,9 @@ geolink_vegindex <- function(
     extract_fun = extract_fun,
     buffer_size = buffer_size,
     survey_crs = survey_crs,
-    name_set = name_set)
+    name_set = name_set,
+    return_raster = return_raster,
+    weight_raster = weight_raster)
 
   print("Process Complete!!!")
 
@@ -3168,6 +3282,11 @@ geolink_vegindex <- function(
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
+#' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#'
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
@@ -3205,7 +3324,9 @@ geolink_pollution <- function(
                                 survey_lon = NULL,
                                 buffer_size = NULL,
                                 extract_fun = "mean",
-                                survey_crs = 4326
+                                survey_crs = 4326,
+                                return_raster = FALSE,
+                                weight_raster = NULL
                             ){
 
   # checks
@@ -3416,7 +3537,9 @@ geolink_pollution <- function(
                                extract_fun = extract_fun,
                                buffer_size = buffer_size,
                                survey_crs = survey_crs,
-                               name_set = valid_names)
+                               name_set = valid_names,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
 
   # For missing months, add NA columns to the returned data.table
   if (length(valid_months) < nrow(allmonths)) {

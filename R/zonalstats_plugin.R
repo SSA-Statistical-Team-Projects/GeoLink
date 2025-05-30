@@ -78,7 +78,7 @@ zonalstats_prepsurvey <- function(survey_dt,
                                   survey_lat = NULL,
                                   survey_lon = NULL,
                                   buffer_size = NULL,
-                                  survey_crs = 4326){
+                                  survey_crs = NULL){
 
   if (!is.null(survey_fn)) {
     survey_dt <- haven::read_dta(survey_fn)
