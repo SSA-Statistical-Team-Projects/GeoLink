@@ -448,6 +448,12 @@ postdownload_processor <- function(raster_objs,
                                    return_raster,
                                    weight_raster) {
 
+  # DEBUG: Check raster_objs at the start
+  print(paste("DEBUG: postdownload_processor received", length(raster_objs), "raster objects"))
+  if (length(raster_objs) > 0) {
+    print(paste("DEBUG: First raster class:", class(raster_objs[[1]])))
+  }
+
   # Check if return_raster is TRUE early and return immediately
   if (return_raster == TRUE) {
     if (!is.null(shp_dt) || !is.null(shp_fn)) {
@@ -470,7 +476,10 @@ postdownload_processor <- function(raster_objs,
     shp_dt <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size)
   }
   if (!is.null(shp_dt)) {
+    # DEBUG: Check shp_dt before prep
+    print(paste("DEBUG: shp_dt class before prep:", class(shp_dt)))
     shp_dt <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size)
+    print(paste("DEBUG: shp_dt class after prep:", class(shp_dt)))
   }
 
   # Process survey data only if it's not NULL
@@ -525,6 +534,12 @@ postdownload_processor <- function(raster_objs,
 
   # Extract raster into shapefile
   if (!is.null(shp_dt)) {
+    # DEBUG: Check before compute_zonalstats
+    print(paste("DEBUG: About to call compute_zonalstats with", length(raster_objs), "rasters"))
+    print(paste("DEBUG: shp_dt is:", class(shp_dt)))
+    print(paste("DEBUG: extract_fun is:", extract_fun))
+    print(paste("DEBUG: name_set length:", length(name_set)))
+
     shp_dt <- compute_zonalstats(
       shp_dt = shp_dt,
       raster_objs = raster_objs,
