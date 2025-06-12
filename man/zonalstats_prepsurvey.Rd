@@ -11,7 +11,7 @@ zonalstats_prepsurvey(
   survey_lat = NULL,
   survey_lon = NULL,
   buffer_size = NULL,
-  survey_crs
+  survey_crs = NULL
 )
 }
 \arguments{

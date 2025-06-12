@@ -17,7 +17,9 @@ geolink_chirps(
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326
+  survey_crs = 4326,
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -52,6 +54,12 @@ if use survey is TRUE)}
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
 \item{survey_crs}{A numeric, the default is 4326}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \description{
 Download rainfall data from the CHIRPS data at monthly/annual intervals for a specified period
@@ -74,32 +82,64 @@ stata users and allows the user to pass file paths for the household survey \cod
 a .dta file which is read in with \code{haven::read_dta()} package. Likewise, the user is permitted
 to pass a filepath for the location of the shapefile \code{shp_fn} which is read in with the
 \code{sf::read_sf()} function.
+In addition, raster download is now possible by setting \code{return_raster} argument to \code{TRUE}. This
+will only return a raster however, to carry out zonal statistics estimation, set argument to \code{FALSE}
+and specify other arguments as need. See examples below.
 }
 \examples{
 
 \dontrun{
 \donttest{
 
+## raster download to the extent of a shapefile
+df <- geolink_chirps(time_unit = "month",
+                     start_date = "2020-01-01",
+                     end_date = "2020-03-01",
+                     shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+                     return_raster = TRUE)
 
-#examples
+#examples of zonal statistics computation for a tesselated shapefile
 df <- geolink_chirps(time_unit = "month",
                      start_date = "2020-01-01",
                      end_date = "2020-03-01",
                      shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                      grid_size = 1000,
-                     survey_dt = hhgeo_dt,
                      extract_fun = "mean")
 
+
+### estimating how much rainfall occurred within a certain distance of a household
+### assuming the user specifies the file location of a .dta file i.e. for STATA
+### users who do not normally use R
+
+temp_dir <- tempfile(fileext = ".dta")
+
+haven::write_dta(hhgeo_dt, temp_dir) ## assuming has stored .dta file locally
 
 df <- geolink_chirps(time_unit = "month",
                      start_date = "2020-01-01",
                      end_date = "2020-02-01",
-                     survey_fn = "testdata/xy_hhgeo_dt.dta",
+                     survey_fn = temp_dir,
                      survey_lat = "y",
                      survey_lon = "x",
                      buffer_size = 1000,
                      extract_fun = "mean")
 
+## examples of zonal statistics computation with weights
+
+fpath <- system.file("extdata", "pop.tif", package = "GeoLink")
+pop_raster <- terra::rast(fpath)
+
+
+df <- geolink_chirps(time_unit = "month",
+                     start_date = "2020-01-01",
+                     end_date = "2020-03-01",
+                     shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+                     grid_size = 1000,
+                     extract_fun = "weighted_mean",
+                     weight_raster = pop_raster)
+
+
 }}
+
 
 }

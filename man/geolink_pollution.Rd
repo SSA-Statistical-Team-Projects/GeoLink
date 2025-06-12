@@ -18,7 +18,9 @@ geolink_pollution(
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326
+  survey_crs = 4326,
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -50,6 +52,12 @@ geolink_pollution(
 Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).}
 
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \value{
 A processed data frame based on the input parameters and downloaded data.
@@ -62,13 +70,14 @@ This function downloads pollution data at the monthly level. It allows for the e
 \donttest{
 
  #example usage
-df <- geolink_pollution(shp_dt = shp_dt,
-                             start_date = "2019-01-01",
-                             end_date = "2019-12-31",
-                             extract_fun = "mean",
-                             buffer_size = 1000,
-                             survey_crs = 4326)
+df <- geolink_pollution(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
+                         start_date = "2018-06-01",
+                         end_date = "2018-09-28",
+                         indicator = "no2",
+                         grid_size = 1000,
+                         extract_fun = "mean")
 
 
 }}
+
 }

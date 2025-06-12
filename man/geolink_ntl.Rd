@@ -21,7 +21,9 @@ geolink_ntl(
   survey_lon = NULL,
   extract_fun = "mean",
   buffer_size = NULL,
-  survey_crs = 4326
+  survey_crs = 4326,
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -67,6 +69,12 @@ if use survey is TRUE)}
 
 \item{survey_crs}{A numeric, the default is 4326
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \description{
 Download night lights luminosity at monthly/annual intervals for a specified period
