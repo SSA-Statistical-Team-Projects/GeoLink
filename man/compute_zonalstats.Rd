@@ -5,7 +5,7 @@
 \title{A function to compute zonal statistics from multiple rasters into one shapefile
 object}
 \usage{
-compute_zonalstats(shp_dt, raster_objs, extract_fun, name_set)
+compute_zonalstats(shp_dt, raster_objs, extract_fun, name_set, weight_raster)
 }
 \arguments{
 \item{shp_dt}{an sf/dataframe with polygons}
@@ -15,12 +15,15 @@ compute_zonalstats(shp_dt, raster_objs, extract_fun, name_set)
 \item{extract_fun}{function to be extracted}
 
 \item{name_set}{a nameset which will be created for the variables}
+
+\item{weight_raster}{a raster object or a list of weighting rasters or the
+equal in length to \code{raster_objs}}
 }
 \description{
 A function to compute zonal statistics from multiple rasters into one shapefile
 object
 }
 \details{
-A parallelization option will be added
+A parallelization option will be added at
 some point
 }

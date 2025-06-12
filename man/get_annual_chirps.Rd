@@ -21,6 +21,6 @@ get_annual_chirps(
 \item{cores}{the number of PC cores to employ in pulling the data in parallel}
 }
 \description{
-Pull rainfall data from the CHIRPS data at monthly intervals for a specified period
+Pull rainfall data from the CHIRPS data at annual intervals for a specified period
 The data is downloaded in raster format (.tif)
 }
