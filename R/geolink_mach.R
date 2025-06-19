@@ -2903,7 +2903,7 @@ geolink_opencellid <- function(cell_tower_file,
       sf::st_transform(4326)
   }
 
-  if (sf::st_crs(sf_obj)$epsg != 4326) {
+  if (sf::st_crs(sf_obj)$epsg != 4326 | is.na(sf::st_crs(sf_obj)$epsg)) {
     sf_obj <- sf::st_transform(sf_obj, 4326)
   }
 
