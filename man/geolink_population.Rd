@@ -22,7 +22,9 @@ geolink_population(
   buffer_size = NULL,
   extract_fun = "mean",
   survey_crs = 4326,
-  file_location = tempdir()
+  file_location = tempdir(),
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -66,6 +68,12 @@ Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 \item{survey_crs}{A numeric, the default is 4326}
 
 \item{file_location}{A path to the folder where the downloaded data should be stored.}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \description{
 Download Population data from the World Pop dataset at annual intervals for a specified period

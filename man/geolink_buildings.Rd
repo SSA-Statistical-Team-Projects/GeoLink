@@ -17,7 +17,9 @@ geolink_buildings(
   buffer_size = NULL,
   extract_fun = "mean",
   survey_crs = 4326,
-  indicators = "ALL"
+  indicators = "ALL",
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -47,6 +49,12 @@ Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms"
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
 
 \item{indicators}{character, default = "ALL", the set of indicators of interest}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.

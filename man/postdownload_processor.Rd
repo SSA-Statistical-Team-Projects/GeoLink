@@ -16,7 +16,9 @@ postdownload_processor(
   name_set,
   shp_dt = NULL,
   shp_fn = NULL,
-  grid_size = 1000
+  grid_size = 1000,
+  return_raster,
+  weight_raster
 )
 }
 \arguments{
@@ -45,6 +47,9 @@ postdownload_processor(
 \item{shp_fn}{a character, the name of shapefile for STATA users only (.shp/.gpkg file)}
 
 \item{grid_size}{a numeric, size of the size of the grid in meters}
+
+\item{weight_raster}{a raster object or a list of weighting rasters or the
+equal in length to \code{raster_objs}}
 }
 \description{
 A function to process downloaded raster into the final output in shapefile/geocoded survey
