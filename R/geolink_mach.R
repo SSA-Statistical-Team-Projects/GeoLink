@@ -1315,7 +1315,7 @@ geolink_CMIP6 <- function(start_date,
             raster <- rotate(raster)
           }
 
-          if (nlyr(raster) >= 355 & nlyr(raster) <= 365) {
+          if (nlyr(raster) >= 355 & nlyr(raster) <= 370) {
             time_indices <- as.numeric(format(time(raster), "%Y"))
             if(length(unique(time_indices)) == 1){
               yearly_raster <- app(raster, index = time_indices, fun = "mean", na.rm = TRUE)
@@ -1878,15 +1878,15 @@ geolink_terraclimate <- function(var,
       return(NULL)
     })
 
-    rasters_combined <- terra::rast(destination)
+    rasters_combined <- raster::brick(destination)
 
-    if (is.na(terra::crs(rasters_combined))) {
-      terra::crs(rasters_combined) <- "+proj=longlat +datum=WGS84 +no_defs"
+    if (is.na(raster::crs(rasters_combined))) {
+      raster::crs(rasters_combined) <- "+proj=longlat +datum=WGS84 +no_defs"
     }
 
-    raster_list <- lapply(1:terra::nlyr(rasters_combined), function(i) raster::raster(rasters_combined[[i]]))
+    raster_list <- lapply(1:raster::nlayers(rasters_combined), function(i) raster::raster(rasters_combined[[i]]))
 
-    num_layers <- terra::nlyr(rasters_combined)
+    num_layers <- raster::nlayers(rasters_combined)
     months <- month.abb
     name_set <- paste0(var, "_", months)
 
