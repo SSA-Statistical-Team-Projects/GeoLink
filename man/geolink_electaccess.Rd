@@ -16,7 +16,9 @@ geolink_electaccess(
   survey_lon = NULL,
   buffer_size = NULL,
   extract_fun = "mean",
-  survey_crs = 4326
+  survey_crs = 4326,
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -44,6 +46,12 @@ geolink_electaccess(
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
 \item{survey_crs}{A numeric, the default is 4326}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \description{
 Download high resolution electrification access data from HREA

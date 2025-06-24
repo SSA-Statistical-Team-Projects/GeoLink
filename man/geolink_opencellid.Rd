@@ -15,7 +15,9 @@ geolink_opencellid(
   buffer_size = NULL,
   survey_crs = 4326,
   extract_fun = "mean",
-  grid_size = NULL
+  grid_size = NULL,
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -41,6 +43,12 @@ geolink_opencellid(
 Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
 \item{grid_size}{A numeric, the grid size to be used in meters}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.
@@ -62,20 +70,20 @@ dataset (csv.gz file) should then be passed into the cell_tower_file parameter. 
 \donttest{
 
 # Example usage
-opencellid_shp <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+opencellid_shp <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
                                      shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",])
 
 
-opencellid_shp_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+opencellid_shp_fn <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
                                         shp_fn = "tests/testthat/testdata/shp_dt.shp")
 
 
-opencellid_survey <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+opencellid_survey <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
                                         buffer_size = 2000,
                                         survey_dt = hhgeo_dt[hhgeo_dt$ADM1_EN == "Abia",])
 
 
-opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "C:/username/Downloads/621.csv.gz",
+opencellid_survey_fn <- geolink_opencellid(cell_tower_file = "data/621.csv.gz",
                                            buffer_size = 1000,
                                            survey_fn = "tests/testthat/testdata/xy_hhgeo_dt.dta",
                                            survey_lon = "x",

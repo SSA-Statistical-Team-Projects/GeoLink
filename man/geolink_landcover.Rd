@@ -17,7 +17,9 @@ geolink_landcover(
   survey_crs = 4326,
   grid_size = NULL,
   use_resampling = TRUE,
-  target_resolution = 1000
+  target_resolution = 1000,
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -47,6 +49,12 @@ geolink_landcover(
 Using resampling might use a significant amount of memory.}
 
 \item{target_resolution}{Numeric. Target resolution for resampling in meters (default: 1000)}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \value{
 An sf object with land cover classifications by year

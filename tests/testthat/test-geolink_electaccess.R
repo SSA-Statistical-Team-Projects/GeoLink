@@ -49,7 +49,7 @@ test_that("Electaccess using a survey: ",
 #Test C
 test_that("Electaccess using a survey file from stata:",
           {
-            suppressWarnings({ test_dt <- geolink_electaccess(survey_fn = "testdata/xy_hhgeo_dt.dta",
+            suppressWarnings({ test_dt <- geolink_electaccess(survey_fn = test_path("testdata/xy_hhgeo_dt.dta"),
                                                               survey_lat = "y",
                                                               survey_lon = "x",
                                                               start_date = "2019-01-01",

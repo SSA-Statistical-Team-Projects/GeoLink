@@ -15,7 +15,9 @@ geolink_get_poi(
   survey_lon = NULL,
   buffer_size = NULL,
   survey_crs = 4326,
-  grid_size = NULL
+  grid_size = NULL,
+  return_raster = FALSE,
+  weight_raster = NULL
 )
 }
 \arguments{
@@ -40,6 +42,12 @@ geolink_get_poi(
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
 
 \item{grid_size}{A numeric, the grid size to be used as a buffer around survey points.}
+
+\item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
+
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
 }
 \description{
 Download points of interest from OSM data using open street maps API.

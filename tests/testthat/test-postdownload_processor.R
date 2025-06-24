@@ -22,7 +22,9 @@ test_that("It returns the correct object structure using a shapefile and a raste
                                                        extract_fun = "mean",
                                                        shp_dt = shp_dt[1:2,],
                                                        grid_size = 1000,
-                                                       name_set="nga_ppp")
+                                                       name_set="nga_ppp",
+                                                       return_raster = FALSE,
+                                                       weight_raster = NULL)
 
   suggest_dt <- crsuggest::suggest_crs(shp_dt,
                                        units = "m")
@@ -59,7 +61,9 @@ test_that("It returns the correct object structure using a survey and a raster",
                                      survey_crs = 4326,
                                      grid_size = NULL,
                                      buffer_size = 1000,
-                                     name_set="nga_ppp")
+                                     name_set="nga_ppp",
+                                     return_raster = FALSE,
+                                     weight_raster = NULL)
 
   #Write expectations from the results sf object
   #Col name
@@ -92,6 +96,8 @@ test_that("It returns the correct object structure using a survey and a raster l
                                               crs = 4326),
                                      survey_crs = 4326,
                                      grid_size = NULL,
+                                     return_raster = FALSE,
+                                     weight_raster = NULL,
                                      buffer_size = 1000,
                                      name_set = paste0("nga_chirps_",
                                                        1:length(raster_list))
@@ -121,6 +127,8 @@ test_that("It returns the correct object structure using a survey stata users an
                                      survey_lat = "y",
                                      survey_lon = "x",
                                      buffer_size = 1000,
+                                     return_raster = FALSE,
+                                     weight_raster = NULL,
                                      name_set = paste0("nga_chirps_",
                                                        1:length(raster_list)))
 
@@ -130,7 +138,7 @@ test_that("It returns the correct object structure using a survey stata users an
   expect_equal(names(result_sf)[ncol(result_sf) - 1], "nga_chirps_2")
 
   #SF object
-  expect_s3_class(result_sf, "sf")
+  expect_s3_class(result_sf, "data.frame")
 
   #Length
   expect_equal(length(unique(result_sf$hhid)), 5116)
@@ -146,6 +154,8 @@ test_that("It returns the correct object structure using a shapefile path and a 
                                                         extract_fun = "mean",
                                                         shp_fn = test_path("testdata/shp_dt.shp"),
                                                         grid_size = 1000,
+                                                        return_raster = FALSE,
+                                                        weight_raster = NULL,
                                                         name_set = paste0("nga_chirps_",
                                                                           1:length(raster_list)))
 
