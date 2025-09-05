@@ -16,6 +16,7 @@ knitr:
     warning: false
     message: false
     results: false
+    format: pdf 
 ---
 
 
