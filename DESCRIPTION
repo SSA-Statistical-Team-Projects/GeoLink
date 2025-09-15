@@ -16,6 +16,7 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 LazyData: true
 Imports:
+    blackmarbler,
     data.table,
     doParallel,
     exactextractr,
@@ -51,6 +52,6 @@ Suggests:
 Depends: 
     R (>= 3.5)
 SystemRequirements: Python (>= 3.7)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 Config/reticulate: list(packages = c("numpy", "rasterio", "tqdm", "certifi"))
