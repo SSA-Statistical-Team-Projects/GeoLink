@@ -2,16 +2,16 @@
 % Please edit documentation in R/geolink_mach.R
 \name{geolink_ntl}
 \alias{geolink_ntl}
-\title{Download and Merge Monthly and Annual Night Time Light data into geocoded surveys using BlackMarbleR}
+\title{Download and Merge Monthly and Annual Night Time Light data into geocoded surveys}
 \usage{
 geolink_ntl(
   time_unit = "annual",
   start_date,
   end_date,
-  username,
-  password,
-  variable = NULL,
-  quality_flag_rm = NULL,
+  annual_version = "v21",
+  month_version = "v10",
+  indicator,
+  slc_type = "vcmslcfg",
   shp_dt = NULL,
   shp_fn = NULL,
   grid_size = NULL,
@@ -23,29 +23,28 @@ geolink_ntl(
   buffer_size = NULL,
   survey_crs = 4326,
   return_raster = FALSE,
-  weight_raster = NULL,
-  add_n_pixels = TRUE,
-  check_all_tiles_exist = TRUE,
-  download_method = "httr",
-  h5_dir = NULL
+  weight_raster = NULL
 )
 }
 \arguments{
-\item{time_unit}{A character, either "month" or "annual" monthly or annual nighttime lights aggregates
+\item{time_unit}{A character, either "month" or "annual" monthly or annual rainfall aggregates
 are to be estimated}
 
 \item{start_date}{An object of class date, must be specified like "yyyy-mm-dd"}
 
 \item{end_date}{An object of class date, must be specified like "yyyy-mm-dd"}
 
-\item{username}{A character, NASA Earthdata username for automatic bearer token generation}
+\item{annual_version}{A character, the version of annual EOG data for download, default set to "v21"}
 
-\item{password}{A character, NASA Earthdata password for automatic bearer token generation}
+\item{month_version}{A character, the version of month EOG data to use. default set to "v10".}
 
-\item{variable}{A character, the Black Marble variable to extract. If NULL, uses default variables:
-"Gap_Filled_DNB_BRDF-Corrected_NTL" for daily, "NearNadir_Composite_Snow_Free" for monthly/annual}
+\item{indicator}{A character, specifying the specific indicator of interest. Options are
+"average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
+"median_masked" and "minimum" for annual data and "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
+for monthly data}
 
-\item{quality_flag_rm}{Quality flag values to set to NA (default: NULL). See BlackMarbleR documentation.}
+\item{slc_type}{A character, adjustment type made to the NTL data either "vcmcfg" or
+"vcmslcfg"}
 
 \item{shp_dt}{An object of class 'sf', 'data.frame' which contains polygons or multipolygons}
 
@@ -69,42 +68,65 @@ if use survey is TRUE)}
 \item{buffer_size}{A numeric, the size of the buffer for \code{survey_dt} or \code{survey_fn} in meters.}
 
 \item{survey_crs}{A numeric, the default is 4326
-Default is mean. Other options are "sum", "min", "max", "sd" and others supported by exactextractr.}
+Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".}
 
 \item{return_raster}{logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
-raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified.}
+raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
+source is downloaded.}
 
 \item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
-
-\item{add_n_pixels}{logical, whether to add pixel count information when extracting (default: TRUE)}
-
-\item{check_all_tiles_exist}{logical, check if all tiles exist for the region (default: TRUE)}
-
-\item{download_method}{character, method for downloading: "httr" or "wget" (default: "httr")}
-
-\item{h5_dir}{A character, directory path where H5 files should be stored. If NULL, uses temporary directory.}
 }
 \description{
 Download night lights luminosity at monthly/annual intervals for a specified period
-The data is downloaded using BlackMarbleR package and combined with shapefile and/or survey data provided
+The data is downloaded in raster format and combined with shapefile and/or survey data provided
 by the user
+}
+\details{
+NTL data is sourced from the NASA's Earth Observation Group database.
+The data is extracted into \code{shp_dt} shapefile object. An added service for tesselating/gridding
+the \code{shp_dt} is also provided if \code{grid_size} is specified for further analytics that require
+equal specified area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+permitted final output. Also, if \code{survey_dt} is not NULL, the user may compute luminosity within
+neighborhood of a household given a specified \code{buffer_size}. The function draw polygons around
+household locations of \code{buffer_size} with zonal statistics computed as formerly described.
+The function is also set up for stata users and allows the user to pass file paths for the
+household survey \code{survey_fn} (with the lat and long variable names \code{survey_lon} and \code{survey_lat})
+as well. This is requires a .dta file which is read in with \code{haven::read_dta()} package.
+Likewise, the user is permitted to pass a filepath for the location of the shapefile \code{shp_fn}
+which is read in with the \code{sf::read_sf()} function.
 }
 \examples{
 
 \dontrun{
 \donttest{
 
+#loading the survey data and shapefile
 
+data("hhgeo_dt")
+data("shp_dt")
 
-df <- geolink_ntl(
-  time_unit = "annual",
-  start_date = "2020-01-01",
-  end_date = "2020-01-10",
-  username = username,
-  password = password,
-  shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-  extract_fun = "mean")
+#pull monthly night lights and combine with household survey based on
+#grid tesselation of shapefile at 1000m
+
+df <- geolink_ntl(time_unit = "month",
+           start_date = "2020-01-01",
+           end_date = "2020-03-01",
+           shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+           indicator = "avg_rade9h",
+           grid_size = 1000,
+           extract_fun = "mean")
+
+#estimate annual night time luminosity for each household within a 100 meters
+#of it's location
+
+df <- geolink_ntl(time_unit = "annual",
+                  start_date = "2020-01-01",
+                  end_date = "2021-12-01",
+                 survey_dt =  sf::st_as_sf(hhgeo_dt[1:10],
+                     crs = 4326),
+                 buffer_size = 100,
+                 indicator = c("average_masked","cf_cvg"),
+                 extract_fun = "mean")
 
 }}
-
 }

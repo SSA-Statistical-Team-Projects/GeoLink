@@ -204,18 +204,16 @@ geolink_chirps <- function(time_unit = NULL,
   return(dt)
 }
 
-#' Download and Merge Monthly and Annual Night Time Light data into geocoded surveys using BlackMarbleR
+#' Download and Merge Monthly and Annual Night Time Light data into geocoded surveys
 #'
 #' Download night lights luminosity at monthly/annual intervals for a specified period
-#' The data is downloaded using BlackMarbleR package and combined with shapefile and/or survey data provided
+#' The data is downloaded in raster format and combined with shapefile and/or survey data provided
 #' by the user
 #'
-#' @param time_unit A character, either "month" or "annual" monthly or annual nighttime lights aggregates
+#' @param time_unit A character, either "month" or "annual" monthly or annual rainfall aggregates
 #' are to be estimated
 #' @param start_date An object of class date, must be specified like "yyyy-mm-dd"
 #' @param end_date An object of class date, must be specified like "yyyy-mm-dd"
-#' @param username A character, NASA Earthdata username for automatic bearer token generation
-#' @param password A character, NASA Earthdata password for automatic bearer token generation
 #' @param shp_dt An object of class 'sf', 'data.frame' which contains polygons or multipolygons
 #' @param shp_fn A character, file path for the shapefile (.shp) to be read (for STATA users only)
 #' @param grid_size A numeric, the grid size to be used in meters
@@ -229,50 +227,86 @@ geolink_chirps <- function(time_unit = NULL,
 #' @param buffer_size A numeric, the size of the buffer for `survey_dt` or `survey_fn` in meters.
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
 #' @param survey_crs A numeric, the default is 4326
-#' Default is mean. Other options are "sum", "min", "max", "sd" and others supported by exactextractr.
-#' @param variable A character, the Black Marble variable to extract. If NULL, uses default variables:
-#' "Gap_Filled_DNB_BRDF-Corrected_NTL" for daily, "NearNadir_Composite_Snow_Free" for monthly/annual
-#' @param quality_flag_rm Quality flag values to set to NA (default: NULL). See BlackMarbleR documentation.
+#' Default is mean. Other options are "sum", "min", "max", "sd", "skew" and "rms".
+#' @param month_version A character, the version of month EOG data to use. default set to "v10".
+#' @param annual_version A character, the version of annual EOG data for download, default set to "v21"
+#' @param indicator A character, specifying the specific indicator of interest. Options are
+#' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
+#' "median_masked" and "minimum" for annual data and "avg_rade9h", "avg_rade9h.masked", "cf_cvg" or "cvg"
+#' for monthly data
 #' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
-#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified.
+#' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
+#' source is downloaded.
 #' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
-#' @param add_n_pixels logical, whether to add pixel count information when extracting (default: TRUE)
-#' @param check_all_tiles_exist logical, check if all tiles exist for the region (default: TRUE)
-#' @param download_method character, method for downloading: "httr" or "wget" (default: "httr")
-#' @param h5_dir A character, directory path where H5 files should be stored. If NULL, uses temporary directory.
 #'
+#' @inheritParams get_annual_ntl
+#' @inheritParams get_month_ntl
+#'
+#'
+#' @details NTL data is sourced from the NASA's Earth Observation Group database.
+#' The data is extracted into `shp_dt` shapefile object. An added service for tesselating/gridding
+#' the `shp_dt` is also provided if `grid_size` is specified for further analytics that require
+#' equal specified area zonal statistics. Shapefile estimates at the grid or native polygon level is a
+#' permitted final output. Also, if `survey_dt` is not NULL, the user may compute luminosity within
+#' neighborhood of a household given a specified `buffer_size`. The function draw polygons around
+#' household locations of `buffer_size` with zonal statistics computed as formerly described.
+#' The function is also set up for stata users and allows the user to pass file paths for the
+#' household survey `survey_fn` (with the lat and long variable names `survey_lon` and `survey_lat`)
+#' as well. This is requires a .dta file which is read in with `haven::read_dta()` package.
+#' Likewise, the user is permitted to pass a filepath for the location of the shapefile `shp_fn`
+#' which is read in with the `sf::read_sf()` function.
 #'
 #' @examples
 #'
 #' \dontrun{
 #' \donttest{
 #'
+#' #loading the survey data and shapefile
 #'
+#' data("hhgeo_dt")
+#' data("shp_dt")
 #'
-#' df <- geolink_ntl(
-#'   time_unit = "annual",
-#'   start_date = "2020-01-01",
-#'   end_date = "2020-01-10",
-#'   username = username,
-#'   password = password,
-#'   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
-#'   extract_fun = "mean")
+#' #pull monthly night lights and combine with household survey based on
+#' #grid tesselation of shapefile at 1000m
+#'
+#'df <- geolink_ntl(time_unit = "month",
+#'            start_date = "2020-01-01",
+#'            end_date = "2020-03-01",
+#'            shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
+#'            indicator = "avg_rade9h",
+#'            grid_size = 1000,
+#'            extract_fun = "mean")
+#'
+#' #estimate annual night time luminosity for each household within a 100 meters
+#' #of it's location
+#'
+#' df <- geolink_ntl(time_unit = "annual",
+#'                   start_date = "2020-01-01",
+#'                   end_date = "2021-12-01",
+#'                  survey_dt =  sf::st_as_sf(hhgeo_dt[1:10],
+#'                      crs = 4326),
+#'                  buffer_size = 100,
+#'                  indicator = c("average_masked","cf_cvg"),
+#'                  extract_fun = "mean")
 #'
 #' }}
-#'
+#
 #' @export
-#' @import blackmarbler
-#' @importFrom sf st_bbox st_transform st_as_sf st_geometry st_drop_geometry st_buffer st_read st_crs
-#' @importFrom terra rast crs project ext crop mask
-#' @importFrom lubridate year interval months
+#' @import rstac
+#' @importFrom rstac stac items_sign
+#' @importFrom reticulate py_eval source_python
+#' @importFrom terra rast crs project ext
+#' @importFrom sf st_bbox st_transform st_as_sf st_geometry st_drop_geometry
+#' @importFrom raster projectRaster stack
+
 
 geolink_ntl <- function(time_unit = "annual",
                         start_date,
                         end_date,
-                        username,
-                        password,
-                        variable = NULL,
-                        quality_flag_rm = NULL,
+                        annual_version = "v21",
+                        month_version = "v10",
+                        indicator,
+                        slc_type = "vcmslcfg",
                         shp_dt = NULL,
                         shp_fn = NULL,
                         grid_size = NULL,
@@ -284,193 +318,114 @@ geolink_ntl <- function(time_unit = "annual",
                         buffer_size = NULL,
                         survey_crs = 4326,
                         return_raster = FALSE,
-                        weight_raster = NULL,
-                        add_n_pixels = TRUE,
-                        check_all_tiles_exist = TRUE,
-                        download_method = "httr",
-                        h5_dir = NULL) {
+                        weight_raster = NULL) {
 
-  # Generate NASA bearer token
-  print("Generating NASA bearer token...")
-  tryCatch({
-    bearer <- blackmarbler::get_nasa_token(username = username, password = password)
-    print("Bearer token generated successfully")
-  }, error = function(e) {
-    stop(paste("Failed to generate bearer token:", e$message,
-               "\nPlease check your NASA Earthdata credentials."))
-  })
-
-  # Process shapefiles and determine ROI
   if (!is.null(shp_dt)) {
-    roi_sf <- shp_dt
+    shp_dt <- ensure_crs_4326(shp_dt)
   } else if (!is.null(shp_fn)) {
-    roi_sf <- sf::st_read(shp_fn)
-  } else if (!is.null(survey_dt)) {
-    # Create a bounding box around survey points with buffer
-    if (!is.null(buffer_size)) {
-      survey_buffered <- sf::st_buffer(survey_dt, dist = buffer_size)
-      roi_sf <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(survey_buffered)))
-    } else {
-      roi_sf <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(survey_dt)))
-    }
-    sf::st_crs(roi_sf) <- 4326
+    shp_dt <- ensure_crs_4326(sf::st_read(shp_fn))
+  }
+  if (!is.null(survey_dt)) {
+    survey_dt <- ensure_crs_4326(survey_dt)
   } else if (!is.null(survey_fn)) {
-    if (tools::file_ext(survey_fn) == "dta") {
-      if (!requireNamespace("haven", quietly = TRUE)) {
-        stop("Package 'haven' is required for reading .dta files")
-      }
-      survey_data <- haven::read_dta(survey_fn)
-      if (!is.null(survey_lat) && !is.null(survey_lon)) {
-        survey_dt <- sf::st_as_sf(survey_data,
-                                  coords = c(survey_lon, survey_lat),
-                                  crs = survey_crs)
-        if (!is.null(buffer_size)) {
-          survey_buffered <- sf::st_buffer(survey_dt, dist = buffer_size)
-          roi_sf <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(survey_buffered)))
-        } else {
-          roi_sf <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(survey_dt)))
-        }
-        sf::st_crs(roi_sf) <- 4326
-      }
-    } else {
-      survey_dt <- sf::st_read(survey_fn)
-      if (!is.null(buffer_size)) {
-        survey_buffered <- sf::st_buffer(survey_dt, dist = buffer_size)
-        roi_sf <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(survey_buffered)))
-      } else {
-        roi_sf <- sf::st_as_sf(sf::st_as_sfc(sf::st_bbox(survey_dt)))
-      }
-      sf::st_crs(roi_sf) <- 4326
-    }
-  } else {
-    stop("Either shp_dt, shp_fn, survey_dt, or survey_fn must be provided")
+    survey_dt <- ensure_crs_4326(sf::st_read(survey_fn))
   }
-
-  # Ensure CRS is 4326
-  if (sf::st_crs(roi_sf)$epsg != 4326) {
-    roi_sf <- sf::st_transform(roi_sf, 4326)
-  }
-
 
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
-  # Create date sequence based on time unit
-  if (time_unit == "daily") {
-    product_id <- "VNP46A2"
-    date_seq <- seq.Date(from = start_date, to = end_date, by = "day")
-  } else if (time_unit == "month") {
-    product_id <- "VNP46A3"
-    date_seq <- seq.Date(from = start_date, to = end_date, by = "month")
+  if (time_unit == "month") {
+    raster_objs <- get_month_ntl(start_date = as.Date(start_date),
+                                 end_date = as.Date(end_date),
+                                 version = month_version,
+                                 slc_type = slc_type,
+                                 indicator = indicator,
+                                 no_tile = TRUE)
+    name_count <- lubridate::interval(as.Date(start_date),
+                                      as.Date(end_date)) %/% months(1) + 1
   } else if (time_unit == "annual") {
-    product_id <- "VNP46A4"
-    date_seq <- seq(from = lubridate::year(start_date), to = lubridate::year(end_date), by = 1)
+    raster_objs <- lapply(X = year(seq(start_date,
+                                       end_date,
+                                       "years")),
+                          FUN = get_annual_ntl,
+                          version = annual_version,
+                          indicator = indicator )
+    raster_objs <- unlist(raster_objs)
+    name_count <- lubridate::year(end_date) - lubridate::year(start_date) + 1
   } else {
-    stop("Time unit should be 'month', 'daily', or 'annual'")
+    stop("Time unit should either be month or annual")
   }
+  print("Global NTL Raster Downloaded")
 
-  print("Downloading NTL data using BlackMarbleR...")
+  name_set <- paste0("ntl_", time_unit, 1:length(raster_objs), indicator)
 
-  all_results <- list()
-
-  for (i in seq_along(date_seq)) {
-    current_date <- date_seq[i]
-    print(paste("Processing date:", current_date))
+  if (return_raster == TRUE && (!is.null(shp_dt) || !is.null(shp_fn))) {
+    if (!is.null(shp_fn) && is.null(shp_dt)) {
+      shp_for_crop <- sf::st_read(shp_fn)
+    } else {
+      shp_for_crop <- shp_dt
+    }
 
     tryCatch({
-      current_data <- blackmarbler::bm_extract(
-        roi_sf = roi_sf,
-        product_id = product_id,
-        date = current_date,
-        bearer = bearer,
-        variable = variable,
-        quality_flag_rm = quality_flag_rm,
-        fun = extract_fun,
-        check_all_tiles_exist = check_all_tiles_exist,
-        download_method = download_method,
-        add_n_pixels = FALSE
-      )
+      raster_crs <- raster::crs(raster_objs[[1]])
+      shp_crs <- sf::st_crs(shp_for_crop)
 
-      # Add date information to the result
-      if (time_unit == "month") {
-        current_data$date <- current_date
-        current_data$year <- lubridate::year(current_date)
-        current_data$month <- lubridate::month(current_date)
-        current_data$month_name <- lubridate::month(current_date, label = TRUE)
-      } else if (time_unit == "annual") {
-        current_data$date <- current_date
-        current_data$year <- current_date
-      } else if (time_unit == "daily") {
-        current_data$date <- current_date
-        current_data$year <- lubridate::year(current_date)
-        current_data$month <- lubridate::month(current_date)
-        current_data$day <- lubridate::day(current_date)
+      if (!is.na(raster_crs) && !is.na(shp_crs)) {
+        if (as.character(raster_crs) != as.character(shp_crs$proj4string)) {
+          message("Transforming shapefile to match raster CRS...")
+          shp_for_crop <- sf::st_transform(shp_for_crop, crs = raster_crs)
+        }
       }
 
-      # Store the result
-      all_results[[i]] <- current_data
-      print(paste("Successfully processed", nrow(current_data), "features for", current_date))
+      raster_ext <- raster::extent(raster_objs[[1]])
+      shp_bbox <- sf::st_bbox(shp_for_crop)
 
+      shp_ext <- raster::extent(shp_bbox[c("xmin", "xmax", "ymin", "ymax")])
+
+      if (raster_ext@xmin < shp_ext@xmax &&
+          raster_ext@xmax > shp_ext@xmin &&
+          raster_ext@ymin < shp_ext@ymax &&
+          raster_ext@ymax > shp_ext@ymin) {
+
+        raster_objs <- lapply(raster_objs, function(r) {
+          tryCatch({
+            cropped <- raster::crop(r, shp_for_crop)
+            raster::mask(cropped, shp_for_crop)
+          }, error = function(e) {
+            warning(paste("Error cropping raster:", e$message))
+            return(r)
+          })
+        })
+        message("Rasters successfully cropped to shapefile extent")
+      } else {
+        warning("Raster and shapefile extents do not overlap. Returning uncropped rasters.")
+      }
     }, error = function(e) {
-      print(paste("Failed to process date", current_date, ":", e$message))
-      all_results[[i]] <- NULL
+      warning(paste("Error in spatial processing:", e$message))
     })
-  }
 
-  # Remove NULL entries (failed downloads)
-  all_results <- all_results[!sapply(all_results, is.null)]
-
-  if (length(all_results) == 0) {
-    stop("No data was successfully downloaded for any of the specified dates")
-  }
-
-  # Combine all results into a single dataframe
-  print("Combining results from all time periods...")
-  combined_data <- do.call(rbind, all_results)
-
-  # If return_raster is TRUE, we need to download rasters instead
-  if (return_raster == TRUE) {
-    print("Downloading raster data...")
-    raster_objs <- list()
-
-    for (i in seq_along(date_seq)) {
-      current_date <- date_seq[i]
-      print(paste("Downloading raster for date:", current_date))
-
-      tryCatch({
-        current_raster <- blackmarbler::bm_raster(
-          roi_sf = roi_sf,
-          product_id = product_id,
-          date = current_date,
-          bearer = bearer,
-          variable = variable,
-          quality_flag_rm = quality_flag_rm,
-          check_all_tiles_exist = check_all_tiles_exist,
-          download_method = download_method,
-          output_location_type = "memory"
-        )
-
-        raster_objs[[i]] <- current_raster
-
-      }, error = function(e) {
-        print(paste("Failed to download raster for date", current_date, ":", e$message))
-        raster_objs[[i]] <- NULL
-      })
-    }
-
-    # Remove NULL entries
-    raster_objs <- raster_objs[!sapply(raster_objs, is.null)]
-
-    if (length(raster_objs) == 0) {
-      stop("No raster data was successfully downloaded")
-    }
-
-    print("Process Complete! Returning raster objects.")
+    print("Process Complete!!!")
+    unlink(paste0(tempdir(), "/file*"), recursive = TRUE)
     return(raster_objs)
   }
 
-  print("Process Complete! Returning combined dataframe with all time periods.")
-  return(combined_data)
+  dt <- postdownload_processor(shp_dt = shp_dt,
+                               raster_objs = raster_objs,
+                               shp_fn = shp_fn,
+                               grid_size = grid_size,
+                               survey_dt = survey_dt,
+                               survey_fn = survey_fn,
+                               survey_lat = survey_lat,
+                               survey_lon = survey_lon,
+                               extract_fun = extract_fun,
+                               buffer_size = buffer_size,
+                               survey_crs = survey_crs,
+                               name_set = name_set,
+                               return_raster = return_raster,
+                               weight_raster = weight_raster)
+  print("Process Complete!!!")
+  unlink(paste0(tempdir(), "/file*"), recursive = TRUE)
+  return(dt)
 }
 
 #' Download and Merge Annual Population data into geocoded surveys
