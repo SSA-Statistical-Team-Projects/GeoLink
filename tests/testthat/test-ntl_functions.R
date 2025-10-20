@@ -9,11 +9,16 @@
 #Test- A.
 test_that("Monthly ntl works using a shapefile:", {
 
+  username <- Sys.getenv("USERNAME_NASA")
+  password <- Sys.getenv("PASSWORD_NASA")
+
   suppressWarnings({ test_dt <- geolink_ntl(time_unit = "month",
                                               start_date = "2020-01-01",
-                                              end_date = "2020-03-01",
+                                              end_date = "2020-10-01",
+                                              username = username,
+                                              password = password,
                                               shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                                              indicator = "avg_rade9h",
+                                              variable = "NearNadir_Composite_Snow_Free",
                                               grid_size = 1000,
                                               extract_fun = "mean")
 
@@ -46,12 +51,17 @@ test_that("Monthly ntl works using a shapefile:", {
 #Test- B
 test_that("Monthly ntl using a survey :", {
 
+  username <- Sys.getenv("USERNAME_NASA")
+  password <- Sys.getenv("PASSWORD_NASA")
+
   suppressWarnings({ test_dt <-  geolink_ntl(time_unit = "month",
                                              start_date = "2020-01-01",
                                              end_date = "2020-03-01",
+                                             username = username,
+                                             password = password,
+                                             variable = "NearNadir_Composite_Snow_Free",
                                              survey_dt =  st_as_sf(hhgeo_dt[1:10],
                                                                    crs = 4326),
-                                             indicator = c("avg_rade9h"),
                                              buffer_size = 1000,
                                              extract_fun = "mean")
 
@@ -79,11 +89,17 @@ test_that("Monthly ntl using a survey :", {
 #Test- C
 test_that("Annual NTL using a shapefile:", {
 
+  username <- Sys.getenv("USERNAME_NASA")
+  password <- Sys.getenv("PASSWORD_NASA")
+
   suppressWarnings({ test_dt <- geolink_ntl(time_unit = "annual",
                                             start_date = "2020-01-01",
                                             end_date = "2020-12-01",
+                                            username = username,
+                                            password = password,
+                                            variable = "NearNadir_Composite_Snow_Free",
                                             shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-                                            indicator = "average_masked",
+                                            variable = "average_masked",
                                             grid_size = 1000,
                                             extract_fun = "mean")
 
@@ -104,13 +120,18 @@ test_that("Annual NTL using a shapefile:", {
 #Test- D
 test_that("Annual ntl using a survey :", {
 
+  username <- Sys.getenv("USERNAME_NASA")
+  password <- Sys.getenv("PASSWORD_NASA")
+
   suppressWarnings({ test_dt <- geolink_ntl(time_unit = "annual",
                                             start_date = "2020-01-01",
                                             end_date = "2021-12-01",
+                                            username = username,
+                                            password = password,
+                                            variable = "NearNadir_Composite_Snow_Free",
                                             survey_dt =  st_as_sf(hhgeo_dt[1:10],
                                                                   crs = 4326),
                                             buffer_size = 1000,
-                                            indicator = c("average_masked","cf_cvg"),
                                             extract_fun = "mean")
 
 
@@ -138,13 +159,18 @@ test_that("Annual ntl using a survey :", {
 test_that("Annual NTL using a shapefile from geodata package:", {
 
   suppressWarnings({
+    username <- Sys.getenv("USERNAME_NASA")
+    password <- Sys.getenv("PASSWORD_NASA")
+
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
 
     test_dt <- geolink_ntl(time_unit = "annual",
                                             start_date = "2019-01-01",
                                             end_date = "2019-12-01",
                                             shp_dt = temp_gamd[temp_gamd$NAME_1 == "Antioquia",],
-                                            indicator = "cf_cvg",
+                                            username = username,
+                                            password = password,
+                                            variable = "NearNadir_Composite_Snow_Free",
                                             extract_fun = "mean")
 
   suggest_dt <- crsuggest::suggest_crs(temp_gamd,
