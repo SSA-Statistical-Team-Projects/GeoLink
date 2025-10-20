@@ -400,8 +400,7 @@ process_raster <- function(shp_dt =NULL,
                            extract_fun, 
                            survey_crs = 4326,
                            name_set = "geolink_feature",
-                           weight_raster = NULL,
-                           grid_size = NULL)
+                           weight_raster = NULL)
 {
 raster <- rast(raster_file)    
 geolink_results <- postdownload_processor(shp_dt = shp_dt, raster_objs = raster,  
@@ -409,7 +408,6 @@ geolink_results <- postdownload_processor(shp_dt = shp_dt, raster_objs = raster,
                                                               survey_crs = survey_crs, 
                                                               name_set = name_set, 
                                                               return_raster = F, 
-                                                              weight_raster = weight_raster,
-                                                              grid_size = NULL)
+                                                              weight_raster = weight_raster)
 return(geolink_results)   
 }
