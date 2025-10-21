@@ -3195,7 +3195,7 @@ geolink_opencellid <- function(cell_tower_file,
 #' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
 #' source is downloaded.
 #' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
-#'
+#' @param python Logical. Whether to use python code to help process rasters. Defaults to FALSE.  
 #'
 #'
 #' @return An sf object with land cover classifications by year
@@ -3251,7 +3251,8 @@ geolink_landcover <- function(start_date,
                               use_resampling = TRUE,
                               target_resolution = 1000,
                               return_raster = FALSE,
-                              weight_raster = NULL) {
+                              weight_raster = NULL,
+                              python=F) {
 
   is_ubuntu <- FALSE
 
@@ -3328,15 +3329,13 @@ geolink_landcover <- function(start_date,
 
   sf_obj <- sf::st_make_valid(sf_obj)
 
+if (python==T) {  
   Sys.unsetenv("RETICULATE_PYTHON")
-
   geo_env_name <- get("pkg_env", envir = asNamespace("GeoLink"))$conda_env_name
-
   env_setup_success <- try({
     reticulate::use_condaenv(geo_env_name, required = TRUE)
     TRUE
   }, silent = TRUE)
-
   if (inherits(env_setup_success, "try-error")) {
     python_path <- get("pkg_env", envir = asNamespace("GeoLink"))$python_path
     if (!is.null(python_path) && file.exists(python_path)) {
@@ -3359,7 +3358,7 @@ geolink_landcover <- function(start_date,
     stop("Python utilities not found. Check package installation.")
   }
   reticulate::source_python(python_utils_path)
-
+}
   filter_features <- function(feature, start_date, end_date) {
     feature_date <- as.Date(feature$properties$start_datetime)
     feature_year <- format(feature_date, "%Y")
