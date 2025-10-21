@@ -381,7 +381,8 @@
     if (os_type == "Windows") {
       # Windows uses PATH instead of LD_LIBRARY_PATH
       Sys.setenv(PATH = paste0(
-        file.path(dirname(dirname(py_path)), "Library", "bin"),
+        file.path(dirname(py_path), "Library", "bin")
+        ,
         ";",
         Sys.getenv("PATH")
       ))
@@ -410,17 +411,6 @@ print('Python executable:', sys.executable)
 print('Python version:', sys.version)
 
 # Check key packages
-import numpy
-print('NumPy version:', numpy.__version__)
-
-try:
-    import rasterio
-    print('Rasterio version:', rasterio.__version__)
-except ImportError as e:
-    print('Error importing Rasterio:', e)
-    # This will be raised to R
-    raise ImportError('Rasterio package not available')
-
 try:
     import gdal
     print('GDAL version:', gdal.VersionInfo())
@@ -432,6 +422,15 @@ except ImportError:
         print('Error importing GDAL:', e)
         # This will be raised to R
         raise ImportError('GDAL package not available')
+#try:
+#    import rasterio
+#    print('Rasterio version:', rasterio.__version__)
+#except ImportError as e:
+#    print('Error importing Rasterio:', e)
+    # This will be raised to R
+#    raise ImportError('Rasterio package not available')
+
+
 
 # Explicitly check libtiff version through GDAL
 try:
@@ -443,7 +442,12 @@ try:
         print('WARNING: GTiff driver not found')
 except Exception as e:
     print('Error checking GDAL drivers:', e)
-")
+    
+import numpy
+print('NumPy version:', numpy.__version__)
+
+    
+",local=T,convert=F)
       TRUE
     }, error = function(e) {
       packageStartupMessage("Environment verification failed: ", conditionMessage(e))
