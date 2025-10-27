@@ -5,8 +5,6 @@ utils::globalVariables(c(
 ))
 
 
-#' @importFrom lubridate wday second isoweek yday hour year month week minute mday quarter
-#' @importFrom data.table data.table
 
 chirpname_annual <- function(start_year,
                              end_year) {
@@ -34,8 +32,6 @@ chirpname_annual <- function(start_year,
 
 
 ################################################################################
-
-#' @import data.table
 
 #### functions for the monthly chirps pulls
 chirpname_monthly <- function(start_date,

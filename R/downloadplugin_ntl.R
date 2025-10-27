@@ -19,7 +19,7 @@ utils::globalVariables(c(
 #' @param link_base character, the base link to the EOG webpage/database
 #' @param no_tile character, tile or not (see usage within the upstream NTL function)
 #'
-#' @import httr rvest data.table
+#' @import rvest
 #'
 #' @export
 #'
@@ -128,7 +128,6 @@ get_month_ntl <- function(start_date,
 #' "average", "average_masked", "cf_cvg", "cvg", "lit_mask", "maximum", "median",
 #' "median_masked" and "minimum"
 #' @param link_base character, the link to the base website or database
-#' @import rvest
 #' @export
 #'
 

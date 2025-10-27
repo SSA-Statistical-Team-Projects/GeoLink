@@ -11,7 +11,7 @@
 #' @param fun the function to be used compute zonal statistics
 #' @param numCores the number of cores to be used in parallel processing
 #'
-#' @import parallelMap doParallel foreach raster sf exactextractr
+#' @import parallelMap doParallel foreach
 #' @export
 
 

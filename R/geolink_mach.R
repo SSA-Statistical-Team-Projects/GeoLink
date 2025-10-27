@@ -1,8 +1,163 @@
-# globals
-utils::globalVariables(c(
-  "osm_id",
-  "input_id"
+#' @import sf
+#' @import ggplot2
+#' @import reticulate
+#'
+#' @importFrom terra rast crs project ext nlyr names crop mask resample aggregate
+#' @importFrom terra extract values app global cellSize zonal vect writeRaster
+#' @importFrom terra rasterize as.polygons geom crds distance buffer
+#'
+#' @importFrom raster raster brick stack extent res crs projectRaster crop mask extract
+#' @importFrom raster values cellStats rasterize resample disaggregate focal
+#' @importFrom raster terrain hillShade overlay calc compareRaster rasterToPolygons
+#' @importFrom raster area ncell getValues setValues writeRaster rasterFromXYZ
+#' @importFrom raster cellFromXY xyFromCell adjacent clump zonal layerize stackApply
+#' @importFrom raster mosaic merge flip rotate shift init setMinMax NAvalue
+#'
+#' @importFrom tidyr pivot_longer pivot_wider separate unite fill drop_na complete
+#' @importFrom tidyr expand_grid crossing nesting replace_na
+#'
+#' @importFrom haven read_dta write_dta
+#'
+#' @importFrom dplyr mutate filter arrange summarise summarize group_by ungroup
+#' @importFrom dplyr left_join right_join inner_join full_join anti_join semi_join
+#' @importFrom dplyr bind_rows bind_cols rename rename_with rename_at rename_if
+#' @importFrom dplyr pull slice slice_head slice_tail slice_min slice_max slice_sample
+#' @importFrom dplyr distinct n n_distinct lag lead case_when if_else coalesce
+#' @importFrom dplyr across where everything starts_with ends_with contains
+#' @importFrom dplyr matches all_of any_of last_col
+#' @importFrom dplyr row_number ntile min_rank dense_rank percent_rank cume_dist
+#' @importFrom dplyr between near count add_count transmute
+#' @importFrom dplyr case_match
+#'
+#' @importFrom data.table data.table as.data.table setDT setDF is.data.table
+#' @importFrom data.table setkey setkeyv setindex setindexv setnames setcolorder
+#' @importFrom data.table fread fwrite rbindlist dcast melt
+#' @importFrom data.table merge.data.table copy setattr setorderv
+#' @importFrom data.table uniqueN rleid rowid rowidv
+#' @importFrom data.table fifelse fcase
+#' @importFrom data.table .SD .N .I .GRP .BY .EACHI
+#'
+#' @importFrom lubridate ymd ymd_hms dmy dmy_hms mdy mdy_hms
+#' @importFrom lubridate today now date
+#' @importFrom lubridate year month day hour minute second
+#' @importFrom lubridate week isoweek epiweek quarter semester
+#' @importFrom lubridate wday mday qday yday
+#' @importFrom lubridate days weeks years hours minutes seconds
+#' @importFrom lubridate floor_date ceiling_date round_date
+#' @importFrom lubridate interval duration period as_date as_datetime
+#' @importFrom lubridate %--% %within% %m+% %m-%
+#' @importFrom lubridate leap_year days_in_month
+#' @importFrom lubridate with_tz force_tz
+#' @importFrom lubridate make_date make_datetime
+#'
+#' @importFrom geodata gadm country_codes
+#'
+#' @importFrom blackmarbler bm_raster
+#'
+#' @importFrom utils download.file unzip globalVariables
+#' @importFrom utils read.csv write.csv head tail str
+#' @importFrom utils packageVersion install.packages
+#'
+#' @importFrom stats setNames median sd var quantile cor cov
+#' @importFrom stats lm glm predict fitted residuals
+#' @importFrom stats aggregate na.omit complete.cases
+#'
+#' @importFrom methods as is new slot
+#'
+#' @importFrom grDevices dev.off pdf png jpeg
+#'
+#' @importFrom parallel detectCores makeCluster stopCluster
+#' @importFrom parallel mclapply parLapply clusterExport clusterEvalQ
+#'
+#' @importFrom future plan multisession sequential
+#' @importFrom future.apply future_lapply
+#'
+#' @importFrom jsonlite fromJSON toJSON
+#'
+#' @importFrom httr GET POST content http_error http_status
+#' @importFrom httr add_headers set_cookies timeout
+#'
+#' @importFrom curl curl_download
+#'
+#' @importFrom stringr str_detect str_extract str_replace str_replace_all
+#' @importFrom stringr str_split str_c str_sub str_trim
+#' @importFrom stringr str_to_lower str_to_upper str_pad
+#'
+#' @importFrom purrr map map2 pmap map_chr map_dbl map_int map_lgl
+#' @importFrom purrr walk walk2 reduce
+#' @importFrom purrr keep discard compact transpose
+#'
+#' @importFrom magrittr %>% %<>% %$% %T>%
+#'
+#' @importFrom foreach foreach %do% %dopar%
+#'
+NULL
 
+
+utils::globalVariables(c(
+  # User defined
+  "osm_id",
+  "input_id",
+
+  # data.table special symbols
+  ".SD",
+  ".N",
+  ".I",
+  ".GRP",
+  ".BY",
+  ".EACHI",
+  ".SDcols",
+  ":=",
+  ".",
+  "..cols",
+  "..id",
+
+  # Common column names used in the package
+  "geometry",
+  "value",
+  "x",
+  "y",
+  "lon",
+  "lat",
+  "id",
+  "layer",
+  "name",
+  "date",
+  "year",
+  "month",
+  "day",
+  "time",
+
+  # Variables from specific functions
+  "poly_id",
+  "target_crs",
+  "unified_crs",
+  "grid_id",
+  "point_id",
+  "extract_value",
+  "weighted_value",
+  "weight",
+  "sum_weighted_value",
+  "sum_weight",
+  "weighted_mean",
+  "indicator",
+  "layer",
+  "features",
+  "bboxes",
+  "url_list",
+  "valid_months",
+  "allmonths",
+  "dates_month",
+  "features_month",
+  "bboxes_month",
+  "start_date_ind",
+  "end_date_ind",
+  "time_col",
+  "band",
+  "..new_names",
+  "new_names",
+  "area",
+  "total_area"
 ))
 
 #' Download and Merge monthly rainfall chirp data into geocoded surveys
@@ -113,10 +268,6 @@ utils::globalVariables(c(
 #'
 #'
 #' @export
-#' @importFrom raster raster stack brick crop projectRaster
-#' @importFrom haven read_dta
-#' @importFrom terra rast crs project ext
-
 
 geolink_chirps <- function(time_unit = NULL,
                            start_date,
@@ -261,10 +412,6 @@ geolink_chirps <- function(time_unit = NULL,
 #' }}
 #'
 #' @export
-#' @import blackmarbler
-#' @importFrom sf st_bbox st_transform st_as_sf st_geometry st_drop_geometry st_buffer st_read st_crs
-#' @importFrom terra rast crs project ext crop mask
-#' @importFrom lubridate year interval months
 
 geolink_ntl <- function(time_unit = "annual",
                         start_date,
@@ -547,17 +694,6 @@ geolink_ntl <- function(time_unit = "annual",
 #'
 #' }}
 #' @export
-#' @importFrom terra rast crs project ext
-#' @importFrom raster stack brick projectRaster
-#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
-#' @importFrom geodata elevation_30s
-#' @importFrom httr GET write_disk http_type
-#'
-#' @import terra
-#' @import raster
-#' @import sf
-#' @import geodata
-#' @import httr
 
 geolink_population <- function(start_year = NULL,
                                end_year = NULL,
@@ -872,9 +1008,6 @@ geolink_population <- function(start_year = NULL,
 #'                             extract_fun = "mean")
 #' }}
 #' @export
-#' @importFrom terra rast crs project ext
-#' @importFrom sf st_bbox st_transform st_as_sf
-#' @importFrom geodata elevation_30s
 
 geolink_elevation <- function(iso_code,
                               shp_dt = NULL,
@@ -1049,10 +1182,6 @@ geolink_elevation <- function(iso_code,
 #'
 #' }}
 #' @export
-#' @importFrom httr GET http_type write_disk
-#' @importFrom terra rast crs project
-#' @importFrom raster projection projectRaster
-#' @importFrom sf st_transform st_as_sf st_bbox
 
 geolink_buildings <- function(version,
                               iso_code,
@@ -1265,12 +1394,6 @@ geolink_buildings <- function(version,
 #' }}
 #'
 #' @export
-#' @import rstac
-#' @importFrom httr GET http_type write_disk
-#' @importFrom rstac stac items_sign get_request
-#' @importFrom terra rast crs project ext nlyr time tapp
-#' @importFrom sf st_bbox st_transform st_as_sf
-#' @importFrom progress progress_bar
 
 geolink_CMIP6 <- function(start_date,
                           end_date,
@@ -1528,10 +1651,6 @@ geolink_CMIP6 <- function(start_date,
 #'                 extract_fun = "mean")
 #' }}
 #' @export
-#' @importFrom terra rast crs
-#' @importFrom sf st_transform
-#' @importFrom geodata cropland
-#' @importFrom httr GET write_disk
 
 geolink_cropland <- function(source = "WorldCover",
                              shp_dt = NULL,
@@ -1685,9 +1804,6 @@ geolink_cropland <- function(source = "WorldCover",
 #' }}
 #'
 #' @export
-#' @importFrom terra rast crs nlyr
-#' @importFrom sf st_transform
-#' @importFrom geodata worldclim_country
 
 geolink_worldclim <- function(iso_code,
                               var,
@@ -1865,10 +1981,6 @@ geolink_worldclim <- function(iso_code,
 #' }}
 #'
 #' @export
-#' @importFrom terra rast crs nlyr
-#' @importFrom sf st_bbox st_transform
-#' @importFrom httr GET timeout http_status content
-#' @importFrom ncdf4 nc_open nc_close
 
 geolink_terraclimate <- function(var,
                                  year,
@@ -2074,8 +2186,6 @@ geolink_terraclimate <- function(var,
 #'
 #' }}
 #' @export
-#' @importFrom osmdata available_features available_tags opq add_osm_feature osmdata_sf
-#' @importFrom sf st_bbox st_transform st_as_sf st_join st_geometry
 
 geolink_get_poi <- function(osm_key,
                             osm_value = NULL,
@@ -2211,7 +2321,7 @@ geolink_get_poi <- function(osm_key,
     message("Processing area as single unit...")
     features <- get_osm_data(bbox, osm_key, osm_value, max_retries, timeout)
     results <- features$osm_points %>%
-      filter(if_any(-c(osm_id, geometry), ~ !is.na(.x)))
+      dplyr::filter(dplyr::if_any(-c(osm_id, geometry), ~ !is.na(.x)))
   }
 
   if (is.null(results) || nrow(results) == 0) {
@@ -2229,7 +2339,7 @@ geolink_get_poi <- function(osm_key,
     filter(is.na(input_id))
 
   joined_data <- joined_data %>%
-    filter(!is.na(input_id))
+    dplyr::filter(!is.na(input_id))
 
   if (nrow(joined_data) == 0) {
     message("No points of interest found within the specified geometries")
@@ -2433,12 +2543,6 @@ geolink_get_poi <- function(osm_key,
 #' }}
 #'
 #' @export
-#' @import rstac
-#' @importFrom rstac stac items_sign
-#' @importFrom terra rast crs project ext
-#' @importFrom sf st_bbox st_transform st_as_sf st_geometry
-#' @importFrom httr GET write_disk
-#' @importFrom lubridate year
 
 geolink_electaccess <- function(
     start_date = NULL,
@@ -2841,12 +2945,6 @@ geolink_electaccess <- function(
 #' }}
 #'
 #' @export
-#' @importFrom terra rast
-#' @importFrom httr GET timeout
-#' @importFrom sf st_as_sf st_transform st_bbox st_intersects st_as_sfc
-#' @importFrom data.table as.data.table
-#' @importFrom memoise memoise
-#' @importFrom haven read_dta
 
 geolink_opencellid <- function(cell_tower_file,
                                shp_dt = NULL,
@@ -3229,12 +3327,6 @@ geolink_opencellid <- function(cell_tower_file,
 #'
 #' }
 #'}
-#' @import sf rstac terra
-#' @importFrom haven read_dta
-#' @importFrom httr GET write_disk config timeout status_code
-#' @importFrom exactextractr exact_extract
-#' @importFrom reticulate use_condaenv use_python py_run_string source_python
-#'
 #' @export
 
 geolink_landcover <- function(start_date,
@@ -3765,9 +3857,6 @@ geolink_landcover <- function(start_date,
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
-#' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
-#' @importFrom data.table :=
-#'
 #' @examples
 #' \dontrun{
 #' \donttest{
@@ -4034,8 +4123,6 @@ geolink_vegindex <- function(
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
-#' @import rstac terra raster dplyr osmdata sf httr geodata progress data.table
-#' @importFrom lubridate year month days day as_date
 #'
 #' @examples
 #' \dontrun{
@@ -4118,7 +4205,9 @@ geolink_pollution <- function(
 
   allmonths <- seq.Date(start_date, end_date, by = "month")
   allmonths <- data.table::data.table(allmonths)
-  allmonths <- allmonths[, .(year = year(allmonths), month = month(allmonths), day = 1)]
+  allmonths <- allmonths[, .(year = lubridate::year(allmonths),
+                             month = lubridate::month(allmonths),
+                             day = 1)]
 
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
 
@@ -4130,7 +4219,7 @@ geolink_pollution <- function(
 
   for (x in 1:nrow(allmonths)){
     start_date_ind <- as.Date(paste0(allmonths[x, .(year)], "-", allmonths[x, .(month)], "-01"))
-    end_date_ind <- start_date_ind + months(1) - days(1)
+    end_date_ind <- start_date_ind + lubridate::months(1) - lubridate::days(1)
     it_obj <- s_obj %>%
       stac_search(collections = "sentinel-5p-l2-netcdf",
                   bbox = sf::st_bbox(sf_obj),
@@ -4156,7 +4245,8 @@ geolink_pollution <- function(
     }
 
     if (length(features_month) > 0) {
-      features_month <- features_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
+      features_month <- features_month[which(lubridate::day(dates_month)==
+                                               lubridate::day(dates_month[which.max(lubridate::day(dates_month))]))]
       bboxes_month <- bboxes_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
       features <- features[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
 

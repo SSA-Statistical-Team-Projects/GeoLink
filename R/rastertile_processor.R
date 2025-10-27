@@ -17,7 +17,6 @@ utils::globalVariables(c(
 #' @param ... Additional arguments passed to methods.
 
 #'
-#' @importFrom data.table as.data.table
 #'
 #' @export
 as.data.table.raster <- function(x,
@@ -113,7 +112,7 @@ filter_tiles <- function(raster_objs,
 }
 
 
-#' @import terra sf exactextractr
+#' @import exactextractr
 
 # Function to filter and reproject tiles
 filter_tiles_landcover <- function(raster_objs, dt, numCores = NULL) {

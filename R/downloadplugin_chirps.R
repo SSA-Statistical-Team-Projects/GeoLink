@@ -7,7 +7,6 @@
 #' @param end_date An object of class date, must be specified like as.Date("yyyy-mm-dd")
 #' @param link_base the link to the daily chirps data (no need to change this)
 #'
-#' @import data.table parallel raster
 #' @export
 #'
 get_month_chirps <- function(start_date,
@@ -71,7 +70,6 @@ get_month_chirps <- function(start_date,
 #' @param link_base the link to the daily chirps data (no need to change this)
 #' @param cores the number of PC cores to employ in pulling the data in parallel
 #'
-#' @import data.table parallel raster
 #' @export
 #'
 get_annual_chirps <- function(start_year,

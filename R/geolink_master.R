@@ -9,7 +9,6 @@
 #' @param ... Additional parameters passed directly to the specific data extraction function
 #'
 #' @export
-#' @import sf
 #' @importFrom methods is
 #'
 #' @examples
@@ -373,18 +372,17 @@ run_geolink <- function(
   })
 }
 
-#' Function to extract local raster  
+#' Function to extract local raster
 #'
-#' @param shp_dt A sf/dataframe with polygons  
-#' @param survey_dt A sf/data.frame object, the geocoded survey 
-#' @param raster_file File location of local raster to be used 
-#' @param extract_fun function to be extracted 
+#' @param shp_dt A sf/dataframe with polygons
+#' @param survey_dt A sf/data.frame object, the geocoded survey
+#' @param raster_file File location of local raster to be used
+#' @param extract_fun function to be extracted
 #' @param survey_crs CRS for survey data, defaults to 4326
-#' @param name_set A nameset that will be created for the variables 
-#' @param weight_raster a raster object used as weights when applying extract_fun, defaults to NULL  
-#' @param ... Additional parameters passed directly to the postdownload_processor function 
+#' @param name_set A nameset that will be created for the variables
+#' @param weight_raster a raster object used as weights when applying extract_fun, defaults to NULL
+#' @param ... Additional parameters passed directly to the postdownload_processor function
 #' @export
-#' @import sf
 #' @importFrom methods is
 #'
 #' @examples
@@ -397,19 +395,19 @@ run_geolink <- function(
 process_raster <- function(shp_dt =NULL,
                            survey_dt = NULL,
                            raster_file,
-                           extract_fun, 
+                           extract_fun,
                            survey_crs = 4326,
                            name_set = "geolink_feature",
                            weight_raster = NULL,
                            grid_size = NULL)
 {
-raster <- rast(raster_file)    
-geolink_results <- postdownload_processor(shp_dt = shp_dt, raster_objs = raster,  
+raster <- rast(raster_file)
+geolink_results <- postdownload_processor(shp_dt = shp_dt, raster_objs = raster,
                                                               extract_fun = extract_fun,
-                                                              survey_crs = survey_crs, 
-                                                              name_set = name_set, 
-                                                              return_raster = F, 
+                                                              survey_crs = survey_crs,
+                                                              name_set = name_set,
+                                                              return_raster = F,
                                                               weight_raster = weight_raster,
                                                               grid_size = NULL)
-return(geolink_results)   
+return(geolink_results)
 }

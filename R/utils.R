@@ -17,15 +17,3 @@ verify_python_env <- function() {
     )
   )
 }
-
-# Optional: Add a print method for easy debugging
-print.python_env_status <- function(x) {
-  cat("Virtual Environment Status:\n")
-  cat("Path:", x$venv_path, "\n")
-  cat("Exists:", x$venv_exists, "\n")
-  if (!is.null(x$python_config)) {
-    cat("Python Version:", x$python_config$version, "\n")
-  } else {
-    cat("Python configuration not available\n")
-  }
-}

@@ -276,7 +276,6 @@ read_opencellid_data <- function(file_path) {
 #'
 #' @param file_path character, a file location path
 #'
-#' @importFrom data.table as.data.table
 #'
 read_survey_data <- function(file_path) {
   if (grepl("\\.dta$", file_path)) {
