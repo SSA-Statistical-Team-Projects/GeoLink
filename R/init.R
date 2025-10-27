@@ -1,6 +1,7 @@
 #' @description
 #' Internal function called when the GeoLink package is loaded.
 #' Initializes package environment and displays startup message.
+#' Python environment is lazily loaded only when needed to reduce startup time.
 #'
 #' @param libname Character string giving the library directory where the package
 #'                defining the namespace was found.
@@ -16,7 +17,7 @@
 #'   \item python_path: Path to Python executable (set after initialization)
 #' }
 #'
-#' @return NULL
+#' @return NULL (invisible). Side effect: creates package environment.
 #'
 #' @keywords internal
 .onLoad <- function(libname, pkgname) {
