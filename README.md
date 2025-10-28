@@ -10,8 +10,7 @@ issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geoli
 -->
 
 GeoLink is an R package that provides easy access to various geospatial
-datasets, allowing seamless integration with World Bank surveys or other data 
-that contains coordinate geometry such as shapefiles and geopackages.
+datasets, allowing seamless integration with World Bank surveys and other spatial data.
 
 ## 📋 Table of Contents
 
@@ -144,8 +143,6 @@ leaflet(pop_data) %>%
 ```
 
 ![](assets/images/population_map.png)
-
-**[👥 View Interactive Map](https://ssa-statistical-team-projects.github.io/GeoLink/interactive-examples/population_density_map.html)**
 
 
 ### 3. Elevation Profile with Cropland Overlay
