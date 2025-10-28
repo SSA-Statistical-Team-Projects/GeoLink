@@ -104,44 +104,7 @@ ggplot(rainfall_map) +
 **[🌃 View Interactive Map](https://ssa-statistical-team-projects.github.io/GeoLink/interactive-examples/rainfall_map.html)**
 
 
-### 2. Night Time Lights Analysis
-
-``` r
-# Get night time lights data
-ntl_map <- geolink_ntl(
-    time_unit = "annual",
-    start_date = "2020-01-01",
-    end_date = "2020-12-31",
-    shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",],
-    indicator = "average_masked",
-    grid_size = 1000
-)
-
-# Create illuminating visualization
-ggplot(ntl_map) +
-    geom_sf(aes(fill = ntl_annual1average_masked)) +
-    scale_fill_gradient(
-        low = "navy",
-        high = "yellow",
-        name = "Light Intensity"
-    ) +
-    theme_minimal() +
-    labs(
-        title = "2020 Night Time Light Intensity",
-        subtitle = "Lagos State, Nigeria",
-        caption = "Data source: NASA Black Marble"
-    ) +
-    theme(
-        panel.background = element_rect(fill = "black"),
-        plot.background = element_rect(fill = "black"),
-        text = element_text(color = "white"),
-        plot.title = element_text(color = "white", size = 16, face = "bold")
-    )
-```
-
-![](assets/images/ntl_map.png)
-
-### 3. Interactive Population Density
+### 2. Interactive Population Density
 
 ``` r
 library(leaflet)
@@ -185,7 +148,7 @@ leaflet(pop_data) %>%
 **[👥 View Interactive Map](https://ssa-statistical-team-projects.github.io/GeoLink/interactive-examples/population_density_map.html)**
 
 
-### 4. Elevation Profile with Cropland Overlay
+### 3. Elevation Profile with Cropland Overlay
 
 ``` r
 # Combine elevation and cropland data
@@ -232,19 +195,6 @@ df <- geolink_chirps(
     start_date = "2020-01-01",
     end_date = "2020-03-01",
     shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-    grid_size = 1000
-)
-```
-
-### Night Time Lights
-
-``` r
-df <- geolink_ntl(
-    time_unit = "month",
-    start_date = "2020-01-01",
-    end_date = "2020-03-01",
-    shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-    indicator = "avg_rade9h",
     grid_size = 1000
 )
 ```
