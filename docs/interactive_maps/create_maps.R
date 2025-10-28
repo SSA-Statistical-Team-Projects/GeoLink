@@ -6,18 +6,17 @@ library(leaflet)
 library(leafpop)
 library(htmlwidgets)
 
-# Check current working directory
-cat("Current working directory:", getwd(), "\n")
+# Use relative path for GitHub Pages
+# When running locally, set this to your repo root
+repo_root <- here::here()  # or manually set: "C:/Users/wb610463/OneDrive - WBG/Documents/GeoLink/GeoLink"
 
-# Create the full path for the output directory
-output_dir <- file.path(getwd(), "docs", "interactive-examples")
+# Create output directory in the repo
+output_dir <- file.path(repo_root, "docs", "interactive-examples")
 
-# Create directory if it doesn't exist
+# Ensure directory exists
 if (!dir.exists(output_dir)) {
   dir.create(output_dir, recursive = TRUE)
   cat("Created directory:", output_dir, "\n")
-} else {
-  cat("Directory already exists:", output_dir, "\n")
 }
 
 # ============================================================================
