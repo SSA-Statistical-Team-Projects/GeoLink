@@ -1,15 +1,13 @@
 
 # GeoLink 🌍
 
-<!-- badges: start -->
-
+<!-- 
 [![R-CMD-check](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub
 issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geolink)](https://github.com/SSA-Statistical-Team-Projects/geolink/issues)
-
-<!-- badges: end -->
+-->
 
 GeoLink is an R package that provides easy access to various geospatial
 datasets, allowing seamless integration with your spatial data or
