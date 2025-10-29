@@ -2,28 +2,31 @@
 % Please edit documentation in R/zonalstats_plugin.R
 \name{compute_zonalstats}
 \alias{compute_zonalstats}
-\title{A function to compute zonal statistics from multiple rasters into one shapefile
-object}
+\title{A function to extract raster values into the shapefile}
 \usage{
-compute_zonalstats(shp_dt, raster_objs, extract_fun, name_set, weight_raster)
+compute_zonalstats(
+  shp_dt,
+  raster_objs,
+  extract_fun,
+  name_set,
+  weight_raster = NULL
+)
 }
 \arguments{
-\item{shp_dt}{an sf/dataframe with polygons}
+\item{shp_dt}{an sf object with polygons}
 
-\item{raster_objs}{a list of raster objects to be extracted from}
+\item{raster_objs}{a list of rasters}
 
-\item{extract_fun}{function to be extracted}
+\item{extract_fun}{a function string to compute the extract, i.e. mean, min, max,
+weighted_mean, quantiles, etc...}
 
-\item{name_set}{a nameset which will be created for the variables}
+\item{name_set}{a character vector of the names for the extracted raster
+values}
 
-\item{weight_raster}{a raster object or a list of weighting rasters or the
-equal in length to \code{raster_objs}}
+\item{weight_raster}{(optional) a raster to be used as weights for weighted
+statistics}
 }
 \description{
-A function to compute zonal statistics from multiple rasters into one shapefile
-object
-}
-\details{
-A parallelization option will be added at
-some point
+This function will extract raster values as zonal statistics into the
+corresponding polygons in the shapefile
 }

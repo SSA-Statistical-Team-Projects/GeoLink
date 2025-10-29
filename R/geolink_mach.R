@@ -1,6 +1,7 @@
 #' @import sf
 #' @import ggplot2
 #' @import reticulate
+#' @import rstac
 #'
 #' @importFrom terra rast crs project ext nlyr names crop mask resample aggregate
 #' @importFrom terra extract values app global cellSize zonal vect writeRaster
@@ -3345,6 +3346,8 @@ geolink_landcover <- function(start_date,
                               return_raster = FALSE,
                               weight_raster = NULL,
                               python=F) {
+
+  geolink_setup_python()
 
   is_ubuntu <- FALSE
 

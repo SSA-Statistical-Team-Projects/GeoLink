@@ -2,7 +2,6 @@
 
 S3method(as.data.table,raster)
 S3method(print,geolink_python_info)
-export(compute_zonalstats)
 export(create_query_bbox)
 export(filter_tiles)
 export(gengrid2)
