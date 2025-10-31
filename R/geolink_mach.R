@@ -4277,7 +4277,7 @@ geolink_pollution <- function(
 
   for (x in 1:nrow(allmonths)){
     start_date_ind <- as.Date(paste0(allmonths[x, .(year)], "-", allmonths[x, .(month)], "-01"))
-    end_date_ind <- start_date_ind + lubridate::months(1) - lubridate::days(1)
+    end_date_ind <- start_date_ind + lubridate:::months.numeric(1) - lubridate::days(1)
     it_obj <- s_obj %>%
       stac_search(collections = "sentinel-5p-l2-netcdf",
                   bbox = sf::st_bbox(sf_obj),
@@ -4351,8 +4351,8 @@ geolink_pollution <- function(
       }
 
       tryCatch({
-        ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
-        crs(rall) <- "EPSG:4326"
+        terra:::ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
+        terra:::crs(rall) <- "EPSG:4326"
         raster_objs[[month_idx]] <- rall[[layer]]
         print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed."))
       }, error = function(e) {
