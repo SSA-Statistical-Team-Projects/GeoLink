@@ -55,3 +55,4 @@ SystemRequirements: Python (>= 3.7)
 RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 Config/reticulate: list(packages = c("numpy", "rasterio", "tqdm", "certifi"))
+URL: https://ssa-statistical-team-projects.github.io/GeoLink/
