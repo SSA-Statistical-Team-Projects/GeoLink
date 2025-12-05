@@ -1,4 +1,3 @@
-
 #' Compute zonal statistics in-parallel
 #'
 #' A function to split a shapefile into many parts and computes the zonal statistics
@@ -11,7 +10,7 @@
 #' @param fun the function to be used compute zonal statistics
 #' @param numCores the number of cores to be used in parallel processing
 #'
-#' @import parallelMap doParallel foreach raster sf exactextractr
+#' @import parallelMap doParallel foreach
 #' @export
 
 
@@ -246,106 +245,79 @@ harmonize_weights <- function(raster_objs,
 }
 
 
-
-
-#' A function to compute zonal statistics from multiple rasters into one shapefile
-#' object
+#' A function to extract raster values into the shapefile
 #'
-#' @param shp_dt an sf/dataframe with polygons
-#' @param raster_objs a list of raster objects to be extracted from
-#' @param extract_fun function to be extracted
-#' @param name_set a nameset which will be created for the variables
-#' @param weight_raster a raster object or a list of weighting rasters or the
-#' equal in length to `raster_objs`
+#' This function will extract raster values as zonal statistics into the
+#' corresponding polygons in the shapefile
+#'
+#' @param shp_dt an sf object with polygons
+#' @param raster_objs a list of rasters
+#' @param extract_fun a function string to compute the extract, i.e. mean, min, max,
+#' weighted_mean, quantiles, etc...
+#' @param name_set a character vector of the names for the extracted raster
+#' values
+#' @param weight_raster (optional) a raster to be used as weights for weighted
+#' statistics
 #'
 #'
-#' @details A parallelization option will be added at
-#' some point
-#'
-#' @export
-
-
 
 compute_zonalstats <- function(shp_dt,
                                raster_objs,
                                extract_fun,
                                name_set,
-                               weight_raster) {
-  # Validate inputs
-  if (is.null(shp_dt) || is.null(raster_objs)) {
-    warning("Input shapefile or raster objects are NULL. Cannot proceed.")
-    return(NULL)
-  }
+                               weight_raster = NULL) {
 
-  # Ensure shapefile is in sf format
+  # Ensure shp_dt is an sf object
   if (!inherits(shp_dt, "sf")) {
-    tryCatch({
-      shp_dt <- sf::st_as_sf(shp_dt)
-    }, error = function(e) {
-      stop("Cannot convert input to sf object: ", e$message)
-    })
+    stop("shp_dt must be an sf object")
   }
 
-  # Check raster objects
-  if (length(raster_objs) == 0) {
-    warning("No raster objects provided.")
-    return(shp_dt)
+  # Ensure raster_objs is a list
+  if (!is.list(raster_objs)) {
+    raster_objs <- list(raster_objs)
   }
 
-  # Validate name_set
-  if (length(name_set) != length(raster_objs)) {
-    stop("Length of name_set must match number of raster objects")
-  }
-
-  # Print extraction message
-  print("Extracting raster/vector data into shapefile")
-
-  # Get CRS and ensure all objects are raster package objects
-  all_raster_objs <- lapply(raster_objs, function(r) {
-    if (inherits(r, "SpatRaster")) {
-      raster::raster(r)
+  # Check if all raster objects are valid
+  all_raster_objs <- list()
+  for (i in seq_along(raster_objs)) {
+    if (inherits(raster_objs[[i]], c("RasterLayer", "RasterStack", "RasterBrick"))) {
+      # Convert to SpatRaster for consistency
+      all_raster_objs[[i]] <- terra::rast(raster_objs[[i]])
+    } else if (inherits(raster_objs[[i]], "SpatRaster")) {
+      all_raster_objs[[i]] <- raster_objs[[i]]
     } else {
-      r
+      stop(paste("Raster object", i, "is not a valid raster type"))
     }
-  })
+  }
 
-  raster_crs <- raster::crs(all_raster_objs[[1]])
-  print(paste("CRS of raster objects:", raster_crs@projargs))
+  # Ensure name_set matches the number of rasters
+  if (length(name_set) != length(all_raster_objs)) {
+    stop("Length of name_set must match the number of raster objects")
+  }
 
-  # Transform shapefile to raster CRS
-  tryCatch({
-    shp_dt <- sf::st_transform(shp_dt, crs = raster_crs)
-  }, error = function(e) {
-    warning("Could not transform shapefile CRS, continuing anyway: ", e$message)
-  })
+  # Ensure shp_dt is in the same CRS as the rasters
+  raster_crs <- terra::crs(all_raster_objs[[1]])
+  shp_dt <- sf::st_transform(shp_dt, raster_crs)
 
-  ### use weights if weight_raster is specified
-  if (!is.null(weight_raster)){
-
-    # Ensure weight_raster is in the correct format
-    if (is.list(weight_raster)) {
-      weight_raster_use <- weight_raster[[1]]
-    } else {
+  # Handle weighted statistics if weight_raster is provided
+  if (!is.null(weight_raster)) {
+    # Convert weight_raster to SpatRaster if needed
+    if (inherits(weight_raster, c("RasterLayer", "RasterStack", "RasterBrick"))) {
+      weight_raster_use <- terra::rast(weight_raster)
+    } else if (inherits(weight_raster, "SpatRaster")) {
       weight_raster_use <- weight_raster
+    } else {
+      stop("weight_raster must be a valid raster type")
     }
 
-    # Convert to raster if it's terra
-    if (inherits(weight_raster_use, "SpatRaster")) {
-      weight_raster_use <- raster::raster(weight_raster_use)
-    }
-
-    # Check if weight raster needs resampling
-    if (!raster::compareRaster(all_raster_objs[[1]], weight_raster_use,
-                               extent = FALSE, rowcol = FALSE,
-                               crs = TRUE, res = FALSE,
-                               stopiffalse = FALSE)) {
-      print("Resampling weight raster to match data raster...")
+    # Check if weight_raster aligns with data rasters
+    if (!terra::compareGeom(all_raster_objs[[1]], weight_raster_use,
+                            stopiffalse = FALSE)) {
       weight_raster_use <- raster::resample(weight_raster_use, all_raster_objs[[1]], method = "bilinear")
     }
 
     # Extract values for each raster with weights
     for (i in seq_along(all_raster_objs)) {
-      print(paste("Extracting", name_set[i], "with weighted", extract_fun))
 
       tryCatch({
         # For weighted mean, we might need to handle it differently
@@ -390,9 +362,6 @@ compute_zonalstats <- function(shp_dt,
           )
         }
 
-        print(paste("Successfully extracted", name_set[i],
-                    "- sample values:", paste(head(shp_dt[[name_set[i]]], 3), collapse = ", ")))
-
       }, error = function(e) {
         warning(paste("Could not extract values for", name_set[i], ":", e$message))
         shp_dt[[name_set[i]]] <- NA
@@ -402,7 +371,6 @@ compute_zonalstats <- function(shp_dt,
   } else {
     # Extract values for each raster without weights
     for (i in seq_along(all_raster_objs)) {
-      print(paste("Extracting", name_set[i], "with", extract_fun))
 
       tryCatch({
         shp_dt[[name_set[i]]] <- exactextractr::exact_extract(
@@ -410,9 +378,6 @@ compute_zonalstats <- function(shp_dt,
           y = shp_dt,
           fun = extract_fun
         )
-
-        print(paste("Successfully extracted", name_set[i],
-                    "- sample values:", paste(head(shp_dt[[name_set[i]]], 3), collapse = ", ")))
 
       }, error = function(e) {
         warning(paste("Could not extract values for", name_set[i], ":", e$message))
@@ -448,12 +413,6 @@ postdownload_processor <- function(raster_objs,
                                    return_raster,
                                    weight_raster) {
 
-  # DEBUG: Check raster_objs at the start
-  print(paste("DEBUG: postdownload_processor received", length(raster_objs), "raster objects"))
-  if (length(raster_objs) > 0) {
-    print(paste("DEBUG: First raster class:", class(raster_objs[[1]])))
-  }
-
   # Check if return_raster is TRUE early and return immediately
   if (return_raster == TRUE) {
     if (!is.null(shp_dt) || !is.null(shp_fn)) {
@@ -476,10 +435,7 @@ postdownload_processor <- function(raster_objs,
     shp_dt <- zonalstats_prepshp(shp_fn = shp_fn, grid_size = grid_size)
   }
   if (!is.null(shp_dt)) {
-    # DEBUG: Check shp_dt before prep
-    print(paste("DEBUG: shp_dt class before prep:", class(shp_dt)))
     shp_dt <- zonalstats_prepshp(shp_dt = shp_dt, grid_size = grid_size)
-    print(paste("DEBUG: shp_dt class after prep:", class(shp_dt)))
   }
 
   # Process survey data only if it's not NULL
@@ -528,18 +484,11 @@ postdownload_processor <- function(raster_objs,
     sf_obj <- sf::read_sf(shp_fn)
     sf_obj <- ensure_crs_4326(sf_obj)
   } else {
-    print("Input a valid sf object or geosurvey")
     sf_obj <- NULL
   }
 
   # Extract raster into shapefile
   if (!is.null(shp_dt)) {
-    # DEBUG: Check before compute_zonalstats
-    print(paste("DEBUG: About to call compute_zonalstats with", length(raster_objs), "rasters"))
-    print(paste("DEBUG: shp_dt is:", class(shp_dt)))
-    print(paste("DEBUG: extract_fun is:", extract_fun))
-    print(paste("DEBUG: name_set length:", length(name_set)))
-
     shp_dt <- compute_zonalstats(
       shp_dt = shp_dt,
       raster_objs = raster_objs,

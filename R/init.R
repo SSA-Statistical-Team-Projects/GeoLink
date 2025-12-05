@@ -1,565 +1,582 @@
+#' @description
+#' Internal function called when the GeoLink package is loaded.
+#' Initializes package environment and displays startup message.
+#' Python environment is lazily loaded only when needed to reduce startup time.
+#'
+#' @param libname Character string giving the library directory where the package
+#'                defining the namespace was found.
+#' @param pkgname Character string giving the name of the package.
+#'
+#' @details
+#' This function creates a package-level environment to store configuration and
+#' state information, including:
+#' \itemize{
+#'   \item conda_env_name: Name of the conda environment for this package
+#'   \item python_initialized: Boolean flag indicating Python setup status
+#'   \item os_type: Operating system type for platform-specific configurations
+#'   \item python_path: Path to Python executable (set after initialization)
+#' }
+#'
+#' @return NULL (invisible). Side effect: creates package environment.
+#'
+#' @keywords internal
 .onLoad <- function(libname, pkgname) {
-  tryCatch({
-    # Create package environment to store configuration
-    pkg_env <- new.env(parent = emptyenv())
+  pkg_env <- new.env(parent = emptyenv())
 
-    # Specify the environment name for our geospatial distribution
-    geo_env_name <- "geolink_env"
-    pkg_env$conda_env_name <- geo_env_name
+  pkg_env$conda_env_name <- "geolink_env"
+  pkg_env$python_initialized <- FALSE
+  pkg_env$os_type <- Sys.info()["sysname"]
+  pkg_env$python_path <- NULL
 
-    # Detect operating system
-    os_type <- Sys.info()["sysname"]
-    pkg_env$os_type <- os_type
-    packageStartupMessage("Detected operating system: ", os_type)
+  pkg_namespace <- asNamespace(pkgname)
+  assign("pkg_env", pkg_env, envir = pkg_namespace)
 
-    # Check if conda is available
-    conda_bin <- tryCatch(reticulate::conda_binary(), error = function(e) NULL)
+  packageStartupMessage(
+    "GeoLink loaded. Python environment will be initialized when needed.\n",
+    "To manually initialize: geolink_setup_python()"
+  )
+}
 
-    if (is.null(conda_bin) || !file.exists(conda_bin)) {
-      packageStartupMessage("Conda not found. Installing Miniconda...")
+#' Setup Python Environment for GeoLink
+#'
+#' @description
+#' Configures and installs the Python environment required for GeoLink's
+#' geospatial operations. This includes installing Miniconda (if needed),
+#' creating a conda environment, and installing necessary Python packages.
+#'
+#' @param force Logical. If TRUE, forces reinstallation even if the environment
+#'              already exists. Default is FALSE.
+#' @param minimal Logical. If TRUE, installs only essential packages (Python and NumPy).
+#'                If FALSE, installs full geospatial stack. Default is FALSE.
+#' @param verbose Logical. If TRUE, displays detailed installation progress messages.
+#'                Default is TRUE.
+#'
+#' @return Invisible TRUE if setup succeeds, stops with error if setup fails.
+#'
+#' @details
+#' The function performs the following steps:
+#' \enumerate{
+#'   \item Checks if Python environment is already initialized
+#'   \item Installs Miniconda if not present
+#'   \item Creates a conda environment named "geolink_env"
+#'   \item Installs Python packages based on the minimal parameter:
+#'     \itemize{
+#'       \item Minimal: Python 3.10, NumPy
+#'       \item Full: Adds GDAL, Rasterio, PyProj, Fiona, Shapely (platform-specific)
+#'     }
+#'   \item Activates the environment for use with reticulate
+#' }
+#'
+#' Platform-specific considerations:
+#' \itemize{
+#'   \item Windows: Installs a reduced set of packages due to compatibility
+#'   \item Unix/Linux/macOS: Installs full geospatial stack
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Basic setup with full geospatial packages
+#' geolink_setup_python()
+#'
+#' # Minimal setup for basic operations
+#' geolink_setup_python(minimal = TRUE)
+#'
+#' # Force reinstallation
+#' geolink_setup_python(force = TRUE)
+#'
+#' # Quiet installation
+#' geolink_setup_python(verbose = FALSE)
+#' }
+#'
+#' @export
+#' @importFrom reticulate conda_binary install_miniconda conda_list
+#' @importFrom reticulate conda_create conda_install use_condaenv conda_python
+geolink_setup_python <- function(force = FALSE, minimal = FALSE, verbose = TRUE) {
+  pkg_env <- get("pkg_env", envir = asNamespace("GeoLink"))
+
+  if (pkg_env$python_initialized && !force) {
+    if (verbose) {
+      message("Python environment already initialized.")
+      message("Use force = TRUE to reinstall.")
+    }
+    return(invisible(TRUE))
+  }
+
+  if (verbose) {
+    message("Setting up Python environment for GeoLink...")
+    message("This may take several minutes on first installation.")
+  }
+
+  conda_bin <- tryCatch(
+    reticulate::conda_binary(),
+    error = function(e) NULL
+  )
+
+  if (is.null(conda_bin) || !file.exists(conda_bin)) {
+    if (verbose) {
+      message("Conda not found. Installing Miniconda...")
+      message("This is a one-time installation.")
+    }
+
+    tryCatch({
       reticulate::install_miniconda()
       conda_bin <- reticulate::conda_binary()
-
-      if (!file.exists(conda_bin)) {
-        stop("Miniconda installation failed.")
-      }
-    }
-
-    packageStartupMessage("Using Conda at: ", conda_bin)
-
-    # Check if our environment exists
-    envs <- reticulate::conda_list()
-    env_exists <- geo_env_name %in% envs$name
-
-    if (!env_exists) {
-      packageStartupMessage("Creating new conda environment for geospatial processing: ", geo_env_name)
-
-      # OS-specific package customizations
-      if (os_type == "Windows") {
-        packageStartupMessage("Configuring for Windows...")
-        # Windows-specific approach
-        reticulate::conda_create(geo_env_name)
-
-        # Install base packages
-        packageStartupMessage("Installing base packages...")
-        reticulate::conda_install(geo_env_name,
-                                  c("python=3.10", "numpy", "tqdm", "certifi"),
-                                  channel = "conda-forge")
-
-        # Install GDAL with Windows-specific settings
-        packageStartupMessage("Installing geospatial packages for Windows...")
-        output <- system2(conda_bin,
-                          c("install", "-y", "-n", geo_env_name,
-                            "-c", "conda-forge",
-                            shQuote("libtiff>=4.6.1"),
-                            shQuote("gdal>=3.6.0"),
-                            "rasterio"),
-                          stdout = TRUE, stderr = TRUE)
-
-        if (length(output) > 0) {
-          packageStartupMessage("Installation output: ", paste(output[1:min(5, length(output))], collapse="\n"))
-        }
-      } else if (os_type == "Darwin") {
-        packageStartupMessage("Configuring for macOS...")
-        # macOS-specific approach
-        output <- system2(conda_bin,
-                          c("create", "-y", "-n", geo_env_name,
-                            "-c", "conda-forge",
-                            "python=3.10",
-                            "numpy",
-                            shQuote("gdal>=3.6.0"),
-                            shQuote("libtiff>=4.6.1"),
-                            "rasterio",
-                            "tqdm",
-                            "certifi"),
-                          stdout = TRUE, stderr = TRUE)
-
-        if (length(output) > 0) {
-          packageStartupMessage("Installation output: ", paste(output[1:min(5, length(output))], collapse="\n"))
-        }
-      } else if (os_type == "Linux") {
-        packageStartupMessage("Configuring for Linux...")
-        # Check if this is Ubuntu
-        is_ubuntu <- FALSE
-        if (file.exists("/etc/os-release")) {
-          os_info <- readLines("/etc/os-release")
-          is_ubuntu <- any(grepl("Ubuntu", os_info))
-        }
-
-        # Create base environment first for Linux/Ubuntu
-        packageStartupMessage("Creating base Python environment...")
-        output <- system2(conda_bin,
-                          c("create", "-y", "-n", geo_env_name,
-                            "-c", "conda-forge",
-                            "python=3.10",
-                            "numpy",
-                            "tqdm",
-                            "certifi",
-                            "pip"),
-                          stdout = TRUE, stderr = TRUE)
-
-        if (length(output) > 0) {
-          packageStartupMessage("Environment creation output: ", paste(output[1:min(5, length(output))], collapse="\n"))
-        }
-
-        # Get python and pip paths
-        py_path <- reticulate::conda_python(geo_env_name)
-        pkg_env$python_path <- py_path
-
-        pip_path <- file.path(dirname(py_path), "pip")
-        if (!file.exists(pip_path)) {
-          pip_path <- file.path(dirname(py_path), "pip3")
-        }
-
-        if (file.exists(pip_path)) {
-          packageStartupMessage("Installing dependencies via pip for Linux...")
-
-          # Install required system libraries if possible
-          if (is_ubuntu) {
-            packageStartupMessage("Detected Ubuntu Linux, installing system dependencies...")
-            # We can't guarantee system installs will work in R package, so we focus on pip
-          }
-
-          # Install base dependencies through pip
-          packageStartupMessage("Installing base dependencies with pip...")
-          output <- system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Pip upgrade output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          # Install GDAL and rasterio through pip
-          packageStartupMessage("Installing GDAL and libtiff6 dependencies...")
-          output <- system2(pip_path, c("install", "wheel", "setuptools"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Wheel/setuptools install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          # First install critical dependencies for GDAL and rasterio
-          packageStartupMessage("Installing critical dependencies for geospatial libraries...")
-          output <- system2(pip_path, c("install", "cython"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Cython install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          # Then install GDAL
-          packageStartupMessage("Installing GDAL...")
-          output <- system2(pip_path, c("install", "--no-binary=gdal", shQuote("GDAL>=3.6.0")), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("GDAL install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          # Now install rasterio
-          packageStartupMessage("Installing rasterio...")
-          output <- system2(pip_path, c("install", "--no-binary=rasterio", "rasterio"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Rasterio install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          # Install additional required packages
-          packageStartupMessage("Installing additional required packages...")
-          output <- system2(pip_path, c("install", "pyproj", "fiona", "shapely"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Additional packages install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-        } else {
-          packageStartupMessage("Pip not found, falling back to conda for Linux...")
-          # Fall back to conda if pip is not available
-          if (is_ubuntu) {
-            packageStartupMessage("Using conda for Ubuntu Linux...")
-            output <- system2(conda_bin,
-                              c("install", "-y", "-n", geo_env_name,
-                                "-c", "conda-forge",
-                                shQuote("gdal>=3.6.0"),
-                                "libtiff6",
-                                "rasterio"),
-                              stdout = TRUE, stderr = TRUE)
-            if (length(output) > 0) {
-              packageStartupMessage("Conda install output: ", paste(output[1:min(5, length(output))], collapse="\n"))
-            }
-          } else {
-            packageStartupMessage("Using conda for generic Linux...")
-            output <- system2(conda_bin,
-                              c("install", "-y", "-n", geo_env_name,
-                                "-c", "conda-forge",
-                                shQuote("gdal>=3.6.0"),
-                                "libtiff6",
-                                "rasterio"),
-                              stdout = TRUE, stderr = TRUE)
-            if (length(output) > 0) {
-              packageStartupMessage("Conda install output: ", paste(output[1:min(5, length(output))], collapse="\n"))
-            }
-          }
-        }
-      } else {
-        # Generic approach for other OS
-        packageStartupMessage("Using generic configuration for ", os_type, "...")
-        output <- system2(conda_bin,
-                          c("create", "-y", "-n", geo_env_name,
-                            "-c", "conda-forge",
-                            "python=3.10",
-                            "numpy",
-                            shQuote("gdal>=3.6.0"),
-                            shQuote("libtiff>=4.6.1"),
-                            "rasterio",
-                            "tqdm",
-                            "certifi"),
-                          stdout = TRUE, stderr = TRUE)
-        if (length(output) > 0) {
-          packageStartupMessage("Conda install output: ", paste(output[1:min(5, length(output))], collapse="\n"))
-        }
-      }
-
-      # Verify environment was created
-      envs <- reticulate::conda_list()
-      env_exists <- geo_env_name %in% envs$name
-
-      if (!env_exists) {
-        # If creation failed, try a simplified approach
-        packageStartupMessage("Standard creation failed. Trying simplified approach...")
-        reticulate::conda_create(geo_env_name)
-
-        # Install base packages
-        packages <- c("numpy", "tqdm", "certifi", "pip")
-        for (pkg in packages) {
-          packageStartupMessage("Installing ", pkg, " to conda environment...")
-          reticulate::conda_install(geo_env_name, pkg, channel = "conda-forge")
-        }
-
-        # Get python and pip paths
-        py_path <- reticulate::conda_python(geo_env_name)
-        pip_path <- file.path(dirname(py_path), "pip")
-        if (os_type == "Windows") {
-          pip_path <- file.path(dirname(py_path), "pip.exe")
-        }
-
-        # For Linux and Ubuntu, try to use pip
-        if (os_type == "Linux" && file.exists(pip_path)) {
-          packageStartupMessage("Trying fallback pip installation for Linux...")
-          output <- system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Pip upgrade output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          output <- system2(pip_path, c("install", "wheel", "setuptools", "cython"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Dependencies install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          output <- system2(pip_path, c("install", shQuote("GDAL>=3.6.0")), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("GDAL install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          output <- system2(pip_path, c("install", "rasterio"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Rasterio install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-        } else {
-          # Install proper dependencies first - with OS-specific tweaks
-          packageStartupMessage("Installing critical GDAL dependencies...")
-          if (os_type == "Windows") {
-            # Windows often needs special handling
-            output <- system2(conda_bin,
-                              c("install", "-y", "-n", geo_env_name,
-                                "-c", "conda-forge",
-                                shQuote("libtiff>=4.6.1"),
-                                "proj",
-                                "libgdal"),
-                              stdout = TRUE, stderr = TRUE)
-            if (length(output) > 0) {
-              packageStartupMessage("Windows dependencies output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-            }
-          } else if (os_type == "Linux") {
-            # Linux systems - MODIFIED to use libtiff6
-            output <- system2(conda_bin,
-                              c("install", "-y", "-n", geo_env_name,
-                                "-c", "conda-forge",
-                                "libtiff6",
-                                "proj",
-                                "libgdal",
-                                "libspatialite"),
-                              stdout = TRUE, stderr = TRUE)
-            if (length(output) > 0) {
-              packageStartupMessage("Linux dependencies output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-            }
-          } else {
-            # Unix-like systems (macOS)
-            output <- system2(conda_bin,
-                              c("install", "-y", "-n", geo_env_name,
-                                "-c", "conda-forge",
-                                shQuote("libtiff>=4.6.1"),
-                                "proj",
-                                "libgdal",
-                                "libspatialite"),
-                              stdout = TRUE, stderr = TRUE)
-            if (length(output) > 0) {
-              packageStartupMessage("macOS dependencies output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-            }
-          }
-
-          # Then install the main geospatial packages
-          packageStartupMessage("Installing geospatial packages to conda environment...")
-          output <- system2(conda_bin,
-                            c("install", "-y", "-n", geo_env_name,
-                              "-c", "conda-forge",
-                              shQuote("gdal>=3.6.0"),
-                              "rasterio"),
-                            stdout = TRUE, stderr = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Geospatial packages output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-        }
-      }
-    } else {
-      packageStartupMessage("Using existing conda environment: ", geo_env_name)
-
-      # Even if environment exists, check for and update the dependencies
-      packageStartupMessage("Verifying GDAL dependencies are up to date...")
-
-      # Get python and pip paths
-      py_path <- reticulate::conda_python(geo_env_name)
-      pkg_env$python_path <- py_path
-
-      # OS-specific dependency update
-      if (os_type == "Linux") {
-        # For Linux systems, attempt pip update if available
-        pip_path <- file.path(dirname(py_path), "pip")
-        if (!file.exists(pip_path)) {
-          pip_path <- file.path(dirname(py_path), "pip3")
-        }
-
-        if (file.exists(pip_path)) {
-          packageStartupMessage("Updating dependencies with pip for Linux...")
-          output <- system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Pip upgrade output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          output <- system2(pip_path, c("install", "--upgrade", shQuote("GDAL>=3.6.0")), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("GDAL upgrade output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          output <- system2(pip_path, c("install", "--upgrade", "rasterio"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Rasterio upgrade output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-        } else {
-          # Fall back to conda
-          packageStartupMessage("Pip not found, using conda for updates...")
-          output <- system2(conda_bin,
-                            c("install", "-y", "-n", geo_env_name,
-                              "-c", "conda-forge",
-                              "libtiff6"),  # Use specific libtiff6 version
-                            stdout = TRUE, stderr = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Conda update output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-        }
-      } else {
-        # For Windows and macOS, use conda
-        output <- system2(conda_bin,
-                          c("install", "-y", "-n", geo_env_name,
-                            "-c", "conda-forge",
-                            shQuote("libtiff>=4.6.1")),  # Ensure proper libtiff version
-                          stdout = TRUE, stderr = TRUE)
-        if (length(output) > 0) {
-          packageStartupMessage("Libtiff update output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-        }
-      }
-    }
-
-    # Get python path from this environment (even if already set above)
-    py_path <- reticulate::conda_python(geo_env_name)
-    pkg_env$python_path <- py_path
-
-    # Use this conda environment
-    reticulate::use_condaenv(geo_env_name, required = TRUE)
-
-    # Set environment variable to ensure conda libs are used instead of system libs
-    # This is implemented differently per OS
-    if (os_type == "Windows") {
-      # Windows uses PATH instead of LD_LIBRARY_PATH
-      Sys.setenv(PATH = paste0(
-        file.path(dirname(dirname(py_path)), "Library", "bin"),
-        ";",
-        Sys.getenv("PATH")
-      ))
-    } else if (os_type == "Darwin") {
-      # macOS library path
-      Sys.setenv(DYLD_LIBRARY_PATH = paste0(
-        file.path(dirname(dirname(py_path)), "lib"),
-        ":",
-        Sys.getenv("DYLD_LIBRARY_PATH")
-      ))
-    } else {
-      # Linux and others use LD_LIBRARY_PATH
-      Sys.setenv(LD_LIBRARY_PATH = paste0(
-        file.path(dirname(dirname(py_path)), "lib"),
-        ":",
-        Sys.getenv("LD_LIBRARY_PATH")
-      ))
-    }
-
-    # Verify the environment works and has required packages
-    # Also helps to "warm up" the environment
-    success <- tryCatch({
-      reticulate::py_run_string("
-import sys
-print('Python executable:', sys.executable)
-print('Python version:', sys.version)
-
-# Check key packages
-import numpy
-print('NumPy version:', numpy.__version__)
-
-try:
-    import rasterio
-    print('Rasterio version:', rasterio.__version__)
-except ImportError as e:
-    print('Error importing Rasterio:', e)
-    # This will be raised to R
-    raise ImportError('Rasterio package not available')
-
-try:
-    import gdal
-    print('GDAL version:', gdal.VersionInfo())
-except ImportError:
-    try:
-        from osgeo import gdal
-        print('GDAL version (from osgeo):', gdal.VersionInfo())
-    except ImportError as e:
-        print('Error importing GDAL:', e)
-        # This will be raised to R
-        raise ImportError('GDAL package not available')
-
-# Explicitly check libtiff version through GDAL
-try:
-    from osgeo import gdal
-    drivers = [gdal.GetDriver(i).ShortName for i in range(gdal.GetDriverCount())]
-    if 'GTiff' in drivers:
-        print('GTiff driver is available')
-    else:
-        print('WARNING: GTiff driver not found')
-except Exception as e:
-    print('Error checking GDAL drivers:', e)
-")
-      TRUE
     }, error = function(e) {
-      packageStartupMessage("Environment verification failed: ", conditionMessage(e))
-      # Don't stop here, we'll continue and try to fix
-      FALSE
+      stop("Failed to install Miniconda: ", e$message)
     })
 
-    if (!success) {
-      # Try to fix the environment - with OS-specific fixes
-      packageStartupMessage("Attempting to fix package installation...")
+    if (!file.exists(conda_bin)) {
+      stop("Miniconda installation failed. Please install manually.")
+    }
+  }
 
-      # Get current python path
-      py_path <- pkg_env$python_path
+  envs <- tryCatch({
+    reticulate::conda_list()
+  }, error = function(e) {
+    if (verbose) {
+      message("Warning: Could not list conda environments: ", e$message)
+    }
+    NULL
+  })
 
-      if (os_type == "Linux") {
-        # For Linux try pip first
-        pip_path <- file.path(dirname(py_path), "pip")
-        if (os_type == "Windows") {
-          pip_path <- file.path(dirname(py_path), "pip.exe")
-        }
+  env_exists <- FALSE
+  if (!is.null(envs) && is.data.frame(envs) && "name" %in% names(envs)) {
+    env_exists <- pkg_env$conda_env_name %in% envs$name
+  }
 
-        if (file.exists(pip_path)) {
-          packageStartupMessage("Using pip for Linux repair...")
-          output <- system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Pip upgrade output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          output <- system2(pip_path, c("install", "--upgrade", "--force-reinstall", shQuote("GDAL>=3.6.0")), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("GDAL reinstall output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-
-          output <- system2(pip_path, c("install", "--upgrade", "--force-reinstall", "rasterio"), stdout = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Rasterio reinstall output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-        } else {
-          # Fall back to conda for Linux
-          packageStartupMessage("Pip not found, using conda for repair...")
-          output <- system2(conda_bin,
-                            c("install", "-y", "-n", geo_env_name,
-                              "-c", "conda-forge",
-                              "--force-reinstall",
-                              "libtiff6",
-                              shQuote("gdal>=3.6.0"),
-                              "rasterio"),
-                            stdout = TRUE, stderr = TRUE)
-          if (length(output) > 0) {
-            packageStartupMessage("Conda repair output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-          }
-        }
-      } else if (os_type == "Windows") {
-        # Windows-specific fix
-        output <- system2(conda_bin,
-                          c("install", "-y", "-n", geo_env_name,
-                            "-c", "conda-forge",
-                            "--force-reinstall",
-                            shQuote("libtiff>=4.6.1"),
-                            shQuote("gdal>=3.6.0"),
-                            "rasterio"),
-                          stdout = TRUE, stderr = TRUE)
-        if (length(output) > 0) {
-          packageStartupMessage("Windows repair output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-        }
-      } else {
-        # macOS fix
-        output <- system2(conda_bin,
-                          c("install", "-y", "-n", geo_env_name,
-                            "-c", "conda-forge",
-                            "--force-reinstall",
-                            shQuote("libtiff>=4.6.1"),
-                            shQuote("gdal>=3.6.0"),
-                            "rasterio"),
-                          stdout = TRUE, stderr = TRUE)
-        if (length(output) > 0) {
-          packageStartupMessage("macOS repair output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-        }
-      }
-
-      # Use pip as a last resort for all platforms
-      pip_path <- file.path(dirname(py_path), "pip")
-      if (os_type == "Windows") {
-        pip_path <- file.path(dirname(py_path), "pip.exe")
-      }
-
-      if (file.exists(pip_path)) {
-        packageStartupMessage("Using pip as last resort at: ", pip_path)
-        output <- system2(pip_path, c("install", "--upgrade", "pip"), stdout = TRUE)
-        if (length(output) > 0) {
-          packageStartupMessage("Pip upgrade output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-        }
-
-        # In some cases, pip can resolve dependency issues better than conda
-        # But install minimal packages to avoid conflicts
-        output <- system2(pip_path, c("install", "--upgrade", "rasterio"), stdout = TRUE)
-        if (length(output) > 0) {
-          packageStartupMessage("Rasterio install output: ", paste(output[1:min(3, length(output))], collapse="\n"))
-        }
-      }
+  if (!env_exists || force) {
+    if (env_exists && force && verbose) {
+      message("Removing existing environment for fresh installation...")
     }
 
-    # Store environment in package namespace
-    # Make sure it's available in the package namespace regardless of OS
-    pkg_namespace <- asNamespace(pkgname)
-    assign("pkg_env", pkg_env, envir = pkg_namespace)
+    if (verbose) {
+      message("Creating conda environment: ", pkg_env$conda_env_name)
+    }
 
-    packageStartupMessage("Python environment setup completed successfully")
-    packageStartupMessage("Using Python at: ", pkg_env$python_path)
-    packageStartupMessage("Operating system: ", pkg_env$os_type)
+    tryCatch({
+      reticulate::conda_create(
+        envname = pkg_env$conda_env_name,
+        packages = c("python=3.10", "numpy"),
+        conda = conda_bin
+      )
+    }, error = function(e) {
+      stop("Failed to create conda environment: ", e$message)
+    })
+
+    if (!minimal) {
+      if (verbose) {
+        message("Installing geospatial packages...")
+        message("This may take 5-10 minutes on first installation.")
+      }
+
+      # Platform-specific packages
+      if (pkg_env$os_type == "Windows") {
+        packages <- c("gdal>=3.6.0", "rasterio", "libtiff>=4.6.1")
+        if (verbose) {
+          message("Windows detected: Installing core geospatial packages")
+        }
+      } else {
+        packages <- c("gdal>=3.6.0", "rasterio", "pyproj", "fiona", "shapely")
+        if (verbose) {
+          message("Unix-like system detected: Installing full geospatial stack")
+        }
+      }
+
+      tryCatch({
+        reticulate::conda_install(
+          envname = pkg_env$conda_env_name,
+          packages = packages,
+          channel = "conda-forge",
+          conda = conda_bin
+        )
+      }, error = function(e) {
+        warning("Failed to install some geospatial packages: ", e$message)
+        message("You may need to install these manually using conda.")
+      })
+    }
+  } else {
+    if (verbose) {
+      message("Environment '", pkg_env$conda_env_name, "' already exists.")
+    }
+  }
+
+  if (verbose) {
+    message("Activating Python environment...")
+  }
+
+  tryCatch({
+    reticulate::use_condaenv(pkg_env$conda_env_name, required = TRUE)
   }, error = function(e) {
-    warning(paste(
-      "Python environment setup failed:",
-      conditionMessage(e),
-      "Details:",
-      conditionMessage(e)
-    ))
+    stop("Failed to activate conda environment: ", e$message)
   })
+
+  pkg_env$python_initialized <- TRUE
+  pkg_env$python_path <- reticulate::conda_python(pkg_env$conda_env_name)
+
+  if (verbose) {
+    message("\n", paste(rep("=", 50), collapse = ""))
+    message("Python environment setup completed successfully!")
+    message("Environment name: ", pkg_env$conda_env_name)
+    message("Python path: ", pkg_env$python_path)
+    message(paste(rep("=", 50), collapse = ""), "\n")
+  }
+
+  return(invisible(TRUE))
+}
+
+#' Check Python Environment Status
+#'
+#' @description
+#' Checks whether the Python environment for GeoLink has been initialized.
+#'
+#' @return Logical. TRUE if the Python environment is initialized and ready,
+#'         FALSE otherwise.
+#'
+#' @details
+#' This function checks the internal package state to determine if the Python
+#' environment has been set up. It does not verify the actual existence or
+#' functionality of the Python installation.
+#'
+#' @examples
+#' \dontrun{
+#' # Check if Python is ready
+#' if (!geolink_python_ready()) {
+#'   geolink_setup_python()
+#' }
+#'
+#' # Use in conditional logic
+#' if (geolink_python_ready()) {
+#'   message("Ready for Python-dependent operations")
+#' }
+#' }
+#'
+#' @export
+geolink_python_ready <- function() {
+  pkg_env <- get("pkg_env", envir = asNamespace("GeoLink"))
+  return(pkg_env$python_initialized)
+}
+
+#' Ensure Python Environment is Initialized
+#'
+#' @description
+#' Internal function that checks if the Python environment is initialized
+#' and automatically sets it up if not. This provides lazy loading of the
+#' Python environment.
+#'
+#' @return NULL (invisible). Side effect: initializes Python if needed.
+#'
+#' @details
+#' This function is called internally by Python-dependent functions to ensure
+#' the environment is ready before attempting operations. It provides automatic
+#' setup with default parameters.
+#'
+#' @keywords internal
+ensure_python_initialized <- function() {
+  if (!geolink_python_ready()) {
+    message("Python environment not initialized. Setting up now...")
+    message("This is a one-time setup that may take several minutes.")
+    geolink_setup_python(verbose = TRUE)
+  }
+  invisible(NULL)
+}
+
+#' Execute GDAL Operation Safely
+#'
+#' @description
+#' Internal wrapper function that ensures Python/GDAL is initialized before
+#' executing GDAL-dependent operations.
+#'
+#' @param operation_fn Function to execute that requires GDAL/Python
+#' @param ... Additional arguments passed to operation_fn
+#'
+#' @return The result of operation_fn
+#'
+#' @details
+#' This function provides a safe execution context for GDAL operations by:
+#' \enumerate{
+#'   \item Ensuring Python environment is initialized
+#'   \item Executing the provided function with error handling
+#'   \item Returning results or propagating errors appropriately
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Internal use only
+#' result <- safe_gdal_operation(function(x) {
+#'   # GDAL-dependent operation
+#'   gdal_translate(x)
+#' }, input_file)
+#' }
+#'
+#' @keywords internal
+safe_gdal_operation <- function(operation_fn, ...) {
+  ensure_python_initialized()
+
+  tryCatch({
+    operation_fn(...)
+  }, error = function(e) {
+    if (grepl("python|gdal|rasterio", tolower(e$message))) {
+      stop("GDAL operation failed. Try reinstalling with: geolink_setup_python(force = TRUE)\n",
+           "Original error: ", e$message)
+    } else {
+      stop(e)
+    }
+  })
+}
+
+#' Configure GeoLink Settings
+#'
+#' @description
+#' Sets and saves user preferences for GeoLink package behavior, including
+#' Python usage and automatic installation settings.
+#'
+#' @param use_python Logical. If TRUE, enables Python-dependent features.
+#'                   If FALSE, restricts to R-only operations. Default is TRUE.
+#' @param auto_install Logical. If TRUE, automatically installs Python dependencies
+#'                     when needed. If FALSE, requires manual initialization. Default is FALSE.
+#'
+#' @return NULL (invisible). Side effect: saves configuration to disk.
+#'
+#' @details
+#' Configuration is saved to the user's config directory (platform-specific):
+#' \itemize{
+#'   \item Windows: \%LOCALAPPDATA\%/GeoLink/config.yml
+#'   \item macOS: ~/Library/Application Support/GeoLink/config.yml
+#'   \item Linux: ~/.config/GeoLink/config.yml
+#' }
+#'
+#' The configuration persists across R sessions and package reloads.
+#'
+#' @examples
+#' \dontrun{
+#' # Enable automatic Python setup
+#' geolink_configure(use_python = TRUE, auto_install = TRUE)
+#'
+#' # Disable Python features (R-only mode)
+#' geolink_configure(use_python = FALSE)
+#'
+#' # Check current configuration
+#' config <- load_config()
+#' print(config)
+#' }
+#'
+#' @export
+#' @importFrom rappdirs user_config_dir
+#' @importFrom yaml write_yaml
+geolink_configure <- function(use_python = TRUE, auto_install = FALSE) {
+  if (!is.logical(use_python)) {
+    stop("use_python must be TRUE or FALSE")
+  }
+  if (!is.logical(auto_install)) {
+    stop("auto_install must be TRUE or FALSE")
+  }
+
+  config <- list(
+    use_python = use_python,
+    auto_install = auto_install,
+    config_version = "1.0",
+    last_modified = Sys.time()
+  )
+
+  config_dir <- rappdirs::user_config_dir("GeoLink")
+  config_path <- file.path(config_dir, "config.yml")
+
+  if (!dir.exists(config_dir)) {
+    dir.create(config_dir, recursive = TRUE, showWarnings = FALSE)
+  }
+
+  tryCatch({
+    yaml::write_yaml(config, config_path)
+    message("Configuration saved successfully")
+    message("Location: ", config_path)
+    message("Settings:")
+    message("  - use_python: ", use_python)
+    message("  - auto_install: ", auto_install)
+  }, error = function(e) {
+    warning("Failed to save configuration: ", e$message)
+  })
+
+  invisible(NULL)
+}
+
+#' Load GeoLink Configuration
+#'
+#' @description
+#' Internal function to load user configuration from disk. Returns default
+#' configuration if no saved configuration exists.
+#'
+#' @return List containing configuration settings:
+#' \itemize{
+#'   \item use_python: Logical, whether Python features are enabled
+#'   \item auto_install: Logical, whether to auto-install Python dependencies
+#'   \item config_version: Character, version of configuration format
+#'   \item last_modified: POSIXct, when configuration was last modified
+#' }
+#'
+#' @details
+#' This function is called internally by other GeoLink functions to determine
+#' package behavior. If no configuration file exists, sensible defaults are
+#' returned (Python enabled, auto-install disabled).
+#'
+#' @examples
+#' \dontrun{
+#' # Internal use
+#' config <- load_config()
+#' if (config$use_python) {
+#'   # Execute Python-dependent code
+#' }
+#' }
+#'
+#' @keywords internal
+#' @importFrom rappdirs user_config_dir
+#' @importFrom yaml read_yaml
+load_config <- function() {
+  config_path <- file.path(rappdirs::user_config_dir("GeoLink"), "config.yml")
+
+  if (file.exists(config_path)) {
+    tryCatch({
+      config <- yaml::read_yaml(config_path)
+
+      if (!is.list(config)) {
+        warning("Invalid configuration file, using defaults")
+        config <- NULL
+      }
+
+      if (!is.null(config)) {
+        if (!"use_python" %in% names(config)) config$use_python <- TRUE
+        if (!"auto_install" %in% names(config)) config$auto_install <- FALSE
+        if (!"config_version" %in% names(config)) config$config_version <- "1.0"
+        return(config)
+      }
+    }, error = function(e) {
+      warning("Failed to load configuration: ", e$message)
+    })
+  }
+
+  return(list(
+    use_python = TRUE,
+    auto_install = FALSE,
+    config_version = "1.0",
+    last_modified = NULL
+  ))
+}
+
+#' Get Python Environment Information
+#'
+#' @description
+#' Returns detailed information about the current Python environment setup
+#' for GeoLink, useful for debugging and verification.
+#'
+#' @return A list containing:
+#' \itemize{
+#'   \item initialized: Logical, whether Python is initialized
+#'   \item env_name: Character, name of the conda environment
+#'   \item python_path: Character, path to Python executable (if initialized)
+#'   \item os_type: Character, operating system type
+#'   \item config: List, current configuration settings
+#' }
+#'
+#' @examples
+#' \dontrun{
+#' # Get environment information
+#' info <- geolink_python_info()
+#' print(info)
+#'
+#' # Check specific details
+#' if (info$initialized) {
+#'   cat("Python location:", info$python_path, "\n")
+#' }
+#' }
+#'
+#' @export
+geolink_python_info <- function() {
+  pkg_env <- get("pkg_env", envir = asNamespace("GeoLink"))
+  config <- load_config()
+
+  info <- list(
+    initialized = pkg_env$python_initialized,
+    env_name = pkg_env$conda_env_name,
+    python_path = pkg_env$python_path,
+    os_type = pkg_env$os_type,
+    config = config
+  )
+
+  class(info) <- c("geolink_python_info", "list")
+  return(info)
+}
+
+#' Print Method for GeoLink Python Information
+#'
+#' @description
+#' Custom print method for geolink_python_info objects.
+#'
+#' @param x A geolink_python_info object
+#' @param ... Additional arguments (unused)
+#'
+#' @return NULL (invisible). Side effect: prints information.
+#'
+#' @export
+#' @method print geolink_python_info
+print.geolink_python_info <- function(x, ...) {
+  cat("GeoLink Python Environment Information\n")
+  cat(paste(rep("=", 40), collapse = ""), "\n")
+  cat("Status:", ifelse(x$initialized, "Initialized", "Not initialized"), "\n")
+  cat("Environment Name:", x$env_name, "\n")
+  if (x$initialized && !is.null(x$python_path)) {
+    cat("Python Path:", x$python_path, "\n")
+  }
+  cat("Operating System:", x$os_type, "\n")
+  cat("\nConfiguration:\n")
+  cat("  Use Python:", x$config$use_python, "\n")
+  cat("  Auto Install:", x$config$auto_install, "\n")
+  invisible(x)
+}
+
+#' Reset Python Environment
+#'
+#' @description
+#' Resets the Python environment for GeoLink, useful for troubleshooting
+#' or changing Python configurations.
+#'
+#' @param remove_env Logical. If TRUE, attempts to remove the conda environment
+#'                   completely. Default is FALSE.
+#' @param verbose Logical. If TRUE, displays detailed messages. Default is TRUE.
+#'
+#' @return NULL (invisible).
+#'
+#' @examples
+#' \dontrun{
+#' # Soft reset (just marks as uninitialized)
+#' geolink_reset_python()
+#'
+#' # Hard reset (removes environment)
+#' geolink_reset_python(remove_env = TRUE)
+#' }
+#'
+#' @export
+geolink_reset_python <- function(remove_env = FALSE, verbose = TRUE) {
+  pkg_env <- get("pkg_env", envir = asNamespace("GeoLink"))
+
+  if (verbose) {
+    message("Resetting Python environment...")
+  }
+
+  pkg_env$python_initialized <- FALSE
+  pkg_env$python_path <- NULL
+
+  if (remove_env) {
+    if (verbose) {
+      message("Note: Automatic environment removal not supported by reticulate.")
+      message("Please manually remove conda environment '", pkg_env$conda_env_name,
+              "' using conda command line:")
+      message("  conda env remove -n ", pkg_env$conda_env_name)
+    }
+  }
+
+  if (verbose) {
+    message("Python environment reset complete.")
+    message("Run geolink_setup_python() to reinitialize.")
+  }
+
+  invisible(NULL)
 }

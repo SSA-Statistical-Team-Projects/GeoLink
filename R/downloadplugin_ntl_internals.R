@@ -11,7 +11,6 @@
 #' @param client_id the client ID
 #' @param client_secret the client secret created on the website
 #'
-#' @import jsonlite
 
 ntl_downloader <- function(client_id,
                            client_secret,

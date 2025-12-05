@@ -19,7 +19,8 @@ geolink_landcover(
   use_resampling = TRUE,
   target_resolution = 1000,
   return_raster = FALSE,
-  weight_raster = NULL
+  weight_raster = NULL,
+  python = F
 )
 }
 \arguments{
@@ -55,6 +56,8 @@ raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. 
 source is downloaded.}
 
 \item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
+
+\item{python}{Logical. Whether to use python code to help process rasters. Defaults to FALSE.}
 }
 \value{
 An sf object with land cover classifications by year

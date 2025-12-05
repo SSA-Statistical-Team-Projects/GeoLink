@@ -22,7 +22,7 @@ postdownload_processor(
 )
 }
 \arguments{
-\item{raster_objs}{a list of raster objects to be extracted from}
+\item{raster_objs}{a list of rasters}
 
 \item{survey_dt}{a sf/data.frame object, the geocoded survey}
 
@@ -34,22 +34,24 @@ postdownload_processor(
 \item{survey_lon}{a character, for longitude variable name in survey_fn
 (STATA users only)}
 
-\item{extract_fun}{function to be extracted}
+\item{extract_fun}{a function string to compute the extract, i.e. mean, min, max,
+weighted_mean, quantiles, etc...}
 
 \item{buffer_size}{a numeric, radius of buffer for survey_dt (or survey_fn) units.}
 
 \item{survey_crs}{an integer or character, the CRS for the survey}
 
-\item{name_set}{a nameset which will be created for the variables}
+\item{name_set}{a character vector of the names for the extracted raster
+values}
 
-\item{shp_dt}{an sf/dataframe with polygons}
+\item{shp_dt}{an sf object with polygons}
 
 \item{shp_fn}{a character, the name of shapefile for STATA users only (.shp/.gpkg file)}
 
 \item{grid_size}{a numeric, size of the size of the grid in meters}
 
-\item{weight_raster}{a raster object or a list of weighting rasters or the
-equal in length to \code{raster_objs}}
+\item{weight_raster}{(optional) a raster to be used as weights for weighted
+statistics}
 }
 \description{
 A function to process downloaded raster into the final output in shapefile/geocoded survey

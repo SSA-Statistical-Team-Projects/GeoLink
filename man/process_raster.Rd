@@ -11,7 +11,8 @@ process_raster(
   extract_fun,
   survey_crs = 4326,
   name_set = "geolink_feature",
-  weight_raster = NULL
+  weight_raster = NULL,
+  grid_size = NULL
 )
 
 process_raster(
@@ -21,7 +22,8 @@ process_raster(
   extract_fun,
   survey_crs = 4326,
   name_set = "geolink_feature",
-  weight_raster = NULL
+  weight_raster = NULL,
+  grid_size = NULL
 )
 }
 \arguments{

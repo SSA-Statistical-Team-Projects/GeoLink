@@ -1,19 +1,16 @@
 
 # GeoLink 🌍
 
-<!-- badges: start -->
-
+<!-- 
 [![R-CMD-check](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/SSA-Statistical-Team-Projects/GeoLink/actions/workflows/R-CMD-check.yaml)
 [![License:
 MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub
 issues](https://img.shields.io/github/issues/SSA-Statistical-Team-Projects/geolink)](https://github.com/SSA-Statistical-Team-Projects/geolink/issues)
-
-<!-- badges: end -->
+-->
 
 GeoLink is an R package that provides easy access to various geospatial
-datasets, allowing seamless integration with your spatial data or
-household surveys.
+datasets, allowing seamless integration with World Bank surveys and other spatial data.
 
 ## 📋 Table of Contents
 
@@ -103,44 +100,10 @@ ggplot(rainfall_map) +
 
 ![](assets/images/rainfall_map.png)
 
-### 2. Night Time Lights Analysis
+**[🌃 View Interactive Map](https://ssa-statistical-team-projects.github.io/GeoLink/interactive-examples/rainfall_map.html)**
 
-``` r
-# Get night time lights data
-ntl_map <- geolink_ntl(
-    time_unit = "annual",
-    start_date = "2020-01-01",
-    end_date = "2020-12-31",
-    shp_dt = shp_dt[shp_dt$ADM1_EN == "Lagos",],
-    indicator = "average_masked",
-    grid_size = 1000
-)
 
-# Create illuminating visualization
-ggplot(ntl_map) +
-    geom_sf(aes(fill = ntl_annual1average_masked)) +
-    scale_fill_gradient(
-        low = "navy",
-        high = "yellow",
-        name = "Light Intensity"
-    ) +
-    theme_minimal() +
-    labs(
-        title = "2020 Night Time Light Intensity",
-        subtitle = "Lagos State, Nigeria",
-        caption = "Data source: NASA Black Marble"
-    ) +
-    theme(
-        panel.background = element_rect(fill = "black"),
-        plot.background = element_rect(fill = "black"),
-        text = element_text(color = "white"),
-        plot.title = element_text(color = "white", size = 16, face = "bold")
-    )
-```
-
-![](assets/images/ntl_map.png)
-
-### 3. Interactive Population Density
+### 2. Interactive Population Density
 
 ``` r
 library(leaflet)
@@ -181,7 +144,8 @@ leaflet(pop_data) %>%
 
 ![](assets/images/population_map.png)
 
-### 4. Elevation Profile with Cropland Overlay
+
+### 3. Elevation Profile with Cropland Overlay
 
 ``` r
 # Combine elevation and cropland data
@@ -228,19 +192,6 @@ df <- geolink_chirps(
     start_date = "2020-01-01",
     end_date = "2020-03-01",
     shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-    grid_size = 1000
-)
-```
-
-### Night Time Lights
-
-``` r
-df <- geolink_ntl(
-    time_unit = "month",
-    start_date = "2020-01-01",
-    end_date = "2020-03-01",
-    shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
-    indicator = "avg_rade9h",
     grid_size = 1000
 )
 ```
