@@ -13,6 +13,7 @@ utils::globalVariables(c(
 #' @param shp_dt an object of class 'sf' or 'sfc'
 #' @param grid_size numeric of length 1; representing the desired size of the grid in meters
 #' @param sqr logical; if TRUE, a square grid is created. If FALSE, a hexagonal polygon grid is created
+#' @param buffer numeric of length 1; representing the size of an additional buffer to add to the shapefile in meters. Defaults to zero. 
 #'
 #' @importFrom units set_units
 #' @importFrom lwgeom st_geod_area st_geod_length st_transform_proj st_snap_to_grid
@@ -22,7 +23,8 @@ utils::globalVariables(c(
 
 gengrid2 <- function(shp_dt,
                      grid_size,
-                     sqr = TRUE) {
+                     sqr = TRUE,
+                     buffer = 0) {
 
   sf_use_s2(FALSE) ##just to ensure we don't begin to have issues with duplicate vertices
 
@@ -30,14 +32,14 @@ gengrid2 <- function(shp_dt,
   print("Initiating shape object tesselation")
   if (sqr == TRUE) {
 
-    grid_system <- st_make_grid(x = shp_dt,
+    grid_system <- st_make_grid(x = st_buffer(shp_dt, dist = buffer),
                                 cellsize = c(grid_size, grid_size),
                                 square = sqr) %>%
       sf::st_sf()
 
   } else if (sqr == FALSE) {
 
-    grid_system <- st_make_grid(x = shp_dt,
+    grid_system <- st_make_grid(x = st_buffer(shp_dt, dist = buffer),
                                 cellsize = grid_size,
                                 square = sqr) %>%
       sf::st_sf()
