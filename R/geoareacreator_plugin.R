@@ -14,7 +14,7 @@ utils::globalVariables(c(
 #' @param grid_size numeric of length 1; representing the desired size of the grid in meters
 #' @param sqr logical; if TRUE, a square grid is created. If FALSE, a hexagonal polygon grid is created
 #' @param buffer numeric of length 1; representing the size of an additional buffer to add to the shapefile in meters. Defaults to zero. 
-#'
+#' @param s2 logical; if TRUE, use spherical geomtry. 
 #' @importFrom units set_units
 #' @importFrom lwgeom st_geod_area st_geod_length st_transform_proj st_snap_to_grid
 #'
@@ -24,9 +24,15 @@ utils::globalVariables(c(
 gengrid2 <- function(shp_dt,
                      grid_size,
                      sqr = TRUE,
-                     buffer = 0) {
+                     buffer = 0,
+                     s2=FALSE) {
 
+  if (s2==FALSE) {
   sf_use_s2(FALSE) ##just to ensure we don't begin to have issues with duplicate vertices
+  } 
+  else {
+    sf_use_s2(TRUE)
+  }
 
   ## now we are ready to grid our district shapefile
   print("Initiating shape object tesselation")
