@@ -11,3 +11,4 @@
 ^LICENSE\.md$
 ^vignettes/\.quarto$
 ^vignettes/*_files$
+^\.obt_cache

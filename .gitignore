@@ -8,3 +8,9 @@
 inst/python/virtual_env/
 inst/doc
 **/.quarto/
+
+# Open Buildings Temporal cache overrides pointed at the repo via
+# geolink_buildings_temporal(cache_dir = ...). Derived tile indices and
+# extraction results only, never imagery, and regenerable -- but large, and
+# kept between runs because rebuilding a national index is not free.
+.obt_cache*/

@@ -1168,6 +1168,11 @@ geolink_elevation <- function(iso_code,
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
+#' @seealso [geolink_buildings_temporal()] for Google Open Buildings 2.5D
+#'   Temporal. WorldPop's rasters here are derived from Ecopia Digitize Africa
+#'   and cover sub-Saharan Africa only, so use that function outside Africa, or
+#'   where an annual series from 2016 to 2023 is needed rather than a single
+#'   vintage.
 #'
 #' @examples
 #'

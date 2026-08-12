@@ -300,6 +300,7 @@ run_geolink <- function(
     "electaccess" = geolink_electaccess,
     "elevation" = geolink_elevation,
     "buildings" = geolink_buildings,
+    "buildings_temporal" = geolink_buildings_temporal,
     "cmip6" = geolink_CMIP6,
     "cropland" = geolink_cropland,
     "worldclim" = geolink_worldclim,
