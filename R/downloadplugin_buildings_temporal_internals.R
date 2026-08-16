@@ -35,6 +35,17 @@
 ## whichever tile a polygon is grouped under. Verified empirically as well as
 ## argued: the 20 Cundinamarca rural sections return bit-identical values under
 ## both chunkers. Keeping the version lets existing cached results stand.
+##
+## NOT bumped for `chunk_area_km2` either, and for exactly the same reasons. It
+## is a second cap on the same grouping decision, so it can only change which
+## polygons share a windowed read. Verified the same way rather than assumed:
+## on the sweep sections it changed chunk composition substantially, 12 chunks
+## to 5 on the coarsened unweighted path and 6 to 1 on the native
+## presence-weighted path, and every extracted value stayed bit-identical with
+## an identical NA pattern. It is therefore absent from the result cache key
+## too, so a cache written under one setting is valid under another. That
+## matters operationally: it is what lets a national run be restarted with a
+## different chunk budget without discarding completed work.
 ## 1.1.0 - `read_res` added: extraction can read from a GeoTIFF's internal
 ##         overview pyramid instead of the native 0.5 m grid. This DOES change
 ##         values, deliberately, so the bump is real and the resolution is part
@@ -74,6 +85,13 @@
 ##         polygon that is the same number on every row. It now extracts on the
 ##         buffered survey geometries, which is what postdownload_processor()
 ##         does for every other layer in the package.
+## NOT bumped for the NaN-to-NA normalisation either. It changes no number. It
+## makes missing spell itself one way instead of two, and because it is applied
+## on the cache-read path as well as on extraction, a cache written before it
+## returns the same thing a fresh extraction does. A bump would have discarded
+## a completed national run's cache to fix a spelling, which is the wrong
+## trade -- but the reason it is safe is the read-path normalisation, not the
+## inconvenience of the alternative.
 ## 1.0.1 - height is NA'd where presence is 0 (the bands store 0, not nodata,
 ##         over empty ground, so the mean was returning 0); weighted statistics
 ##         now map to exactextractr's weighted_* operations, which previously
@@ -485,16 +503,113 @@
 #' matters: tiles from a neighbouring zone can overlap this one, and inheriting
 #' a tile's zone would silently reproject some polygons and change their values.
 #'
+#' Two caps, and why neither alone is enough
+#'
+#' `chunk_size` caps polygons per chunk and `chunk_area_km2` caps their summed
+#' area; a chunk closes when either would be exceeded. The two strata bind on
+#' different caps without being told which they are. Urban manzanas are small
+#' and numerous, so the count cap fires and the area cap never does. Rural
+#' sections are large and sparse -- a tile holds a median of 3 -- so the area
+#' cap fires and the count cap never does.
+#'
+#' A count cap alone cannot control rural at all. Measured on 40 Colombian
+#' rural sections occupying 36 distinct tiles, 33 of them holding exactly one
+#' section, every `chunk_size` from 5 to 400 produced the SAME 37 chunks and
+#' the same wall clock to within 4 percent. That is not a weak effect, it is no
+#' effect: splitting within a tile has nothing to split when the tile holds one
+#' polygon. Cost tracks summed area (r = +0.73) and spatial scatter (r = +0.85)
+#' while polygon count is uncorrelated (r = +0.06), so the count cap was
+#' controlling a variable that does not drive cost.
+#'
+#' The two caps are not symmetric in how they act:
+#'
+#' The COUNT cap splits within a tile group. It must, since a dense urban tile
+#' can hold thousands of manzanas and one chunk of those would not fit in
+#' memory.
+#'
+#' The AREA cap never splits a tile group. A group over budget is emitted
+#' whole. Splitting it would produce two chunks with the same bounding box and
+#' therefore the same tile set and the same range reads, which buys nothing and
+#' costs an extra pass. The area cap only decides whether ADJACENT groups may
+#' be merged.
+#'
+#' A budget on bounding-box area rather than summed polygon area was measured
+#' and rejected. Scatter predicts chunk time better than area does, so
+#' penalising it directly looked promising, but at real section density the two
+#' budgets produce near-identical groupings: at matched chunk counts on dept 18
+#' the bounding-box p90 was 306 km2 under an area budget against 285 under a
+#' bounding-box budget. The apparent difference on a sparse stratified sample
+#' was an artefact of that sample, where consecutive tiles in Hilbert order are
+#' far apart in a way they are not when every section is present.
+#'
+#' Refuse a merge that would inflate the tile set
+#'
+#' The area cap merges tile groups that are adjacent in Hilbert order, but
+#' adjacent in Hilbert order is not the same as adjacent on the ground: the
+#' curve makes occasional long jumps, and across a sparse polygon set two
+#' consecutive groups can sit at opposite ends of a department. Merging those
+#' produces a chunk whose bounding box spans everything between them, and
+#' .obt_chunk_raster() selects tiles from the BOUNDING BOX, so the tile set
+#' explodes. This is the exact failure .obt_chunks_tiled() was written to fix,
+#' reintroduced through the back door: on the scattered 60-polygon fixture an
+#' unguarded area cap pulled 170 tiles into a single chunk.
+#'
+#' The guard is that a merged chunk may not span more than one tile side in
+#' either direction. A chunk that fits inside a tile-sized window selects the
+#' same handful of tiles a single group would, so merging stays free.
+#'
+#' A bounding-box budget was rejected as the PRIMARY cap, because at real
+#' section density it groups almost identically to an area cap while being
+#' harder to reason about. It earns its place here instead, as a guard, because
+#' the failure it prevents is not a matter of degree.
+#'
+#' @param pb per-polygon bounding boxes in each polygon's own UTM zone
+#' @param cur integer row indices already in the open chunk
+#' @param s integer row indices of the candidate group
+#' @return TRUE if the merged chunk still fits inside a tile-sized window
+#' @keywords internal
+.obt_merge_fits <- function(pb, cur, s, span_m = 12500) {
+  i <- c(cur, s)
+  (max(pb[i, "xmax"]) - min(pb[i, "xmin"])) <= span_m &&
+  (max(pb[i, "ymax"]) - min(pb[i, "ymin"])) <= span_m
+}
+
 #' @param shp_dt an sf object in any CRS
 #' @param idx the tile index
 #' @param chunk_size integer, maximum polygons per chunk
+#' @param chunk_area_km2 numeric, maximum summed polygon area per chunk, in
+#'   square kilometres, measured in `area_crs`. NULL disables the area cap and
+#'   restores the pure count-based grouping.
+#' @param area_crs equal-area CRS in which polygon areas are measured
 #' @return list of lists with elements `idx` (row indices into shp_dt) and `epsg`
 #' @keywords internal
-.obt_chunks_tiled <- function(shp_dt, idx, chunk_size = 200L) {
+.obt_chunks_tiled <- function(shp_dt, idx, chunk_size = 200L,
+                              chunk_area_km2 = 60, area_crs = "ESRI:102033") {
   g    <- sf::st_transform(sf::st_geometry(shp_dt), 4326)
   cen  <- suppressWarnings(sf::st_coordinates(sf::st_centroid(g)))
   epsg <- .obt_zone_of(cen[, 1], cen[, 2])
   tile <- .obt_primary_tile(cen, epsg, idx)
+
+  ## Areas are needed only when the area cap is active. They are measured in the
+  ## same equal-area CRS the caller uses for every other areal quantity, so a
+  ## chunk budget means the same thing as a reported area.
+  akm2 <- if (is.null(chunk_area_km2)) NULL else
+    suppressWarnings(as.numeric(sf::st_area(sf::st_transform(shp_dt, area_crs))) / 1e6)
+
+  ## Per-polygon bounding boxes in the polygon's OWN UTM zone, needed for the
+  ## merge guard below. Computed once per zone rather than once per candidate
+  ## merge, since the transform is the expensive part.
+  pb <- NULL
+  if (!is.null(akm2)) {
+    pb <- matrix(NA_real_, nrow(shp_dt), 4L,
+                 dimnames = list(NULL, c("xmin", "xmax", "ymin", "ymax")))
+    for (z in unique(epsg)) {
+      rz <- which(epsg == z)
+      gz <- sf::st_transform(sf::st_geometry(shp_dt)[rz], z)
+      pb[rz, ] <- t(vapply(gz, function(p) as.numeric(sf::st_bbox(p)[c(1, 3, 2, 4)]),
+                           numeric(4)))
+    }
+  }
 
   out <- list()
 
@@ -506,6 +621,14 @@
     tc  <- cbind((idx$lon_min[ut] + idx$lon_max[ut]) / 2,
                  (idx$lat_min[ut] + idx$lat_max[ut]) / 2)
     ut  <- ut[order(.obt_hilbert_d(tc))]
+
+    ## the open chunk that adjacent single-piece groups may be merged into
+    cur <- integer(0); cur_a <- 0; cur_z <- NA_integer_
+    flush <- function() {
+      if (length(cur)) out[[length(out) + 1L]] <<- list(idx = cur, epsg = cur_z)
+      cur <<- integer(0); cur_a <<- 0; cur_z <<- NA_integer_
+    }
+
     for (t in ut) {
       ids <- have[tile[have] == t]
       ## Within a tile the polygons still get a spatial ordering, which matters
@@ -514,9 +637,38 @@
       for (z in unique(epsg[ids])) {
         zi <- ids[epsg[ids] == z]
         sp <- split(zi, ceiling(seq_along(zi) / chunk_size))
-        for (s in sp) out[[length(out) + 1L]] <- list(idx = s, epsg = z)
+
+        if (length(sp) > 1L) {
+          ## the count cap bound: these pieces are already at the cap, so they
+          ## are emitted as they stand and nothing is merged into them.
+          flush()
+          for (s in sp) out[[length(out) + 1L]] <- list(idx = s, epsg = z)
+          next
+        }
+
+        s <- sp[[1L]]
+        if (is.null(akm2)) {
+          ## no area cap: the historical one-chunk-per-tile-group behaviour
+          out[[length(out) + 1L]] <- list(idx = s, epsg = z)
+          next
+        }
+
+        a <- sum(akm2[s])
+        ## A group over budget on its own goes alone rather than being split:
+        ## two halves would share one bounding box, one tile set and one set of
+        ## range reads, so the split buys nothing.
+        if (a > chunk_area_km2) { flush(); out[[length(out) + 1L]] <- list(idx = s, epsg = z); next }
+        ## otherwise merge into the open chunk while it stays within both caps
+        ## and within one UTM zone
+        if (length(cur) &&
+            (!identical(z, cur_z) ||
+             cur_a + a > chunk_area_km2 ||
+             length(cur) + length(s) > chunk_size ||
+             !.obt_merge_fits(pb, cur, s))) flush()
+        cur <- c(cur, s); cur_a <- cur_a + a; cur_z <- z
       }
     }
+    flush()
   }
 
   ## Polygons no tile covers: outside the product's footprint, or in a zone the
@@ -978,7 +1130,7 @@
 #' @keywords internal
 .obt_extract_years <- function(target, year, bands, funs, area_crs, cache_dir,
                                use_cache, chunk_size, weight_band, quiet,
-                               read_res = NULL) {
+                               read_res = NULL, chunk_area_km2 = 60) {
   shp_key <- .obt_shp_key(target)
   bbox    <- as.numeric(sf::st_bbox(sf::st_transform(target, 4326)))
   ## The pyramid invariant is per extraction, not per session: a second call
@@ -990,10 +1142,15 @@
                                  read_res = read_res)
     if (use_cache && file.exists(cache_fn)) {
       if (!quiet) message("Using cached results for ", yr, ": ", basename(cache_fn))
-      vals <- readRDS(cache_fn)
+      ## normalised on read as well as on write: a cache written before NaN was
+      ## normalised must not hand back a different spelling of missing than a
+      ## fresh extraction of the same request.
+      vals <- .obt_nan_to_na(readRDS(cache_fn))
     } else {
       idx    <- .obt_tile_index(yr, cache_dir = cache_dir, bbox = bbox, quiet = quiet)
-      chunks <- .obt_chunks_tiled(target, idx, chunk_size = chunk_size)
+      chunks <- .obt_chunks_tiled(target, idx, chunk_size = chunk_size,
+                                  chunk_area_km2 = chunk_area_km2,
+                                  area_crs = area_crs)
       if (!quiet) {
         message("Extracting ", yr, ": ", nrow(target), " polygons in ",
                 length(chunks), " chunks across ",
@@ -1032,10 +1189,45 @@
 #' Call this only once a covering tile is known to exist. A polygon outside the
 #' product's coverage must keep NA throughout, because "no data" and "no
 #' buildings" are different claims.
+#'
+#' Missing is spelled NA, never NaN. exactextractr returns NaN, not NA, when a
+#' polygon receives no valid cells at all -- a mean over nothing is 0/0. That
+#' reached the output as a second, undocumented sentinel for the same
+#' condition: on the national run 16 of 27 empty rural heights were NaN and 11
+#' were NA, purely according to which path produced them. The height rule above
+#' cannot normalise them itself, because it only overwrites where presence is
+#' measurably 0, and a polygon with no cells has a presence of NaN too, so
+#' `!is.na(pres)` is FALSE and the NaN survives.
+#'
+#' Both satisfy is.na(), so nothing in R distinguishes them, which is exactly
+#' why this went unnoticed. They stop being interchangeable on the way out:
+#' Stata has no NaN, and several parquet and JSON writers do not round-trip it,
+#' so the same missing polygon can leave by two doors and arrive as two
+#' different things.
+#'
+#' This normalisation changes no measurement. It is applied before the zero-fill
+#' so both spellings reach that rule identically, which they already did.
 #' @keywords internal
 .obt_fill_empty <- function(df, bands) {
+  df <- .obt_nan_to_na(df)
   for (b in intersect(bands, c("building_fractional_count", "building_presence"))) {
     df[[b]][is.na(df[[b]])] <- 0
+  }
+  df
+}
+
+#' Normalise NaN to NA across a result frame
+#'
+#' Applied on the freshly extracted path and again on the cached path, so a
+#' result served from a cache written before this existed spells missing the
+#' same way as one computed now. That is what makes the fix safe without
+#' bumping .OBT_EXTRACTION_VERSION: no cached NUMBER is wrong, only its
+#' missing-value spelling is inconsistent, and normalising on read repairs that
+#' without discarding the cache.
+#' @keywords internal
+.obt_nan_to_na <- function(df) {
+  for (b in names(df)) {
+    if (is.numeric(df[[b]])) df[[b]][is.nan(df[[b]])] <- NA_real_
   }
   df
 }

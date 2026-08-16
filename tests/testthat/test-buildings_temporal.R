@@ -122,6 +122,34 @@ test_that("empty polygons: count and presence are 0, height is NA", {
   expect_equal(out$building_fractional_count_2018, 0)
   expect_equal(out$building_presence_2018, 0)
   expect_true(is.na(out$building_height_2018))
+  # missing is spelled NA, never NaN. Both satisfy is.na(), so the assertion
+  # above passes either way -- which is how NaN reached a national run as a
+  # second sentinel for the same condition. Stata has no NaN and several
+  # parquet writers do not round-trip it, so the spelling has to be pinned.
+  expect_false(is.nan(out$building_height_2018))
+})
+
+
+test_that("NaN never reaches the output as a second spelling of missing", {
+  # No network: .obt_fill_empty() owns the missing-value convention, so the
+  # normalisation is testable directly on the frame it returns.
+  df <- data.frame(building_fractional_count = c(NaN, NA, 3),
+                   building_height           = c(NaN, NA, 2.5),
+                   building_presence         = c(NaN, NA, 0.4))
+  out <- .obt_fill_empty(df, .OBT_BANDS)
+
+  # count and presence zero-fill from BOTH spellings, as they already did
+  expect_equal(out$building_fractional_count, c(0, 0, 3))
+  expect_equal(out$building_presence, c(0, 0, 0.4))
+  # height keeps missing, but only ever as NA
+  expect_true(all(is.na(out$building_height[1:2])))
+  expect_false(any(is.nan(out$building_height)))
+  expect_equal(out$building_height[3], 2.5)
+
+  # and the cache-read path normalises too, so a cache written before this
+  # existed cannot hand back a different spelling than a fresh extraction
+  expect_false(any(is.nan(.obt_nan_to_na(df)$building_height)))
+  expect_true(is.na(.obt_nan_to_na(df)$building_height[1]))
 })
 
 

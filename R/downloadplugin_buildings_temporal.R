@@ -104,6 +104,24 @@
 #' @param survey_crs An integer, the CRS for the survey data. Default 4326.
 #' @param chunk_size An integer, the maximum number of polygons processed per
 #'   windowed read. Default 200.
+#' @param chunk_area_km2 A numeric, the maximum summed polygon area per windowed
+#'   read, in square kilometres measured in `area_crs`. Default 60. A chunk
+#'   closes when either this or `chunk_size` would be exceeded, so the two
+#'   strata bind on different caps without being told apart: dense urban
+#'   manzanas hit the count cap and never the area cap, large sparse rural
+#'   sections hit the area cap and never the count cap. `NULL` disables the area
+#'   cap and restores pure count-based chunking.
+#'
+#'   The area cap exists because `chunk_size` cannot control rural work at all.
+#'   Chunks are formed within a tile, and a rural tile holds a median of three
+#'   sections, so there is usually nothing for a count cap to split: measured on
+#'   Colombian rural sections, every `chunk_size` from 5 to 400 produced
+#'   identical chunks and identical wall clock to within 4 percent. Extraction
+#'   cost tracks summed area and spatial scatter, not polygon count.
+#'
+#'   Changing this changes only which polygons share a windowed read. It cannot
+#'   change an extracted value, so it is deliberately absent from the result
+#'   cache key: results cached under one setting remain valid under another.
 #' @param cache_dir A character, an override for the cache root. `NULL` uses
 #'   `rappdirs::user_cache_dir("GeoLink")`.
 #' @param area_crs A character, the equal-area CRS used for any area-denominated
@@ -173,6 +191,7 @@ geolink_buildings_temporal <- function(shp_dt = NULL,
                                        buffer_size = NULL,
                                        survey_crs = 4326,
                                        chunk_size = 200L,
+                                       chunk_area_km2 = 60,
                                        cache_dir = NULL,
                                        area_crs = "ESRI:102033",
                                        weight_raster = NULL,
@@ -223,6 +242,13 @@ geolink_buildings_temporal <- function(shp_dt = NULL,
   }
 
   if (chunk_size < 1L) stop("chunk_size must be a positive integer.")
+  if (!is.null(chunk_area_km2)) {
+    if (!is.numeric(chunk_area_km2) || length(chunk_area_km2) != 1L ||
+        !is.finite(chunk_area_km2) || chunk_area_km2 <= 0) {
+      stop("chunk_area_km2 must be a single positive number of square ",
+           "kilometres, or NULL to disable the area cap.")
+    }
+  }
 
   ## weight handling: a band name is resolved inside the chunk raster, a
   ## SpatRaster is passed through to exactextractr unchanged.
@@ -314,7 +340,8 @@ geolink_buildings_temporal <- function(shp_dt = NULL,
                                area_crs = area_crs, cache_dir = cache_dir,
                                use_cache = use_cache, chunk_size = chunk_size,
                                weight_band = weight_band, quiet = quiet,
-                               read_res = read_res)
+                               read_res = read_res,
+                               chunk_area_km2 = chunk_area_km2)
 
   attr(target, "geolink_area_crs")           <- area_crs
   attr(target, "geolink_extraction_version") <- .OBT_EXTRACTION_VERSION
