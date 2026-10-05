@@ -57,7 +57,8 @@ Imports:
     dbscan,
     dplyr
 Suggests:
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    zip
 Depends: 
     R (>= 3.5)
 SystemRequirements: Python (>= 3.7)
