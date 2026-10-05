@@ -4177,7 +4177,17 @@ geolink_vegindex <- function(
 #' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
 #' source is downloaded.
 #' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#' @param qa_min numeric, the minimum `qa_value` of a Sentinel-5P pixel to be used. Default
+#'   (NULL) takes the product's recommended threshold: 0.8 for aer-ai, 0.75 for no2 and 0.5
+#'   for hcho, o3 and so2.
+#' @param grid_res numeric, the resolution in degrees of the regular grid onto which each
+#'   orbit's pixels are averaged before the monthly mean is taken. Default 0.05.
 #'
+#' @details Sentinel-5P Level-2 files are orbit swaths (scanline x ground pixel) with
+#'   per-pixel latitude and longitude, not regular grids. Each offline (OFFL) orbit that
+#'   crosses the study area in a month is read for the scanlines over the study area; its
+#'   pixels with `qa_value >= qa_min` are averaged onto a regular grid of `grid_res` degrees
+#'   by their own coordinates; the month's value in a cell is the mean over orbits.
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
@@ -4215,7 +4225,9 @@ geolink_pollution <- function(
     extract_fun = "mean",
     survey_crs = 4326,
     return_raster = FALSE,
-    weight_raster = NULL
+    weight_raster = NULL,
+    qa_min = NULL,
+    grid_res = 0.05
 ){
 
   if (is.null(indicator)==TRUE){
@@ -4268,11 +4280,15 @@ geolink_pollution <- function(
                              day = 1)]
 
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+  study_bbox <- sf::st_bbox(sf_obj)
 
   print("Collection of monthly links started.")
 
+  ## Every offline (OFFL) orbit of the indicator that crosses the study area, per month.
+  ## The search is paged with items_fetch(): a month holds several thousand items across all
+  ## products, so a single page of 1000 could miss every file of the indicator. The files are
+  ## Level-2 orbit swaths, not grids: each one is gridded by its own latitude/longitude below.
   url_list <- c()
-  bboxes <- c()
   valid_months <- c()
 
   for (x in 1:nrow(allmonths)){
@@ -4280,39 +4296,23 @@ geolink_pollution <- function(
     end_date_ind <- start_date_ind + lubridate:::months.numeric(1) - lubridate::days(1)
     it_obj <- s_obj %>%
       stac_search(collections = "sentinel-5p-l2-netcdf",
-                  bbox = sf::st_bbox(sf_obj),
+                  bbox = study_bbox,
                   datetime = paste(start_date_ind, end_date_ind, sep = "/"),
                   limit = 1000) %>%
       get_request() %>%
+      items_fetch() %>%
       items_sign(sign_fn = sign_planetary_computer())
 
-    features_month <- c()
-    dates_month <- c()
-    bboxes_month <- c()
-    features <- c()
-    for (i in 1:length(it_obj$features)){
-      if (names(it_obj$features[[i]]$assets)==paste0(indicator)){
-        if ((it_obj$features[[i]]$bbox[3]-it_obj$features[[i]]$bbox[1])==360 &
-            (it_obj$features[[i]]$bbox[4]-it_obj$features[[i]]$bbox[2])>170){
-          features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
-          dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
-          bboxes_month <- c(bboxes_month, list(it_obj$features[[i]]$bbox))
-          features <- c(features, list(it_obj$features[[i]]))
-        }
-      }
-    }
+    keep <- vapply(it_obj$features, function(f)
+      identical(names(f$assets), indicator) &&
+        identical(f$properties[["s5p:processing_mode"]], "OFFL"), logical(1))
+    hrefs <- vapply(it_obj$features[keep], function(f) f$assets[[indicator]]$href, character(1))
 
-    if (length(features_month) > 0) {
-      features_month <- features_month[which(lubridate::day(dates_month)==
-                                               lubridate::day(dates_month[which.max(lubridate::day(dates_month))]))]
-      bboxes_month <- bboxes_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
-      features <- features[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
-
-      url_list <- c(url_list, list(features_month))
-      bboxes <- c(bboxes, list(bboxes_month))
+    if (length(hrefs) > 0) {
+      url_list <- c(url_list, list(hrefs))
       valid_months <- c(valid_months, x)
     } else {
-      print(paste0("No data available for month ", x, " (", start_date_ind, "). Skipping."))
+      print(paste0("No OFFL ", indicator, " orbit found for month ", x, " (", start_date_ind, "). Skipping."))
     }
   }
 
@@ -4329,49 +4329,28 @@ geolink_pollution <- function(
     "so2" ~ "sulfurdioxide_total_vertical_column"
   )
 
+  if (is.null(qa_min)) qa_min <- .s5p_qa_default[[indicator]]
+  template <- terra::rast(terra::ext(study_bbox[c("xmin", "xmax", "ymin", "ymax")]),
+                          resolution = grid_res, crs = "EPSG:4326")
+
   raster_objs <- vector("list", length(allmonths$year))
 
-  for (i in 1:length(valid_months)) {
-    tryCatch({
-      month_idx <- valid_months[i]
-      bb <- as.vector(bboxes[[i]][[1]])
-      rall <- rast(url_list[[i]][[1]])
-
-      if (is.null(rall) || nlyr(rall) == 0) {
-        print(paste0("Invalid raster for month ", month_idx, ". Skipping."))
-        raster_objs[[month_idx]] <- NULL
-        next
-      }
-
-      if (!layer %in% names(rall)) {
-        print(paste0("Layer '", layer, "' not found in raster for month ", month_idx, ". Available layers: ",
-                     paste(names(rall), collapse=", "), ". Skipping."))
-        raster_objs[[month_idx]] <- NULL
-        next
-      }
-
-      tryCatch({
-        terra:::ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
-        terra:::crs(rall) <- "EPSG:4326"
-        raster_objs[[month_idx]] <- rall[[layer]]
-        print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed."))
-      }, error = function(e) {
-        print(paste0("Error setting extent/crs for month ", month_idx, ": ", e$message, ". Trying alternative approach."))
-        tryCatch({
-          raster_objs[[month_idx]] <- rall[[layer]]
-          if (is.na(crs(raster_objs[[month_idx]]))) {
-            crs(raster_objs[[month_idx]]) <- "EPSG:4326"
-          }
-          print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed with alternative approach."))
-        }, error = function(e2) {
-          print(paste0("Alternative approach also failed for month ", month_idx, ": ", e2$message, ". Skipping."))
-          raster_objs[[month_idx]] <- NULL
-        })
-      })
-    }, error = function(e) {
-      print(paste0("Error processing month ", valid_months[i], ": ", e$message, ". Skipping."))
-      raster_objs[[valid_months[i]]] <- NULL
-    })
+  ## Monthly mean of the good-quality pixels of every orbit, on a regular grid over the study area.
+  ## (The previous code read one orbit per month and stretched its swath array over the item's
+  ## global bounding box, so the cells it placed over the study area held pixels from elsewhere.)
+  for (i in seq_along(valid_months)) {
+    month_idx <- valid_months[i]
+    grids <- lapply(url_list[[i]], function(href) tryCatch(
+      .s5p_orbit_grid(href, layer = layer, qa_min = qa_min, template = template),
+      error = function(e) { print(paste0("Orbit skipped (", e$message, "): ", basename(sub("\\?.*", "", href)))); NULL }))
+    grids <- Filter(Negate(is.null), grids)
+    if (length(grids) == 0) {
+      print(paste0("No usable orbit for month ", month_idx, ". Skipping."))
+      next
+    }
+    s <- terra::rast(grids)
+    raster_objs[[month_idx]] <- terra::mean(s, na.rm = TRUE)
+    print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed (", length(grids), " orbits)."))
   }
 
   date_list <- as_date(paste0(allmonths$year, "-", allmonths$month, "-01"))
@@ -4492,4 +4471,42 @@ geolink_pollution <- function(
   print("Process Complete!!!")
 
   return(dt)
+}
+
+## Recommended qa_value thresholds from the Sentinel-5P product user manuals.
+.s5p_qa_default <- c(`aer-ai` = 0.8, hcho = 0.5, no2 = 0.75, o3 = 0.5, so2 = 0.5)
+
+#' Grid one Sentinel-5P Level-2 orbit onto a regular grid by its pixel coordinates
+#'
+#' Reads PRODUCT/latitude for the whole orbit, then PRODUCT/longitude, PRODUCT/qa_value and
+#' the indicator's layer for the scanlines that come within half a degree of the template's
+#' extent only. Pixels with qa_value >= qa_min and inside the extent are averaged into the
+#' template's cells by their own latitude and longitude.
+#'
+#' @param href signed https URL of the orbit's netCDF file (read over /vsicurl/), or a local path
+#' @param layer name of the indicator's variable in the PRODUCT group
+#' @param qa_min minimum qa_value (0 to 1)
+#' @param template SpatRaster defining the output grid (EPSG:4326)
+#' @return SpatRaster on the template grid, or NULL when the orbit has no usable pixel there
+#' @keywords internal
+.s5p_orbit_grid <- function(href, layer, qa_min, template) {
+  src <- if (grepl("^https?://", href)) paste0("/vsicurl/", href) else normalizePath(href, winslash = "/")
+  sds <- function(v) terra::rast(paste0('HDF5:"', src, '"://PRODUCT/', v))
+  e <- terra::ext(template)
+  lat_r <- suppressWarnings(sds("latitude"))
+  lat <- matrix(terra::values(lat_r, mat = FALSE), nrow = terra::nrow(lat_r), byrow = TRUE)
+  rows <- which(rowSums(lat >= e$ymin - 0.5 & lat <= e$ymax + 0.5, na.rm = TRUE) > 0)
+  if (length(rows) == 0) return(NULL)
+  r0 <- min(rows); nr <- max(rows) - r0 + 1
+  read_rows <- function(v) terra::values(suppressWarnings(sds(v)), mat = FALSE, row = r0, nrows = nr)
+  lo  <- read_rows("longitude")
+  la  <- as.vector(t(lat[r0:(r0 + nr - 1), , drop = FALSE]))
+  val <- read_rows(layer)
+  qa  <- read_rows("qa_value")
+  if (max(qa, na.rm = TRUE) > 1) qa <- qa / 100      # unscaled uint8 (scale_factor 0.01)
+  ok <- !is.na(val) & abs(val) < 1e30 & !is.na(qa) & qa >= qa_min &
+    lo >= e$xmin & lo <= e$xmax & la >= e$ymin & la <= e$ymax
+  if (!any(ok)) return(NULL)
+  pts <- terra::vect(cbind(lo[ok], la[ok]), atts = data.frame(v = val[ok]), crs = "EPSG:4326")
+  terra::rasterize(pts, template, field = "v", fun = mean)
 }
