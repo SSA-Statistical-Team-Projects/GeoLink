@@ -2669,8 +2669,6 @@ geolink_electaccess <- function(
     weight_raster = NULL
 ) {
 
-  mosaic_and_crop = TRUE
-
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
@@ -2725,9 +2723,11 @@ geolink_electaccess <- function(
     stac_search(
       collections = "hrea",
       bbox = bbox,
-      datetime = paste(start_date, end_date, sep = "/")
+      datetime = paste(start_date, end_date, sep = "/"),
+      limit = 100
     ) %>%
     get_request() %>%
+    items_fetch() %>%   # every page: one item per country and year
     items_sign(sign_fn = sign_planetary_computer())
 
   print(paste("Found", length(it_obj$features), "features from STAC API"))
@@ -2755,158 +2755,54 @@ geolink_electaccess <- function(
       light_composite = feature$assets$`light-composite`$href,
       night_proportion = feature$assets$`night-proportion`$href,
       estimated_brightness = feature$assets$`estimated-brightness`$href,
-      year = year
+      year = year,
+      id = if (is.null(feature$id)) NA_character_ else feature$id
     )
   })
+  url_list <- Filter(Negate(is.null), url_list)
+  if (length(url_list) == 0) {
+    stop("No HREA item with all the required assets was found")
+  }
 
   years <- unique(sapply(url_list, function(x) x$year))
   print(paste("Found data for years:", paste(years, collapse=", ")))
 
-  temp_dir <- tempdir()
-  dir.create(file.path(temp_dir, "rasters"), showWarnings = FALSE, recursive = TRUE)
-
-  download_raster <- function(url, asset_name, year) {
-    tryCatch({
-      file_ext <- ".tif"
-      temp_file <- file.path(temp_dir, "rasters", paste0(asset_name, "_", year, file_ext))
-
-      result <- httr::GET(url,
-                          httr::write_disk(temp_file, overwrite = TRUE),
-                          httr::progress())
-
-      if (httr::status_code(result) == 200) {
-        return(list(
-          path = temp_file,
-          asset = asset_name,
-          year = year
-        ))
-      } else {
-        warning(sprintf("Failed to download %s for year %s: HTTP status code %d",
-                        asset_name, year, httr::status_code(result)))
-        return(NULL)
-      }
-    }, error = function(e) {
-      warning(sprintf("Failed to download raster for %s, year %s: %s",
-                      asset_name, year, e$message))
-      return(NULL)
-    })
-  }
+  ## HREA has one item per country and year. Every item's file gets its own name; the
+  ## countries of an (asset, year) are then merged into one raster before extraction.
+  raster_dir <- file.path(tempdir(), "rasters")
+  dir.create(raster_dir, showWarnings = FALSE, recursive = TRUE)
+  dl <- .electaccess_dest_paths(url_list, raster_dir)
 
   print("Downloading rasters...")
-  downloaded_files <- list()
-
-  for (i in seq_along(url_list)) {
-    item <- url_list[[i]]
-    year <- item$year
-
-    for (asset_name in names(item)[names(item) != "year"]) {
-      url <- item[[asset_name]]
-      result <- download_raster(url, asset_name, year)
-      if (!is.null(result)) {
-        downloaded_files <- c(downloaded_files, list(result))
+  ok <- vapply(seq_len(nrow(dl)), function(k) {
+    tryCatch({
+      result <- httr::GET(dl$url[k],
+                          httr::write_disk(dl$path[k], overwrite = TRUE),
+                          httr::progress())
+      if (httr::status_code(result) == 200) {
+        TRUE
+      } else {
+        warning(sprintf("Failed to download %s for year %s (%s): HTTP status code %d",
+                        dl$asset[k], dl$year[k], dl$item[k], httr::status_code(result)))
+        FALSE
       }
-    }
-  }
+    }, error = function(e) {
+      warning(sprintf("Failed to download raster for %s, year %s (%s): %s",
+                      dl$asset[k], dl$year[k], dl$item[k], e$message))
+      FALSE
+    })
+  }, logical(1))
+  downloaded <- dl[ok, , drop = FALSE]
 
-  if (length(downloaded_files) == 0) {
+  if (nrow(downloaded) == 0) {
     stop("No rasters could be successfully downloaded")
   }
 
-  print(paste("Successfully downloaded", length(downloaded_files), "raster files"))
+  print(paste("Successfully downloaded", nrow(downloaded), "raster files"))
 
-  download_by_year_asset <- list()
-
-  for (file_info in downloaded_files) {
-    year <- file_info$year
-    asset <- file_info$asset
-    key <- paste(year, asset, sep="_")
-
-    if (is.null(download_by_year_asset[[key]])) {
-      download_by_year_asset[[key]] <- list()
-    }
-
-    download_by_year_asset[[key]] <- c(download_by_year_asset[[key]], file_info$path)
-  }
-
-  if (mosaic_and_crop && !is.null(shp_dt)) {
-    temp_shp <- file.path(temp_dir, "shape.gpkg")
-    sf::st_write(sf_obj, temp_shp, delete_layer = TRUE)
-    print(paste("Saved shapefile to temporary location:", temp_shp))
-  }
-
-  raster_objs <- list()
-
-  if (mosaic_and_crop) {
-    print("Performing mosaicking and cropping...")
-
-    python_script <- system.file("python_scripts/mosaic_crop.py", package = "geolink")
-
-    if (!file.exists(python_script)) {
-      warning("Python script not found at ", python_script, ". Falling back to direct raster loading.")
-      mosaic_and_crop <- FALSE
-    } else {
-      for (key in names(download_by_year_asset)) {
-        file_paths <- download_by_year_asset[[key]]
-        parts <- strsplit(key, "_")[[1]]
-        year <- parts[1]
-        asset <- parts[2]
-
-        print(paste("Processing", asset, "for year", year))
-
-        processed_path <- file.path(temp_dir, paste0("processed_", key, ".tif"))
-
-        python_cmd <- paste(
-          "python",
-          shQuote(python_script),
-          shQuote(temp_shp),
-          shQuote(processed_path),
-          paste(sapply(file_paths, shQuote), collapse = " ")
-        )
-
-        print(paste("Executing:", python_cmd))
-
-        result <- system(python_cmd, intern = TRUE)
-
-        success_line <- grep("^SUCCESS:", result, value = TRUE)
-
-        if (length(success_line) > 0) {
-          final_path <- sub("^SUCCESS:", "", success_line)
-          print(paste("Successfully processed", asset, "for year", year))
-
-          tryCatch({
-            rast_obj <- terra::rast(final_path)
-            if (!is.null(rast_obj)) {
-              raster_objs[[length(raster_objs) + 1]] <- rast_obj
-              names(raster_objs)[length(raster_objs)] <- paste0(asset, "_", year)
-            }
-          }, error = function(e) {
-            warning(sprintf("Failed to load processed raster for %s, year %s: %s",
-                            asset, year, e$message))
-          })
-        } else {
-          warning(paste("Failed to process", asset, "for year", year))
-          print(result)
-        }
-      }
-    }
-  }
-
-  if (!mosaic_and_crop || length(raster_objs) == 0) {
-    print("Loading individual rasters...")
-
-    for (file_info in downloaded_files) {
-      tryCatch({
-        rast_obj <- terra::rast(file_info$path)
-        if (!is.null(rast_obj)) {
-          raster_objs[[length(raster_objs) + 1]] <- rast_obj
-          names(raster_objs)[length(raster_objs)] <- paste0(file_info$asset, "_", file_info$year)
-        }
-      }, error = function(e) {
-        warning(sprintf("Failed to load raster for %s, year %s: %s",
-                        file_info$asset, file_info$year, e$message))
-      })
-    }
-  }
+  print("Merging the countries of each asset and year...")
+  raster_objs <- .electaccess_combine(downloaded,
+                                      bbox = sf::st_bbox(sf_obj) + c(-0.1, -0.1, 0.1, 0.1))
 
   if (length(raster_objs) == 0) {
     stop("No rasters could be successfully loaded")
@@ -2993,6 +2889,63 @@ geolink_electaccess <- function(
 
   print("Process Complete!!!")
   return(dt)
+}
+
+#' Destination file of every asset of every HREA item
+#'
+#' HREA has one STAC item per country and year, so the file name carries the item id: files of
+#' different countries for the same asset and year must not overwrite each other.
+#'
+#' @param url_list list of items, each a list of asset hrefs plus `year` and `id`
+#' @param dest_dir folder for the downloads
+#' @return data.frame with one row per item and asset: item, asset, year, url, key
+#'   (`<asset>_<year>`, the output column) and path (distinct for every row)
+#' @noRd
+.electaccess_dest_paths <- function(url_list, dest_dir) {
+  rows <- lapply(seq_along(url_list), function(i) {
+    item <- url_list[[i]]
+    id <- item$id
+    if (is.null(id) || is.na(id) || !nzchar(id)) id <- paste0("item", i)
+    assets <- setdiff(names(item), c("year", "id"))
+    data.frame(item = id, asset = assets, year = item$year,
+               url = vapply(item[assets], as.character, character(1), USE.NAMES = FALSE),
+               stringsAsFactors = FALSE)
+  })
+  dl <- do.call(rbind, rows)
+  dl$key <- paste0(dl$asset, "_", dl$year)
+  stem <- paste0(dl$key, "_", gsub("[^A-Za-z0-9_.-]", "_", dl$item))
+  dl$path <- file.path(dest_dir, paste0(make.unique(stem, sep = "_"), ".tif"))
+  dl
+}
+
+#' Merge the country rasters of each HREA asset and year
+#'
+#' @param downloaded data.frame from `.electaccess_dest_paths()`, rows that were downloaded
+#' @param bbox optional bbox in EPSG:4326 (xmin, ymin, xmax, ymax); each raster is first
+#'   cropped to it
+#' @return named list of `SpatRaster`, one per `<asset>_<year>` in order of first appearance,
+#'   each the merge of all the countries' rasters (the first non-NA value wins)
+#' @noRd
+.electaccess_combine <- function(downloaded, bbox = NULL) {
+  out <- list()
+  for (key in unique(downloaded$key)) {
+    rasts <- lapply(downloaded$path[downloaded$key == key], terra::rast)
+
+    if (!is.null(bbox)) {
+      e <- terra::ext(as.numeric(bbox[c("xmin", "xmax", "ymin", "ymax")]))
+      cropped <- lapply(rasts, function(r) {
+        if (is.null(terra::intersect(terra::ext(r), e))) NULL else terra::crop(r, e, snap = "out")
+      })
+      cropped <- Filter(Negate(is.null), cropped)
+      ## keep one raster (all NA over the study area) rather than dropping the column
+      rasts <- if (length(cropped) > 0) cropped else rasts[1]
+    }
+
+    r <- if (length(rasts) == 1) rasts[[1]] else terra::merge(terra::sprc(rasts))
+    names(r) <- key
+    out[[key]] <- r
+  }
+  out
 }
 
 #' Download OpenCellID data
