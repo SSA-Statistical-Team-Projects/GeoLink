@@ -39,6 +39,7 @@ test_that("OpenCellID works with survey:", {
 
 # Test-C
 test_that("OpenCellID works with geodata shapefile: ",{
+  skip_if_not_live()
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
 

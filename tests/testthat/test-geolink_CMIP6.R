@@ -6,6 +6,7 @@
 
 #Test- A.
 test_that("CMIP6 works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_CMIP6(start_date = "2019-01-01",
                                               end_date = "2019-12-31",
@@ -70,6 +71,7 @@ test_that("CMIP6 works using a shapefile:", {
 
 #Test- B
 test_that("CMIP6 using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_CMIP6(start_date = "2019-01-01",
                                               end_date = "2019-12-31",
@@ -129,6 +131,7 @@ test_that("CMIP6 using a survey :", {
 
 #Test- A.
 test_that("CMIP6 works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))

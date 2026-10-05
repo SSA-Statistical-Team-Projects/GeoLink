@@ -1,6 +1,7 @@
 # Test A-
 test_that("Electaccess using a shapefile: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_electaccess(shp_dt = shp_dt[shp_dt$ADM1_EN
                                                                              ==  "Abia",],
                                                               start_date = "2019-01-01",
@@ -21,6 +22,7 @@ test_that("Electaccess using a shapefile: ",
 #Test B
 test_that("Electaccess using a survey: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_electaccess(survey_dt =
                                                                 st_as_sf(hhgeo_dt[1:10],
                                                                         crs = 4326),
@@ -49,6 +51,7 @@ test_that("Electaccess using a survey: ",
 #Test C
 test_that("Electaccess using a survey file from stata:",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_electaccess(survey_fn = test_path("testdata/xy_hhgeo_dt.dta"),
                                                               survey_lat = "y",
                                                               survey_lon = "x",
@@ -77,6 +80,7 @@ test_that("Electaccess using a survey file from stata:",
 #Test D
 test_that("Error when using incorrect date",
           {
+            skip_if_not_live()
             expect_error(geolink_electaccess(survey_dt =
                                                 st_as_sf(hhgeo_dt[1:10],
                                                         crs = 4326),
@@ -89,6 +93,7 @@ test_that("Error when using incorrect date",
 
 #Test E
 test_that("Using a shapefile from geodata: ",{
+  skip_if_not_live()
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))
 

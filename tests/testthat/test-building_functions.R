@@ -5,6 +5,7 @@
 
 #Test- A.
 test_that("Buildings works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -47,6 +48,7 @@ test_that("Buildings works using a shapefile:", {
 
 #Test- B
 test_that("Buildings works using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -89,6 +91,7 @@ test_that("Buildings works using a survey :", {
 
 #Test- C.
 test_that("Buildings works with one indicator:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -123,6 +126,7 @@ test_that("Buildings works with one indicator:", {
 
 #Test- C.
 test_that("Buildings works with two indicator:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -155,6 +159,7 @@ test_that("Buildings works with two indicator:", {
 
 #Test- D.
 test_that("Buildings works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("KEN", level = 2, tempdir()))

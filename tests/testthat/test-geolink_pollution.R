@@ -1,6 +1,7 @@
 # Test A-
 test_that("Pollution using a shapefile: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_pollution(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
                                                            start_date = "2019-01-01",
                                                            end_date = "2019-02-28",
@@ -32,6 +33,7 @@ test_that("Pollution using a shapefile: ",
 # Test B-
 test_that("Pollution using a survey: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_pollution(survey_dt = st_as_sf(hhgeo_dt[1:10],
                                                                      crs = 4326),
                                                            start_date = "2019-01-01",
@@ -57,6 +59,7 @@ test_that("Pollution using a survey: ",
 # Test C-
 test_that("Pollution using a survey: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_pollution(survey_fn = test_path("testdata/xy_hhgeo_dt.dta"),
                                                             survey_lat = "y",
                                                             survey_lon = "x",
@@ -82,6 +85,7 @@ test_that("Pollution using a survey: ",
 
 #Test- D
 test_that("Pollution using a shapefile from geodata package:", {
+  skip_if_not_live()
   suppressWarnings({
     # Load the shapefile from geodata package
     temp_gadm <- geodata::gadm(country = "COL", level = 2, path = tempdir())

@@ -1,5 +1,6 @@
 # Test A-
 test_that("Landcover using shapefile: ", {
+  skip_if_not_live()
   suppressWarnings({ test_dt <- geolink_landcover(
                                                   start_date = "2019-01-01",
                                                   end_date = "2019-12-31",
@@ -26,6 +27,7 @@ test_that("Landcover using shapefile: ", {
 
 # Test B
 test_that("Landcover using survey data: ", {
+  skip_if_not_live()
   suppressWarnings({ test_dt <- geolink_landcover(
                                                   start_date = "2019-01-01",
                                                   end_date = "2019-12-31",
@@ -53,6 +55,7 @@ test_that("Landcover using survey data: ", {
 
 # Test C
 test_that("Landcover using shapefile from geodata: ", {
+  skip_if_not_live()
   suppressWarnings({
     temp_gadm <- geodata::gadm(country = "PER",
                                         level = 2,

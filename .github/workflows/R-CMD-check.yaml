@@ -14,6 +14,8 @@ jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    # offline tests only (live-server tests need GEOLINK_LIVE_TESTS=true, see live-tests.yaml)
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
