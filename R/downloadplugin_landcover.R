@@ -488,3 +488,108 @@ create_empty_result <- function(sf_obj, start_date) {
   empty_result$year <- format(start_date, "%Y")
   return(sf::st_sf(empty_result, geometry = sf::st_geometry(sf_obj)))
 }
+
+#' Combine io-lulc land cover tiles of one year into a single EPSG:4326 raster in R
+#'
+#' The R counterpart of the Python `resample_rasters()` + `mosaic_rasters()` used when
+#' `python = TRUE`. Every tile is reprojected with nearest neighbour (the values are classes)
+#' onto one common EPSG:4326 grid and the tiles are then merged. io-lulc tiles are in
+#' different UTM zones, so they cannot be mosaicked in their own CRS.
+#'
+#' @param tiles character vector of raster files, or a list of `SpatRaster`s
+#' @param target_resolution resolution in meters, converted to degrees as in the Python code
+#'   (meters / 111320). NULL keeps each tile's native resolution (that of the first tile).
+#' @param bbox optional `sf` bbox (or numeric xmin, ymin, xmax, ymax) in EPSG:4326 to which
+#'   the output is limited
+#' @return a `SpatRaster` in EPSG:4326 with the class values; class 0 ("No Data") and cells
+#'   outside every tile are NA. NULL if no tile overlaps `bbox`.
+#' @noRd
+.landcover_combine_tiles <- function(tiles, target_resolution = NULL, bbox = NULL) {
+
+  tiles <- lapply(tiles, function(x) if (inherits(x, "SpatRaster")) x else terra::rast(x))
+  if (length(tiles) == 0) stop("No land cover tile to combine")
+
+  res_in_deg <- function(r) {
+    if (terra::is.lonlat(r)) terra::res(r)[1] else terra::res(r)[1] / 111320
+  }
+  res_deg <- if (is.null(target_resolution)) res_in_deg(tiles[[1]]) else target_resolution / 111320
+
+  ## footprint of each tile in EPSG:4326
+  tile_ext <- lapply(tiles, function(r) {
+    if (is.na(terra::crs(r)) || terra::crs(r) == "") terra::crs(r) <- "EPSG:4326"
+    terra::project(terra::ext(r), from = terra::crs(r), to = "EPSG:4326")
+  })
+  full_ext <- Reduce(terra::union, tile_ext)
+  if (!is.null(bbox)) {
+    bbox <- as.numeric(bbox[c("xmin", "xmax", "ymin", "ymax")])
+    full_ext <- terra::intersect(full_ext, terra::ext(bbox))
+    if (is.null(full_ext)) return(NULL)
+  }
+
+  ## one grid for all tiles, anchored at (0, 0) so that per-tile crops stay aligned
+  snap <- function(v, f) f(v / res_deg) * res_deg
+  grid_ext <- terra::ext(snap(terra::xmin(full_ext), floor), snap(terra::xmax(full_ext), ceiling),
+                         snap(terra::ymin(full_ext), floor), snap(terra::ymax(full_ext), ceiling))
+  template <- terra::rast(grid_ext, resolution = res_deg, crs = "EPSG:4326")
+
+  projected <- list()
+  for (k in seq_along(tiles)) {
+    e <- terra::intersect(tile_ext[[k]], terra::ext(template))
+    if (is.null(e)) next
+    tmpl_k <- terra::crop(template, e, snap = "out")
+    p <- terra::project(tiles[[k]], tmpl_k, method = "near")
+    p <- terra::subst(p, 0, NA)   # class 0 is "No Data": let the other tiles fill it
+    projected[[length(projected) + 1]] <- p
+  }
+  if (length(projected) == 0) return(NULL)
+
+  out <- if (length(projected) == 1) projected[[1]] else terra::merge(terra::sprc(projected))
+  names(out) <- "landcover"
+  out
+}
+
+#' Land cover class shares (percent) of each polygon
+#'
+#' @param rast `SpatRaster` of land cover classes (from `.landcover_combine_tiles`)
+#' @param sf_obj `sf` polygons
+#' @param class_values,class_names the class codes and the output column names; the class
+#'   coded 0 is "no data"
+#' @param weights optional `SpatRaster` of weights aligned with `rast`
+#' @return a data.frame with one column per class name: the percentage of the polygon area
+#'   (weighted if `weights`) in each class, rounded to 2 decimals. `no_data` is the share
+#'   without data (NA pixels or class 0). A polygon without any pixel with data (outside the
+#'   tiles) gets NA for every class and 100 for `no_data`.
+#' @noRd
+.landcover_class_shares <- function(rast, sf_obj, class_values, class_names, weights = NULL) {
+
+  out <- as.data.frame(matrix(NA_real_, nrow = nrow(sf_obj), ncol = length(class_names),
+                              dimnames = list(NULL, class_names)), check.names = FALSE)
+  out[["no_data"]] <- 100
+
+  ev_list <- if (is.null(weights)) {
+    exactextractr::exact_extract(rast, sf_obj, coverage_area = TRUE, progress = FALSE)
+  } else {
+    exactextractr::exact_extract(rast, sf_obj, coverage_area = TRUE, weights = weights,
+                                 progress = FALSE)
+  }
+
+  for (i in seq_along(ev_list)) {
+    ev <- ev_list[[i]]
+    if (is.null(ev) || nrow(ev) == 0) next
+
+    w <- ev$coverage_area
+    if (!is.null(weights)) w <- w * ev$weight
+    total <- sum(w, na.rm = TRUE)
+    has_data <- !is.na(ev$value) & ev$value != 0
+    if (total <= 0 || sum(w[has_data], na.rm = TRUE) <= 0) next
+
+    for (k in seq_along(class_values)) {
+      if (class_names[k] == "no_data") next
+      out[i, class_names[k]] <- round(sum(w[ev$value %in% class_values[k]], na.rm = TRUE) /
+                                        total * 100, 2)
+    }
+    out[i, "no_data"] <- round(sum(w[!has_data], na.rm = TRUE) / total * 100, 2)
+  }
+
+  out
+}

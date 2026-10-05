@@ -3403,8 +3403,16 @@ geolink_opencellid <- function(cell_tower_file,
 #' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
 #' @param python Logical. Whether to use python code to help process rasters. Defaults to FALSE.
 #'
+#' @details io-lulc tiles are in different UTM zones. With `python = FALSE` (default) all the
+#' tiles of a year are combined in R with terra: each tile is reprojected to EPSG:4326 with
+#' nearest neighbour (at `target_resolution` meters, converted to degrees as meters / 111320,
+#' when `use_resampling = TRUE`, otherwise at the tiles' native resolution) and the tiles are
+#' merged; the class shares are computed from this mosaic. With `python = TRUE` the Python
+#' `resample_rasters()` and `mosaic_rasters()` utilities are used.
 #'
-#' @return An sf object with land cover classifications by year
+#' @return An sf object with land cover classifications by year: the percentage of each
+#' polygon in each class, and `no_data`, the percentage without data. A polygon not covered by
+#' any tile gets NA for every class (and 100 for `no_data`).
 #'
 #' @examples
 #' \dontrun{
@@ -3454,27 +3462,31 @@ geolink_landcover <- function(start_date,
                               weight_raster = NULL,
                               python=F) {
 
-  geolink_setup_python()
+  ## Python (and its Ubuntu workaround) is needed only for python = TRUE; the default R path
+  ## combines the tiles with terra
+  if (isTRUE(python)) {
+    geolink_setup_python()
 
-  is_ubuntu <- FALSE
+    is_ubuntu <- FALSE
 
-  if (file.exists("/etc/os-release")) {
-    os_info <- readLines("/etc/os-release")
-    is_ubuntu <- any(grepl("ubuntu", tolower(os_info), fixed = TRUE))
-  }
-  if (!is_ubuntu && file.exists("/etc/lsb-release")) {
-    lsb_info <- readLines("/etc/lsb-release")
-    is_ubuntu <- any(grepl("ubuntu", tolower(lsb_info), fixed = TRUE))
-  }
-  if (!is_ubuntu) {
-    sys_info <- try(system("lsb_release -a", intern = TRUE), silent = TRUE)
-    if (!inherits(sys_info, "try-error")) {
-      is_ubuntu <- any(grepl("ubuntu", tolower(sys_info), fixed = TRUE))
+    if (file.exists("/etc/os-release")) {
+      os_info <- readLines("/etc/os-release")
+      is_ubuntu <- any(grepl("ubuntu", tolower(os_info), fixed = TRUE))
     }
-  }
-  if (is_ubuntu && use_resampling) {
-    use_resampling <- FALSE
-    message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
+    if (!is_ubuntu && file.exists("/etc/lsb-release")) {
+      lsb_info <- readLines("/etc/lsb-release")
+      is_ubuntu <- any(grepl("ubuntu", tolower(lsb_info), fixed = TRUE))
+    }
+    if (!is_ubuntu) {
+      sys_info <- try(system("lsb_release -a", intern = TRUE), silent = TRUE)
+      if (!inherits(sys_info, "try-error")) {
+        is_ubuntu <- any(grepl("ubuntu", tolower(sys_info), fixed = TRUE))
+      }
+    }
+    if (is_ubuntu && use_resampling) {
+      use_resampling <- FALSE
+      message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
+    }
   }
 
   start_date <- as.Date(start_date)
@@ -3585,9 +3597,11 @@ if (python==T) {
       stac_search(
         collections = "io-lulc-annual-v02",
         bbox = buffered_bbox,
-        datetime = paste(start_date, end_date, sep = "/")
+        datetime = paste(start_date, end_date, sep = "/"),
+        limit = 100
       ) %>%
       get_request() %>%
+      items_fetch() %>%   # every page: a study area spans many tiles x years
       items_sign(sign_fn = sign_planetary_computer())
 
     it_obj$features <- it_obj$features[sapply(it_obj$features, function(feature) {
@@ -3660,21 +3674,11 @@ if (python==T) {
     return(create_empty_result(sf_obj, start_date))
   }
 
-  if (return_raster == TRUE) {
-    message("Preparing rasters for return...")
-
-    raster_list <- list()
-
-    for (year in names(raster_year_map)) {
-      message(paste("Processing rasters for year:", year))
-
-      raster_paths <- as.character(raster_year_map[[year]])
-
-      if (!all(file.exists(raster_paths))) {
-        warning(paste("Some raster files for year", year, "do not exist. Skipping."))
-        next
-      }
-
+  ## One raster per year from all of that year's tiles. python = TRUE: the Python
+  ## resample_rasters() / mosaic_rasters() utilities (unchanged). python = FALSE: every tile is
+  ## reprojected to a common EPSG:4326 grid (nearest neighbour) and merged in R with terra.
+  load_year_raster <- function(raster_paths, year) {
+    if (isTRUE(python)) {
       if (use_resampling) {
         processed_paths <- try({
           resample_rasters(
@@ -3703,11 +3707,40 @@ if (python==T) {
         raster_path <- raster_paths[1]
       }
 
-      raster_terra <- try({
+      return(try({
         terra::rast(raster_path)
-      }, silent = TRUE)
+      }, silent = TRUE))
+    }
 
-      if (inherits(raster_terra, "try-error")) {
+    study_bbox <- sf::st_bbox(sf_obj) + c(-0.1, -0.1, 0.1, 0.1)
+    tryCatch(
+      .landcover_combine_tiles(raster_paths,
+                               target_resolution = if (use_resampling) target_resolution else NULL,
+                               bbox = study_bbox),
+      error = function(e) {
+        warning(paste("Could not combine the land cover tiles for year", year, ":", conditionMessage(e)))
+        NULL
+      })
+  }
+
+  if (return_raster == TRUE) {
+    message("Preparing rasters for return...")
+
+    raster_list <- list()
+
+    for (year in names(raster_year_map)) {
+      message(paste("Processing rasters for year:", year))
+
+      raster_paths <- as.character(raster_year_map[[year]])
+
+      if (!all(file.exists(raster_paths))) {
+        warning(paste("Some raster files for year", year, "do not exist. Skipping."))
+        next
+      }
+
+      raster_terra <- load_year_raster(raster_paths, year)
+
+      if (inherits(raster_terra, "try-error") || is.null(raster_terra)) {
         warning(paste("Failed to load raster for year", year))
         next
       }
@@ -3777,39 +3810,9 @@ if (python==T) {
       next
     }
 
-    if (use_resampling) {
-      processed_paths <- try({
-        resample_rasters(
-          input_files = raster_paths,
-          output_folder = file.path(temp_dir, "resampled", year),
-          target_resolution = target_resolution
-        )
-      }, silent = TRUE)
+    raster <- load_year_raster(raster_paths, year)
 
-      if (!inherits(processed_paths, "try-error") && length(processed_paths) > 0) {
-        raster_paths <- processed_paths
-      }
-    }
-
-    if (length(raster_paths) > 1) {
-      mosaic_path <- try({
-        mosaic_rasters(input_files = raster_paths)
-      }, silent = TRUE)
-
-      if (!inherits(mosaic_path, "try-error")) {
-        raster_path <- mosaic_path
-      } else {
-        raster_path <- raster_paths[1]
-      }
-    } else {
-      raster_path <- raster_paths[1]
-    }
-
-    raster <- try({
-      terra::rast(raster_path)
-    }, silent = TRUE)
-
-    if (inherits(raster, "try-error")) {
+    if (inherits(raster, "try-error") || is.null(raster)) {
       warning(paste("Failed to load raster for year", year))
       next
     }
@@ -3826,10 +3829,7 @@ if (python==T) {
 
     year_results <- sf::st_drop_geometry(sf_obj)
 
-    for (col in all_column_names) {
-      year_results[[col]] <- 0
-    }
-
+    weight_terra <- NULL
     if (!is.null(weight_raster)) {
       message("Using weight raster for weighted extraction...")
 
@@ -3849,77 +3849,20 @@ if (python==T) {
         message("Resampling weight raster to match land cover raster...")
         weight_terra <- terra::resample(weight_terra, raster, method = "bilinear")
       }
-
-      extracted_values <- try({
-        exactextractr::exact_extract(raster, sf::st_make_valid(sf_obj),
-                                     coverage_area = TRUE,
-                                     weights = weight_terra)
-      }, silent = TRUE)
-    } else {
-      extracted_values <- try({
-        exactextractr::exact_extract(raster, sf::st_make_valid(sf_obj),
-                                     coverage_area = TRUE)
-      }, silent = TRUE)
     }
 
-    if (!inherits(extracted_values, "try-error")) {
-      for (i in seq_along(extracted_values)) {
-        ev <- extracted_values[[i]]
+    ## percentage of each polygon in each class; NA (not 0) where no tile covers the polygon
+    shares <- tryCatch(
+      .landcover_class_shares(raster, sf::st_make_valid(sf_obj),
+                              class_values = class_values, class_names = class_names,
+                              weights = weight_terra),
+      error = function(e) {
+        warning(paste("Could not extract land cover for year", year, ":", conditionMessage(e)))
+        NULL
+      })
 
-        if (is.null(ev) || nrow(ev) == 0) {
-          next
-        }
-
-        if (!is.null(weight_raster)) {
-          total_weight <- sum(ev$coverage_area * ev$weight, na.rm = TRUE)
-
-          if (total_weight <= 0) {
-            next
-          }
-
-          for (class_idx in seq_along(class_values)) {
-            class_val <- class_values[class_idx]
-            class_name <- class_names[class_idx]
-
-            class_rows <- ev$value == class_val
-
-            if (any(class_rows, na.rm = TRUE)) {
-              class_weight <- sum(ev$coverage_area[class_rows] * ev$weight[class_rows], na.rm = TRUE)
-              year_results[i, class_name] <- round((class_weight / total_weight) * 100, 2)
-            }
-          }
-
-          na_rows <- is.na(ev$value)
-          if (any(na_rows)) {
-            na_weight <- sum(ev$coverage_area[na_rows] * ev$weight[na_rows], na.rm = TRUE)
-            year_results[i, "no_data"] <- round((na_weight / total_weight) * 100, 2)
-          }
-        } else {
-          total_area <- sum(ev$coverage_area, na.rm = TRUE)
-
-          if (total_area <= 0) {
-            next
-          }
-
-          for (class_idx in seq_along(class_values)) {
-            class_val <- class_values[class_idx]
-            class_name <- class_names[class_idx]
-
-            class_rows <- ev$value == class_val
-
-            if (any(class_rows, na.rm = TRUE)) {
-              class_area <- sum(ev$coverage_area[class_rows], na.rm = TRUE)
-              year_results[i, class_name] <- round((class_area / total_area) * 100, 2)
-            }
-          }
-
-          na_rows <- is.na(ev$value)
-          if (any(na_rows)) {
-            na_area <- sum(ev$coverage_area[na_rows], na.rm = TRUE)
-            year_results[i, "no_data"] <- round((na_area / total_area) * 100, 2)
-          }
-        }
-      }
+    for (col in all_column_names) {
+      year_results[[col]] <- if (is.null(shares)) NA_real_ else shares[[col]]
     }
 
     year_results$year <- year
