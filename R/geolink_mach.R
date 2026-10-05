@@ -3524,7 +3524,10 @@ if (python==T) {
   if (!file.exists(python_utils_path)) {
     stop("Python utilities not found. Check package installation.")
   }
-  reticulate::source_python(python_utils_path)
+  ## resample_rasters() and mosaic_rasters() are Python functions (inst/python_scripts/
+  ## raster_utils.py); source them into an environment of their own and call them from it
+  py_utils <- new.env()
+  reticulate::source_python(python_utils_path, envir = py_utils)
 }
   filter_features <- function(feature, start_date, end_date) {
     feature_date <- as.Date(feature$properties$start_datetime)
@@ -3628,13 +3631,26 @@ if (python==T) {
   }
 
   ## One raster per year from all of that year's tiles. python = TRUE: the Python
-  ## resample_rasters() / mosaic_rasters() utilities (unchanged). python = FALSE: every tile is
-  ## reprojected to a common EPSG:4326 grid (nearest neighbour) and merged in R with terra.
+  ## resample_rasters() / mosaic_rasters() utilities, falling back to the R merge (with a
+  ## warning) if the Python mosaic fails. python = FALSE: every tile is reprojected to a common
+  ## EPSG:4326 grid (nearest neighbour) and merged in R with terra.
+  study_bbox <- sf::st_bbox(sf_obj) + c(-0.1, -0.1, 0.1, 0.1)
+  combine_in_r <- function(raster_paths, year) {
+    tryCatch(
+      .landcover_combine_tiles(raster_paths,
+                               target_resolution = if (use_resampling) target_resolution else NULL,
+                               bbox = study_bbox),
+      error = function(e) {
+        warning(paste("Could not combine the land cover tiles for year", year, ":", conditionMessage(e)))
+        NULL
+      })
+  }
   load_year_raster <- function(raster_paths, year) {
     if (isTRUE(python)) {
+      tiles <- raster_paths
       if (use_resampling) {
         processed_paths <- try({
-          resample_rasters(
+          py_utils$resample_rasters(
             input_files = raster_paths,
             output_folder = file.path(temp_dir, "resampled", year),
             target_resolution = target_resolution
@@ -3642,20 +3658,22 @@ if (python==T) {
         }, silent = TRUE)
 
         if (!inherits(processed_paths, "try-error") && length(processed_paths) > 0) {
-          raster_paths <- processed_paths
+          raster_paths <- as.character(unlist(processed_paths))
         }
       }
 
       if (length(raster_paths) > 1) {
         mosaic_path <- try({
-          mosaic_rasters(input_files = raster_paths)
+          py_utils$mosaic_rasters(input_files = raster_paths)
         }, silent = TRUE)
 
-        if (!inherits(mosaic_path, "try-error")) {
-          raster_path <- mosaic_path
-        } else {
-          raster_path <- raster_paths[1]
+        if (inherits(mosaic_path, "try-error")) {
+          ## not the first tile alone: that would drop every other tile of the year
+          warning(paste("The Python mosaic failed for year", year, "(",
+                        trimws(as.character(mosaic_path)), "); combining the tiles in R instead."))
+          return(combine_in_r(tiles, year))
         }
+        raster_path <- as.character(mosaic_path)
       } else {
         raster_path <- raster_paths[1]
       }
@@ -3665,15 +3683,7 @@ if (python==T) {
       }, silent = TRUE))
     }
 
-    study_bbox <- sf::st_bbox(sf_obj) + c(-0.1, -0.1, 0.1, 0.1)
-    tryCatch(
-      .landcover_combine_tiles(raster_paths,
-                               target_resolution = if (use_resampling) target_resolution else NULL,
-                               bbox = study_bbox),
-      error = function(e) {
-        warning(paste("Could not combine the land cover tiles for year", year, ":", conditionMessage(e)))
-        NULL
-      })
+    combine_in_r(raster_paths, year)
   }
 
   if (return_raster == TRUE) {
