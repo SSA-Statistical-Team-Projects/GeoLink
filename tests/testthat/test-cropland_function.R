@@ -4,6 +4,7 @@
 
 #Test- A.
 test_that("Cropland Function works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_cropland(shp_dt = shp_dt[shp_dt$ADM1_EN
                                                                  ==  "Abia",],
@@ -30,6 +31,7 @@ test_that("Cropland Function works using a shapefile:", {
 
 #Test- B
 test_that("Cropland Function works using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_cropland(survey_dt =
                                                     st_as_sf(hhgeo_dt[1:10],
@@ -59,6 +61,7 @@ test_that("Cropland Function works using a survey :", {
 
 #Test- C.
 test_that("Cropland Function works using a shapefile from geodata package:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))

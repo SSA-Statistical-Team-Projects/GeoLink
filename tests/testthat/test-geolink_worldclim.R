@@ -4,6 +4,7 @@
 
 #Test- A.
 test_that("Elevation Function works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_worldclim(iso_code ="NGA",
                                                   var='tmax',
@@ -33,6 +34,7 @@ test_that("Elevation Function works using a shapefile:", {
 
 #Test- B
 test_that("Elevation Function works using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_worldclim(iso_code ="NGA",
                                                   var='tmax',
@@ -67,6 +69,7 @@ test_that("Elevation Function works using a survey :", {
 
 #Test- C.
 test_that("Elevation Function works using a shapefile from geodata package:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))

@@ -5,6 +5,7 @@
 
 #Test- A.
 test_that("Buildings works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -35,18 +36,25 @@ test_that("Buildings works using a shapefile:", {
   urban <- na.omit(test_dt$urban)
   expect_true(all(urban >= 0 & urban <= 1),
               info = "Values of urban should be between 0 and 1")
+  ## total_length and total_area are cell totals: the sum over the cell's pixels, with pixels
+  ## without buildings counted as 0. Expected ranges over the 5171 cells from an independent
+  ## computation (pixel coverage by terra::rasterize(cover = TRUE), WorldPop v1.1 rasters):
+  ## total_length 0 to 168371.5 m, total_area 0 to 570823.2 m2; 1% tolerance at the maximum
   total_length <- na.omit(test_dt$total_length)
-  expect_true(all(total_length >= 2.768753 & total_length <= 6596.204),
-              info = "Values of urban should be between 2.768753 and 6596.204")
+  expect_true(all(total_length >= 0 & total_length <= 168371.5 * 1.01),
+              info = "Cell totals of total_length should be between 0 and 168371.5")
+  expect_equal(max(total_length), 168371.5, tolerance = 0.01)
   total_area <- na.omit(test_dt$total_area)
-  expect_true(all(total_area >= 0.04377888 & total_area <= 489605.3),
-              info = "Values of urban should be between 0.04377888 and 489605.3")
+  expect_true(all(total_area >= 0 & total_area <= 570823.2 * 1.01),
+              info = "Cell totals of total_area should be between 0 and 570823.2")
+  expect_equal(max(total_area), 570823.2, tolerance = 0.01)
 }
 )
 
 
 #Test- B
 test_that("Buildings works using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -89,6 +97,7 @@ test_that("Buildings works using a survey :", {
 
 #Test- C.
 test_that("Buildings works with one indicator:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -123,6 +132,7 @@ test_that("Buildings works with one indicator:", {
 
 #Test- C.
 test_that("Buildings works with two indicator:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_buildings(version = "v1.1",
                                                   iso_code = "NGA",
@@ -155,6 +165,7 @@ test_that("Buildings works with two indicator:", {
 
 #Test- D.
 test_that("Buildings works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("KEN", level = 2, tempdir()))
@@ -179,11 +190,15 @@ test_that("Buildings works using a shapefile:", {
   urban <- na.omit(test_dt$urban)
   expect_true(all(urban >= 0 & urban <= 1),
               info = "Values of urban should be between 0 and 1")
+  ## total_length and total_area are polygon totals (pixels without buildings count as 0).
+  ## Expected ranges over the 17 Nairobi constituencies from an independent computation (pixel
+  ## coverage by terra::rasterize(cover = TRUE), WorldPop v1.1 rasters): total_length 369694.9
+  ## to 3450940 m, total_area 944011.3 to 8821114 m2; 1% tolerance
   total_length <- na.omit(test_dt$total_length)
-  expect_true(all(total_length >= 2.768753 & total_length <= 6596.204),
-              info = "Values of urban should be between 2.768753 and 6596.204")
+  expect_equal(length(total_length), 17)
+  expect_equal(range(total_length), c(369694.9, 3450940), tolerance = 0.01)
   total_area <- na.omit(test_dt$total_area)
-  expect_true(all(total_area >= 0.04377888 & total_area <= 489605.3),
-              info = "Values of urban should be between 0.04377888 and 489605.3")
+  expect_equal(length(total_area), 17)
+  expect_equal(range(total_area), c(944011.3, 8821114), tolerance = 0.01)
 }
 )

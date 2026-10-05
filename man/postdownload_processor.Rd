@@ -18,7 +18,8 @@ postdownload_processor(
   shp_fn = NULL,
   grid_size = 1000,
   return_raster,
-  weight_raster
+  weight_raster,
+  zonalstats_fun = compute_zonalstats
 )
 }
 \arguments{
@@ -52,6 +53,10 @@ values}
 
 \item{weight_raster}{(optional) a raster to be used as weights for weighted
 statistics}
+
+\item{zonalstats_fun}{the function that extracts the rasters into the polygons, called
+with the arguments of \code{compute_zonalstats} (the default). \code{geolink_buildings} uses it to
+choose the aggregation per layer.}
 }
 \description{
 A function to process downloaded raster into the final output in shapefile/geocoded survey

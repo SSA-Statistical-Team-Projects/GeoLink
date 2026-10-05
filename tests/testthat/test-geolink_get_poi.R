@@ -1,5 +1,6 @@
 # Test A
 test_that("Get POI works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_get_poi( osm_key = "amenity",
                                                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
@@ -18,6 +19,7 @@ test_that("Get POI works using a shapefile:", {
 
 #Test- B
 test_that("Get POI works using a survey:", {
+  skip_if_not_live()
   suppressWarnings({ test_dt <- geolink_get_poi( osm_key = "amenity",
                                                       survey_dt =  st_as_sf(hhgeo_dt[1:10],
                                                                            crs = 4326),
@@ -31,6 +33,7 @@ test_that("Get POI works using a survey:", {
 
 #Test- C
 test_that("Get POI works using a survey stata users:", {
+  skip_if_not_live()
   suppressWarnings({ test_dt <- geolink_get_poi( osm_key = "amenity",
                                                       survey_fn = "testdata/xy_hhgeo_dt.dta",
                                                       survey_lat = "y",

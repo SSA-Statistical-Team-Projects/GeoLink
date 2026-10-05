@@ -80,6 +80,7 @@ test_that("Test error for missing required argument:", {
 ## Test of values equality with single functions ##
 # Test for elevation
 test_that("Test elevation function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("elevation",
                          iso_code = "NGA",
                          shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
@@ -101,6 +102,7 @@ test_that("Test elevation function:", {
 
 # Test for chirps
 test_that("Test chirps function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("rainfall",
                          time_unit = "month",
                          start_date = "2020-01-01",
@@ -140,6 +142,7 @@ test_that("Test chirps function:", {
 
 # Test for terraclimate
 test_that("Test terraclimate function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("terraclimate",
                          var = 'tmax',
                          year = 2017,
@@ -178,6 +181,7 @@ test_that("Test terraclimate function:", {
 
 # Test for population
 test_that("Test population function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("population",
                          start_year = 2018,
                          end_year = 2019,
@@ -207,6 +211,7 @@ test_that("Test population function:", {
 
 # Test for nightlight
 test_that("Test nightlight function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("nightlight",
                          time_unit = "annual",
                          indicator = "median_masked",
@@ -247,6 +252,7 @@ test_that("Test nightlight function:", {
 
 # Test for buildings
 test_that("Test buildings function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("buildings",
                                            iso_code = "NGA",
                                            version = "v1.1",
@@ -287,6 +293,7 @@ test_that("Test buildings function:", {
 
 # Test CMIP6
 test_that("Test CMIP6 function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("cmip6",
                                            start_date = "2019-01-01",
                                            end_date = "2019-12-31",
@@ -344,6 +351,7 @@ test_that("Test CMIP6 function:", {
 
 # Test cropland
 test_that("Test cropland function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("cropland",
                                            shp_dt = shp_dt[shp_dt$ADM1_PCODE == "NG001",],
                                            grid_size = 1000,
@@ -377,6 +385,7 @@ test_that("Test cropland function:", {
 
 # Test worldclim
 test_that("Test worldclim function:", {
+  skip_if_not_live()
   suppressWarnings({test_dt <- run_geolink("worldclim",
                                            iso_code ="NGA",
                                            var='tavg',
@@ -449,6 +458,7 @@ test_that("Test opencellid function: ",
 # Test electaccess
 test_that("Test electaccess function: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- run_geolink("electaccess",
                                                       shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
                                                       start_date = "2019-01-01",
@@ -487,6 +497,7 @@ test_that("Test electaccess function: ",
 #  Test vegindex
 test_that("Test vegindex function: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- run_geolink("vegetation",
                                                       start_date = "2019-01-01",
                                                       end_date = "2019-12-31",
@@ -531,6 +542,7 @@ test_that("Test vegindex function: ",
 # Test geolink_pollution
 test_that("Test geolink_pollution function: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- run_geolink("pollution",
                                                       start_date = "2019-01-01",
                                                       end_date = "2019-12-28",

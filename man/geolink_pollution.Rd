@@ -20,7 +20,9 @@ geolink_pollution(
   extract_fun = "mean",
   survey_crs = 4326,
   return_raster = FALSE,
-  weight_raster = NULL
+  weight_raster = NULL,
+  qa_min = NULL,
+  grid_res = 0.05
 )
 }
 \arguments{
@@ -58,12 +60,26 @@ raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. 
 source is downloaded.}
 
 \item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
+
+\item{qa_min}{numeric, the minimum \code{qa_value} of a Sentinel-5P pixel to be used. Default
+(NULL) takes the product's recommended threshold: 0.8 for aer-ai, 0.75 for no2 and 0.5
+for hcho, o3 and so2.}
+
+\item{grid_res}{numeric, the resolution in degrees of the regular grid onto which each
+orbit's pixels are averaged before the monthly mean is taken. Default 0.05.}
 }
 \value{
 A processed data frame based on the input parameters and downloaded data.
 }
 \description{
 This function downloads pollution data at the monthly level. It allows for the extraction of five separate pollution indicators.
+}
+\details{
+Sentinel-5P Level-2 files are orbit swaths (scanline x ground pixel) with
+per-pixel latitude and longitude, not regular grids. Each offline (OFFL) orbit that
+crosses the study area in a month is read for the scanlines over the study area; its
+pixels with \code{qa_value >= qa_min} are averaged onto a regular grid of \code{grid_res} degrees
+by their own coordinates; the month's value in a cell is the mean over orbits.
 }
 \examples{
 \dontrun{

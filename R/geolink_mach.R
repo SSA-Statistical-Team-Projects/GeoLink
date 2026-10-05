@@ -1157,14 +1157,33 @@ geolink_elevation <- function(iso_code,
 #' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
 #' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
-#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' Default (NULL) aggregates each layer as described in the Aggregation section. If a function
+#' name is given ("mean", "sum", "min", "max", ...), it is applied to every layer over the pixels
+#' with data, i.e. pixels without buildings are skipped (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
 #' @param indicators character, default = "ALL", the set of indicators of interest
 #' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
 #' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
 #' source is downloaded.
-#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects.
+#' Used only when `extract_fun` is specified.
 #'
+#' @section Aggregation:
+#' In the WorldPop building-pattern rasters, pixels without buildings are NoData. With the
+#' default `extract_fun = NULL`, each polygon gets:
+#' \itemize{
+#'   \item `count`, `total_area`, `total_length`: the polygon total, the sum of the pixel values
+#'   weighted by the share of each pixel inside the polygon, with pixels without buildings
+#'   counting as zero (0, not NA, in a polygon without buildings);
+#'   \item `density`, `urban`: the coverage-weighted mean over the whole polygon with pixels
+#'   without buildings counting as zero (`urban` is then the share of the polygon that is urban);
+#'   \item per-building attributes (`mean_area`, `mean_length`, `cv_area`, `cv_length`,
+#'   `imagery_year`): the coverage-weighted mean over the pixels with buildings only, NA in a
+#'   polygon without buildings.
+#' }
+#' A polygon that lies entirely outside the rasters gets NA. Columns already present in
+#' `shp_dt` (or `survey_dt`) are never overwritten: a layer whose name is already a column (for
+#' example `urban`) is written as `<name>_buildings`.
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -1194,59 +1213,25 @@ geolink_buildings <- function(version,
                               survey_lat = NULL,
                               survey_lon = NULL,
                               buffer_size = NULL,
-                              extract_fun = "mean",
+                              extract_fun = NULL,
                               survey_crs = 4326,
                               indicators = "ALL",
                               return_raster = FALSE,
                               weight_raster = NULL){
 
-  temp_dir <- tempdir()
-
-  if (version == "v1.1") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v1.1/", iso_code, "_buildings_v1_1.zip")
-    tryCatch({
-      response <- httr::GET(url, httr::write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
-      if (httr::http_type(response) == "application/zip") {
-        message("File downloaded successfully.")
-        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
-        message("File unzipped successfully.")
-      } else {
-        warning("Downloaded file may not be a ZIP file.")
-      }
-    }, error = function(e) {
-      print(e)
-    })
-  }
-
-  if (version == "v2.0") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v2.0/", iso_code, "_buildings_v2_0.zip")
-    tryCatch({
-      response <- httr::GET(url, httr::write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
-      if (httr::http_type(response) == "application/zip") {
-        message("File downloaded successfully.")
-        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
-        message("File unzipped successfully.")
-      } else {
-        warning("Downloaded file may not be a ZIP file.")
-      }
-    }, error = function(e) {
-      print(e)
-    })
-  }
-
-  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  ## download into a dedicated folder so that only this download's rasters are used
+  dl_dir <- file.path(tempdir(), paste0("geolink_buildings_", iso_code, "_", version))
+  tif_files <- .buildings_download(version = version, iso_code = iso_code, dest_dir = dl_dir)
+  ## the rasters below are read from these files: keep them when rasters are returned
+  if (!isTRUE(return_raster)) on.exit(unlink(dl_dir, recursive = TRUE), add = TRUE)
 
   if (!all(indicators == "ALL")) {
     indicators <- paste(indicators, collapse = "|")
     tif_files <- tif_files[grepl(indicators, basename(tif_files))]
+    if (length(tif_files) == 0) stop("None of the downloaded building layers matches `indicators`.")
   }
 
-  name_set <- c()
-  for (file in tif_files) {
-    base_name <- basename(file)
-    extracted_string <- sub(".*1_([^\\.]+)\\.tif$", "\\1", base_name)
-    name_set <- c(name_set, extracted_string)
-  }
+  name_set <- .buildings_layer_names(tif_files)
 
   raster_objs <- lapply(tif_files, function(f) {
     r <- raster::raster(f)
@@ -1312,7 +1297,6 @@ geolink_buildings <- function(version,
     })
 
     print("Process Complete!!!")
-    unlink(paste0(tempdir(), "/", toupper(iso_code), "*"), recursive = TRUE)
     return(raster_objs)
   }
 
@@ -1329,11 +1313,134 @@ geolink_buildings <- function(version,
                                survey_crs = survey_crs,
                                name_set = name_set,
                                return_raster = return_raster,
-                               weight_raster = weight_raster)
+                               weight_raster = weight_raster,
+                               zonalstats_fun = .buildings_zonalstats)
 
   print("Process Complete!!!")
-  unlink(paste0(tempdir(), "/", toupper(iso_code), "*"), recursive = TRUE)
   return(dt)
+}
+
+## WorldPop building-pattern layers that are totals per pixel and layers that are shares or
+## densities of the pixel; in both, pixels without buildings are NoData and mean zero.
+.buildings_total_layers <- c("count", "total_area", "total_length")
+.buildings_share_layers <- c("density", "urban")
+
+#' Download and unzip a WorldPop building-pattern archive into its own folder
+#'
+#' @param version "v1.1" or "v2.0"
+#' @param iso_code ISO3 country code
+#' @param dest_dir folder used for this download only (emptied first)
+#' @return paths of the .tif files extracted into `dest_dir`; stops if the download or the
+#'   unzip fails or yields no .tif
+#' @noRd
+.buildings_download <- function(version, iso_code, dest_dir) {
+
+  if (!version %in% c("v1.1", "v2.0")) stop('version must be "v1.1" or "v2.0"')
+
+  url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/", version, "/",
+                iso_code, "_buildings_", gsub(".", "_", version, fixed = TRUE), ".zip")
+
+  unlink(dest_dir, recursive = TRUE)
+  dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
+  zip_path <- file.path(dest_dir, basename(url))
+
+  response <- tryCatch(
+    httr::GET(url, httr::write_disk(zip_path, overwrite = TRUE)),
+    error = function(e) stop("Download of ", url, " failed: ", conditionMessage(e), call. = FALSE)
+  )
+  if (httr::http_error(response)) {
+    stop("Download of ", url, " failed with HTTP status ", httr::status_code(response), call. = FALSE)
+  }
+  message("File downloaded successfully.")
+
+  tryCatch(
+    utils::unzip(zip_path, exdir = dest_dir),
+    error = function(e) stop("Unzipping ", zip_path, " failed: ", conditionMessage(e), call. = FALSE),
+    warning = function(w) stop("Unzipping ", zip_path, " failed: ", conditionMessage(w), call. = FALSE)
+  )
+  unlink(zip_path)
+
+  tif_files <- list.files(path = dest_dir, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  if (length(tif_files) == 0) stop("The archive ", url, " contains no .tif file.", call. = FALSE)
+  message("File unzipped successfully.")
+
+  tif_files
+}
+
+#' Layer names of WorldPop building-pattern files, e.g. NGA_buildings_v1_1_count.tif -> count
+#' @noRd
+.buildings_layer_names <- function(tif_files) {
+  sub("^.*_v[0-9]+_[0-9]+_", "", sub("\\.tif$", "", basename(tif_files)))
+}
+
+#' Zonal statistics for WorldPop building-pattern layers
+#'
+#' Called by `postdownload_processor` with the arguments of `compute_zonalstats`. With
+#' `extract_fun = NULL`, `count`, `total_area` and `total_length` are coverage-weighted sums
+#' (NoData = no building = 0), `density` and `urban` are coverage-weighted means over the whole
+#' polygon with NoData as 0, and the other layers (per-building attributes) are
+#' coverage-weighted means over the pixels with buildings (NA without buildings). Polygons
+#' entirely outside the raster get NA. With a non-NULL `extract_fun`, that statistic is applied
+#' to every layer through `compute_zonalstats`. Layers whose name is already a column of
+#' `shp_dt` are written as `<name>_buildings`.
+#'
+#' @inheritParams compute_zonalstats
+#' @return `shp_dt` (in the CRS of the rasters) with one column per layer
+#' @noRd
+.buildings_zonalstats <- function(shp_dt,
+                                  raster_objs,
+                                  extract_fun = NULL,
+                                  name_set,
+                                  weight_raster = NULL) {
+
+  if (!inherits(shp_dt, "sf")) stop("shp_dt must be an sf object")
+  if (!is.list(raster_objs)) raster_objs <- list(raster_objs)
+  if (length(name_set) != length(raster_objs)) {
+    stop("Length of name_set must match the number of raster objects")
+  }
+
+  ## never overwrite a column of the input
+  out_names <- name_set
+  clash <- out_names %in% names(shp_dt)
+  if (any(clash)) {
+    out_names[clash] <- paste0(out_names[clash], "_buildings")
+    message("Columns ", paste(name_set[clash], collapse = ", "),
+            " already exist in the input and are kept; the building layers are written as ",
+            paste(out_names[clash], collapse = ", "), ".")
+  }
+
+  if (!is.null(extract_fun)) {
+    return(compute_zonalstats(shp_dt = shp_dt,
+                              raster_objs = raster_objs,
+                              extract_fun = extract_fun,
+                              name_set = out_names,
+                              weight_raster = weight_raster))
+  }
+  if (!is.null(weight_raster)) {
+    warning("weight_raster is ignored when extract_fun is NULL (layer-specific aggregation).")
+  }
+
+  rasters <- lapply(raster_objs, function(r) if (inherits(r, "SpatRaster")) r else terra::rast(r))
+  shp_dt <- sf::st_transform(shp_dt, terra::crs(rasters[[1]]))
+
+  for (i in seq_along(rasters)) {
+    if (name_set[i] %in% .buildings_total_layers) {
+      ## sum over pixels with buildings; "count" with default_value = 0 is the covered area
+      ## (in pixels) of the polygon, 0 only when the polygon is outside the raster
+      s <- exactextractr::exact_extract(rasters[[i]], shp_dt, fun = c("sum", "count"),
+                                        default_value = 0, progress = FALSE)
+      v <- ifelse(s[["count"]] > 0, s[["sum"]], NA_real_)
+    } else if (name_set[i] %in% .buildings_share_layers) {
+      v <- exactextractr::exact_extract(rasters[[i]], shp_dt, fun = "mean",
+                                        default_value = 0, progress = FALSE)
+    } else {
+      v <- exactextractr::exact_extract(rasters[[i]], shp_dt, fun = "mean", progress = FALSE)
+    }
+    v[is.nan(v)] <- NA_real_
+    shp_dt[[out_names[i]]] <- v
+  }
+
+  shp_dt
 }
 
 #' Download CMIP6 climate model data
@@ -2562,8 +2669,6 @@ geolink_electaccess <- function(
     weight_raster = NULL
 ) {
 
-  mosaic_and_crop = TRUE
-
   start_date <- as.Date(start_date)
   end_date <- as.Date(end_date)
 
@@ -2618,9 +2723,11 @@ geolink_electaccess <- function(
     stac_search(
       collections = "hrea",
       bbox = bbox,
-      datetime = paste(start_date, end_date, sep = "/")
+      datetime = paste(start_date, end_date, sep = "/"),
+      limit = 100
     ) %>%
     get_request() %>%
+    items_fetch() %>%   # every page: one item per country and year
     items_sign(sign_fn = sign_planetary_computer())
 
   print(paste("Found", length(it_obj$features), "features from STAC API"))
@@ -2648,158 +2755,54 @@ geolink_electaccess <- function(
       light_composite = feature$assets$`light-composite`$href,
       night_proportion = feature$assets$`night-proportion`$href,
       estimated_brightness = feature$assets$`estimated-brightness`$href,
-      year = year
+      year = year,
+      id = if (is.null(feature$id)) NA_character_ else feature$id
     )
   })
+  url_list <- Filter(Negate(is.null), url_list)
+  if (length(url_list) == 0) {
+    stop("No HREA item with all the required assets was found")
+  }
 
   years <- unique(sapply(url_list, function(x) x$year))
   print(paste("Found data for years:", paste(years, collapse=", ")))
 
-  temp_dir <- tempdir()
-  dir.create(file.path(temp_dir, "rasters"), showWarnings = FALSE, recursive = TRUE)
-
-  download_raster <- function(url, asset_name, year) {
-    tryCatch({
-      file_ext <- ".tif"
-      temp_file <- file.path(temp_dir, "rasters", paste0(asset_name, "_", year, file_ext))
-
-      result <- httr::GET(url,
-                          httr::write_disk(temp_file, overwrite = TRUE),
-                          httr::progress())
-
-      if (httr::status_code(result) == 200) {
-        return(list(
-          path = temp_file,
-          asset = asset_name,
-          year = year
-        ))
-      } else {
-        warning(sprintf("Failed to download %s for year %s: HTTP status code %d",
-                        asset_name, year, httr::status_code(result)))
-        return(NULL)
-      }
-    }, error = function(e) {
-      warning(sprintf("Failed to download raster for %s, year %s: %s",
-                      asset_name, year, e$message))
-      return(NULL)
-    })
-  }
+  ## HREA has one item per country and year. Every item's file gets its own name; the
+  ## countries of an (asset, year) are then merged into one raster before extraction.
+  raster_dir <- file.path(tempdir(), "rasters")
+  dir.create(raster_dir, showWarnings = FALSE, recursive = TRUE)
+  dl <- .electaccess_dest_paths(url_list, raster_dir)
 
   print("Downloading rasters...")
-  downloaded_files <- list()
-
-  for (i in seq_along(url_list)) {
-    item <- url_list[[i]]
-    year <- item$year
-
-    for (asset_name in names(item)[names(item) != "year"]) {
-      url <- item[[asset_name]]
-      result <- download_raster(url, asset_name, year)
-      if (!is.null(result)) {
-        downloaded_files <- c(downloaded_files, list(result))
+  ok <- vapply(seq_len(nrow(dl)), function(k) {
+    tryCatch({
+      result <- httr::GET(dl$url[k],
+                          httr::write_disk(dl$path[k], overwrite = TRUE),
+                          httr::progress())
+      if (httr::status_code(result) == 200) {
+        TRUE
+      } else {
+        warning(sprintf("Failed to download %s for year %s (%s): HTTP status code %d",
+                        dl$asset[k], dl$year[k], dl$item[k], httr::status_code(result)))
+        FALSE
       }
-    }
-  }
+    }, error = function(e) {
+      warning(sprintf("Failed to download raster for %s, year %s (%s): %s",
+                      dl$asset[k], dl$year[k], dl$item[k], e$message))
+      FALSE
+    })
+  }, logical(1))
+  downloaded <- dl[ok, , drop = FALSE]
 
-  if (length(downloaded_files) == 0) {
+  if (nrow(downloaded) == 0) {
     stop("No rasters could be successfully downloaded")
   }
 
-  print(paste("Successfully downloaded", length(downloaded_files), "raster files"))
+  print(paste("Successfully downloaded", nrow(downloaded), "raster files"))
 
-  download_by_year_asset <- list()
-
-  for (file_info in downloaded_files) {
-    year <- file_info$year
-    asset <- file_info$asset
-    key <- paste(year, asset, sep="_")
-
-    if (is.null(download_by_year_asset[[key]])) {
-      download_by_year_asset[[key]] <- list()
-    }
-
-    download_by_year_asset[[key]] <- c(download_by_year_asset[[key]], file_info$path)
-  }
-
-  if (mosaic_and_crop && !is.null(shp_dt)) {
-    temp_shp <- file.path(temp_dir, "shape.gpkg")
-    sf::st_write(sf_obj, temp_shp, delete_layer = TRUE)
-    print(paste("Saved shapefile to temporary location:", temp_shp))
-  }
-
-  raster_objs <- list()
-
-  if (mosaic_and_crop) {
-    print("Performing mosaicking and cropping...")
-
-    python_script <- system.file("python_scripts/mosaic_crop.py", package = "geolink")
-
-    if (!file.exists(python_script)) {
-      warning("Python script not found at ", python_script, ". Falling back to direct raster loading.")
-      mosaic_and_crop <- FALSE
-    } else {
-      for (key in names(download_by_year_asset)) {
-        file_paths <- download_by_year_asset[[key]]
-        parts <- strsplit(key, "_")[[1]]
-        year <- parts[1]
-        asset <- parts[2]
-
-        print(paste("Processing", asset, "for year", year))
-
-        processed_path <- file.path(temp_dir, paste0("processed_", key, ".tif"))
-
-        python_cmd <- paste(
-          "python",
-          shQuote(python_script),
-          shQuote(temp_shp),
-          shQuote(processed_path),
-          paste(sapply(file_paths, shQuote), collapse = " ")
-        )
-
-        print(paste("Executing:", python_cmd))
-
-        result <- system(python_cmd, intern = TRUE)
-
-        success_line <- grep("^SUCCESS:", result, value = TRUE)
-
-        if (length(success_line) > 0) {
-          final_path <- sub("^SUCCESS:", "", success_line)
-          print(paste("Successfully processed", asset, "for year", year))
-
-          tryCatch({
-            rast_obj <- terra::rast(final_path)
-            if (!is.null(rast_obj)) {
-              raster_objs[[length(raster_objs) + 1]] <- rast_obj
-              names(raster_objs)[length(raster_objs)] <- paste0(asset, "_", year)
-            }
-          }, error = function(e) {
-            warning(sprintf("Failed to load processed raster for %s, year %s: %s",
-                            asset, year, e$message))
-          })
-        } else {
-          warning(paste("Failed to process", asset, "for year", year))
-          print(result)
-        }
-      }
-    }
-  }
-
-  if (!mosaic_and_crop || length(raster_objs) == 0) {
-    print("Loading individual rasters...")
-
-    for (file_info in downloaded_files) {
-      tryCatch({
-        rast_obj <- terra::rast(file_info$path)
-        if (!is.null(rast_obj)) {
-          raster_objs[[length(raster_objs) + 1]] <- rast_obj
-          names(raster_objs)[length(raster_objs)] <- paste0(file_info$asset, "_", file_info$year)
-        }
-      }, error = function(e) {
-        warning(sprintf("Failed to load raster for %s, year %s: %s",
-                        file_info$asset, file_info$year, e$message))
-      })
-    }
-  }
+  print("Merging the countries of each asset and year...")
+  raster_objs <- .electaccess_combine(downloaded,
+                                      bbox = sf::st_bbox(sf_obj) + c(-0.1, -0.1, 0.1, 0.1))
 
   if (length(raster_objs) == 0) {
     stop("No rasters could be successfully loaded")
@@ -2886,6 +2889,63 @@ geolink_electaccess <- function(
 
   print("Process Complete!!!")
   return(dt)
+}
+
+#' Destination file of every asset of every HREA item
+#'
+#' HREA has one STAC item per country and year, so the file name carries the item id: files of
+#' different countries for the same asset and year must not overwrite each other.
+#'
+#' @param url_list list of items, each a list of asset hrefs plus `year` and `id`
+#' @param dest_dir folder for the downloads
+#' @return data.frame with one row per item and asset: item, asset, year, url, key
+#'   (`<asset>_<year>`, the output column) and path (distinct for every row)
+#' @noRd
+.electaccess_dest_paths <- function(url_list, dest_dir) {
+  rows <- lapply(seq_along(url_list), function(i) {
+    item <- url_list[[i]]
+    id <- item$id
+    if (is.null(id) || is.na(id) || !nzchar(id)) id <- paste0("item", i)
+    assets <- setdiff(names(item), c("year", "id"))
+    data.frame(item = id, asset = assets, year = item$year,
+               url = vapply(item[assets], as.character, character(1), USE.NAMES = FALSE),
+               stringsAsFactors = FALSE)
+  })
+  dl <- do.call(rbind, rows)
+  dl$key <- paste0(dl$asset, "_", dl$year)
+  stem <- paste0(dl$key, "_", gsub("[^A-Za-z0-9_.-]", "_", dl$item))
+  dl$path <- file.path(dest_dir, paste0(make.unique(stem, sep = "_"), ".tif"))
+  dl
+}
+
+#' Merge the country rasters of each HREA asset and year
+#'
+#' @param downloaded data.frame from `.electaccess_dest_paths()`, rows that were downloaded
+#' @param bbox optional bbox in EPSG:4326 (xmin, ymin, xmax, ymax); each raster is first
+#'   cropped to it
+#' @return named list of `SpatRaster`, one per `<asset>_<year>` in order of first appearance,
+#'   each the merge of all the countries' rasters (the first non-NA value wins)
+#' @noRd
+.electaccess_combine <- function(downloaded, bbox = NULL) {
+  out <- list()
+  for (key in unique(downloaded$key)) {
+    rasts <- lapply(downloaded$path[downloaded$key == key], terra::rast)
+
+    if (!is.null(bbox)) {
+      e <- terra::ext(as.numeric(bbox[c("xmin", "xmax", "ymin", "ymax")]))
+      cropped <- lapply(rasts, function(r) {
+        if (is.null(terra::intersect(terra::ext(r), e))) NULL else terra::crop(r, e, snap = "out")
+      })
+      cropped <- Filter(Negate(is.null), cropped)
+      ## keep one raster (all NA over the study area) rather than dropping the column
+      rasts <- if (length(cropped) > 0) cropped else rasts[1]
+    }
+
+    r <- if (length(rasts) == 1) rasts[[1]] else terra::merge(terra::sprc(rasts))
+    names(r) <- key
+    out[[key]] <- r
+  }
+  out
 }
 
 #' Download OpenCellID data
@@ -3296,8 +3356,16 @@ geolink_opencellid <- function(cell_tower_file,
 #' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
 #' @param python Logical. Whether to use python code to help process rasters. Defaults to FALSE.
 #'
+#' @details io-lulc tiles are in different UTM zones. With `python = FALSE` (default) all the
+#' tiles of a year are combined in R with terra: each tile is reprojected to EPSG:4326 with
+#' nearest neighbour (at `target_resolution` meters, converted to degrees as meters / 111320,
+#' when `use_resampling = TRUE`, otherwise at the tiles' native resolution) and the tiles are
+#' merged; the class shares are computed from this mosaic. With `python = TRUE` the Python
+#' `resample_rasters()` and `mosaic_rasters()` utilities are used.
 #'
-#' @return An sf object with land cover classifications by year
+#' @return An sf object with land cover classifications by year: the percentage of each
+#' polygon in each class, and `no_data`, the percentage without data. A polygon not covered by
+#' any tile gets NA for every class (and 100 for `no_data`).
 #'
 #' @examples
 #' \dontrun{
@@ -3347,27 +3415,31 @@ geolink_landcover <- function(start_date,
                               weight_raster = NULL,
                               python=F) {
 
-  geolink_setup_python()
+  ## Python (and its Ubuntu workaround) is needed only for python = TRUE; the default R path
+  ## combines the tiles with terra
+  if (isTRUE(python)) {
+    geolink_setup_python()
 
-  is_ubuntu <- FALSE
+    is_ubuntu <- FALSE
 
-  if (file.exists("/etc/os-release")) {
-    os_info <- readLines("/etc/os-release")
-    is_ubuntu <- any(grepl("ubuntu", tolower(os_info), fixed = TRUE))
-  }
-  if (!is_ubuntu && file.exists("/etc/lsb-release")) {
-    lsb_info <- readLines("/etc/lsb-release")
-    is_ubuntu <- any(grepl("ubuntu", tolower(lsb_info), fixed = TRUE))
-  }
-  if (!is_ubuntu) {
-    sys_info <- try(system("lsb_release -a", intern = TRUE), silent = TRUE)
-    if (!inherits(sys_info, "try-error")) {
-      is_ubuntu <- any(grepl("ubuntu", tolower(sys_info), fixed = TRUE))
+    if (file.exists("/etc/os-release")) {
+      os_info <- readLines("/etc/os-release")
+      is_ubuntu <- any(grepl("ubuntu", tolower(os_info), fixed = TRUE))
     }
-  }
-  if (is_ubuntu && use_resampling) {
-    use_resampling <- FALSE
-    message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
+    if (!is_ubuntu && file.exists("/etc/lsb-release")) {
+      lsb_info <- readLines("/etc/lsb-release")
+      is_ubuntu <- any(grepl("ubuntu", tolower(lsb_info), fixed = TRUE))
+    }
+    if (!is_ubuntu) {
+      sys_info <- try(system("lsb_release -a", intern = TRUE), silent = TRUE)
+      if (!inherits(sys_info, "try-error")) {
+        is_ubuntu <- any(grepl("ubuntu", tolower(sys_info), fixed = TRUE))
+      }
+    }
+    if (is_ubuntu && use_resampling) {
+      use_resampling <- FALSE
+      message("Ubuntu system detected. Setting use_resampling to FALSE for compatibility.")
+    }
   }
 
   start_date <- as.Date(start_date)
@@ -3452,7 +3524,10 @@ if (python==T) {
   if (!file.exists(python_utils_path)) {
     stop("Python utilities not found. Check package installation.")
   }
-  reticulate::source_python(python_utils_path)
+  ## resample_rasters() and mosaic_rasters() are Python functions (inst/python_scripts/
+  ## raster_utils.py); source them into an environment of their own and call them from it
+  py_utils <- new.env()
+  reticulate::source_python(python_utils_path, envir = py_utils)
 }
   filter_features <- function(feature, start_date, end_date) {
     feature_date <- as.Date(feature$properties$start_datetime)
@@ -3478,9 +3553,11 @@ if (python==T) {
       stac_search(
         collections = "io-lulc-annual-v02",
         bbox = buffered_bbox,
-        datetime = paste(start_date, end_date, sep = "/")
+        datetime = paste(start_date, end_date, sep = "/"),
+        limit = 100
       ) %>%
       get_request() %>%
+      items_fetch() %>%   # every page: a study area spans many tiles x years
       items_sign(sign_fn = sign_planetary_computer())
 
     it_obj$features <- it_obj$features[sapply(it_obj$features, function(feature) {
@@ -3553,6 +3630,62 @@ if (python==T) {
     return(create_empty_result(sf_obj, start_date))
   }
 
+  ## One raster per year from all of that year's tiles. python = TRUE: the Python
+  ## resample_rasters() / mosaic_rasters() utilities, falling back to the R merge (with a
+  ## warning) if the Python mosaic fails. python = FALSE: every tile is reprojected to a common
+  ## EPSG:4326 grid (nearest neighbour) and merged in R with terra.
+  study_bbox <- sf::st_bbox(sf_obj) + c(-0.1, -0.1, 0.1, 0.1)
+  combine_in_r <- function(raster_paths, year) {
+    tryCatch(
+      .landcover_combine_tiles(raster_paths,
+                               target_resolution = if (use_resampling) target_resolution else NULL,
+                               bbox = study_bbox),
+      error = function(e) {
+        warning(paste("Could not combine the land cover tiles for year", year, ":", conditionMessage(e)))
+        NULL
+      })
+  }
+  load_year_raster <- function(raster_paths, year) {
+    if (isTRUE(python)) {
+      tiles <- raster_paths
+      if (use_resampling) {
+        processed_paths <- try({
+          py_utils$resample_rasters(
+            input_files = raster_paths,
+            output_folder = file.path(temp_dir, "resampled", year),
+            target_resolution = target_resolution
+          )
+        }, silent = TRUE)
+
+        if (!inherits(processed_paths, "try-error") && length(processed_paths) > 0) {
+          raster_paths <- as.character(unlist(processed_paths))
+        }
+      }
+
+      if (length(raster_paths) > 1) {
+        mosaic_path <- try({
+          py_utils$mosaic_rasters(input_files = raster_paths)
+        }, silent = TRUE)
+
+        if (inherits(mosaic_path, "try-error")) {
+          ## not the first tile alone: that would drop every other tile of the year
+          warning(paste("The Python mosaic failed for year", year, "(",
+                        trimws(as.character(mosaic_path)), "); combining the tiles in R instead."))
+          return(combine_in_r(tiles, year))
+        }
+        raster_path <- as.character(mosaic_path)
+      } else {
+        raster_path <- raster_paths[1]
+      }
+
+      return(try({
+        terra::rast(raster_path)
+      }, silent = TRUE))
+    }
+
+    combine_in_r(raster_paths, year)
+  }
+
   if (return_raster == TRUE) {
     message("Preparing rasters for return...")
 
@@ -3568,39 +3701,9 @@ if (python==T) {
         next
       }
 
-      if (use_resampling) {
-        processed_paths <- try({
-          resample_rasters(
-            input_files = raster_paths,
-            output_folder = file.path(temp_dir, "resampled", year),
-            target_resolution = target_resolution
-          )
-        }, silent = TRUE)
+      raster_terra <- load_year_raster(raster_paths, year)
 
-        if (!inherits(processed_paths, "try-error") && length(processed_paths) > 0) {
-          raster_paths <- processed_paths
-        }
-      }
-
-      if (length(raster_paths) > 1) {
-        mosaic_path <- try({
-          mosaic_rasters(input_files = raster_paths)
-        }, silent = TRUE)
-
-        if (!inherits(mosaic_path, "try-error")) {
-          raster_path <- mosaic_path
-        } else {
-          raster_path <- raster_paths[1]
-        }
-      } else {
-        raster_path <- raster_paths[1]
-      }
-
-      raster_terra <- try({
-        terra::rast(raster_path)
-      }, silent = TRUE)
-
-      if (inherits(raster_terra, "try-error")) {
+      if (inherits(raster_terra, "try-error") || is.null(raster_terra)) {
         warning(paste("Failed to load raster for year", year))
         next
       }
@@ -3670,39 +3773,9 @@ if (python==T) {
       next
     }
 
-    if (use_resampling) {
-      processed_paths <- try({
-        resample_rasters(
-          input_files = raster_paths,
-          output_folder = file.path(temp_dir, "resampled", year),
-          target_resolution = target_resolution
-        )
-      }, silent = TRUE)
+    raster <- load_year_raster(raster_paths, year)
 
-      if (!inherits(processed_paths, "try-error") && length(processed_paths) > 0) {
-        raster_paths <- processed_paths
-      }
-    }
-
-    if (length(raster_paths) > 1) {
-      mosaic_path <- try({
-        mosaic_rasters(input_files = raster_paths)
-      }, silent = TRUE)
-
-      if (!inherits(mosaic_path, "try-error")) {
-        raster_path <- mosaic_path
-      } else {
-        raster_path <- raster_paths[1]
-      }
-    } else {
-      raster_path <- raster_paths[1]
-    }
-
-    raster <- try({
-      terra::rast(raster_path)
-    }, silent = TRUE)
-
-    if (inherits(raster, "try-error")) {
+    if (inherits(raster, "try-error") || is.null(raster)) {
       warning(paste("Failed to load raster for year", year))
       next
     }
@@ -3719,10 +3792,7 @@ if (python==T) {
 
     year_results <- sf::st_drop_geometry(sf_obj)
 
-    for (col in all_column_names) {
-      year_results[[col]] <- 0
-    }
-
+    weight_terra <- NULL
     if (!is.null(weight_raster)) {
       message("Using weight raster for weighted extraction...")
 
@@ -3742,77 +3812,20 @@ if (python==T) {
         message("Resampling weight raster to match land cover raster...")
         weight_terra <- terra::resample(weight_terra, raster, method = "bilinear")
       }
-
-      extracted_values <- try({
-        exactextractr::exact_extract(raster, sf::st_make_valid(sf_obj),
-                                     coverage_area = TRUE,
-                                     weights = weight_terra)
-      }, silent = TRUE)
-    } else {
-      extracted_values <- try({
-        exactextractr::exact_extract(raster, sf::st_make_valid(sf_obj),
-                                     coverage_area = TRUE)
-      }, silent = TRUE)
     }
 
-    if (!inherits(extracted_values, "try-error")) {
-      for (i in seq_along(extracted_values)) {
-        ev <- extracted_values[[i]]
+    ## percentage of each polygon in each class; NA (not 0) where no tile covers the polygon
+    shares <- tryCatch(
+      .landcover_class_shares(raster, sf::st_make_valid(sf_obj),
+                              class_values = class_values, class_names = class_names,
+                              weights = weight_terra),
+      error = function(e) {
+        warning(paste("Could not extract land cover for year", year, ":", conditionMessage(e)))
+        NULL
+      })
 
-        if (is.null(ev) || nrow(ev) == 0) {
-          next
-        }
-
-        if (!is.null(weight_raster)) {
-          total_weight <- sum(ev$coverage_area * ev$weight, na.rm = TRUE)
-
-          if (total_weight <= 0) {
-            next
-          }
-
-          for (class_idx in seq_along(class_values)) {
-            class_val <- class_values[class_idx]
-            class_name <- class_names[class_idx]
-
-            class_rows <- ev$value == class_val
-
-            if (any(class_rows, na.rm = TRUE)) {
-              class_weight <- sum(ev$coverage_area[class_rows] * ev$weight[class_rows], na.rm = TRUE)
-              year_results[i, class_name] <- round((class_weight / total_weight) * 100, 2)
-            }
-          }
-
-          na_rows <- is.na(ev$value)
-          if (any(na_rows)) {
-            na_weight <- sum(ev$coverage_area[na_rows] * ev$weight[na_rows], na.rm = TRUE)
-            year_results[i, "no_data"] <- round((na_weight / total_weight) * 100, 2)
-          }
-        } else {
-          total_area <- sum(ev$coverage_area, na.rm = TRUE)
-
-          if (total_area <= 0) {
-            next
-          }
-
-          for (class_idx in seq_along(class_values)) {
-            class_val <- class_values[class_idx]
-            class_name <- class_names[class_idx]
-
-            class_rows <- ev$value == class_val
-
-            if (any(class_rows, na.rm = TRUE)) {
-              class_area <- sum(ev$coverage_area[class_rows], na.rm = TRUE)
-              year_results[i, class_name] <- round((class_area / total_area) * 100, 2)
-            }
-          }
-
-          na_rows <- is.na(ev$value)
-          if (any(na_rows)) {
-            na_area <- sum(ev$coverage_area[na_rows], na.rm = TRUE)
-            year_results[i, "no_data"] <- round((na_area / total_area) * 100, 2)
-          }
-        }
-      }
+    for (col in all_column_names) {
+      year_results[[col]] <- if (is.null(shares)) NA_real_ else shares[[col]]
     }
 
     year_results$year <- year
@@ -4177,7 +4190,17 @@ geolink_vegindex <- function(
 #' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
 #' source is downloaded.
 #' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#' @param qa_min numeric, the minimum `qa_value` of a Sentinel-5P pixel to be used. Default
+#'   (NULL) takes the product's recommended threshold: 0.8 for aer-ai, 0.75 for no2 and 0.5
+#'   for hcho, o3 and so2.
+#' @param grid_res numeric, the resolution in degrees of the regular grid onto which each
+#'   orbit's pixels are averaged before the monthly mean is taken. Default 0.05.
 #'
+#' @details Sentinel-5P Level-2 files are orbit swaths (scanline x ground pixel) with
+#'   per-pixel latitude and longitude, not regular grids. Each offline (OFFL) orbit that
+#'   crosses the study area in a month is read for the scanlines over the study area; its
+#'   pixels with `qa_value >= qa_min` are averaged onto a regular grid of `grid_res` degrees
+#'   by their own coordinates; the month's value in a cell is the mean over orbits.
 #'
 #' @return A processed data frame based on the input parameters and downloaded data.
 #'
@@ -4215,7 +4238,9 @@ geolink_pollution <- function(
     extract_fun = "mean",
     survey_crs = 4326,
     return_raster = FALSE,
-    weight_raster = NULL
+    weight_raster = NULL,
+    qa_min = NULL,
+    grid_res = 0.05
 ){
 
   if (is.null(indicator)==TRUE){
@@ -4268,11 +4293,15 @@ geolink_pollution <- function(
                              day = 1)]
 
   s_obj <- stac("https://planetarycomputer.microsoft.com/api/stac/v1")
+  study_bbox <- sf::st_bbox(sf_obj)
 
   print("Collection of monthly links started.")
 
+  ## Every offline (OFFL) orbit of the indicator that crosses the study area, per month.
+  ## The search is paged with items_fetch(): a month holds several thousand items across all
+  ## products, so a single page of 1000 could miss every file of the indicator. The files are
+  ## Level-2 orbit swaths, not grids: each one is gridded by its own latitude/longitude below.
   url_list <- c()
-  bboxes <- c()
   valid_months <- c()
 
   for (x in 1:nrow(allmonths)){
@@ -4280,39 +4309,23 @@ geolink_pollution <- function(
     end_date_ind <- start_date_ind + lubridate:::months.numeric(1) - lubridate::days(1)
     it_obj <- s_obj %>%
       stac_search(collections = "sentinel-5p-l2-netcdf",
-                  bbox = sf::st_bbox(sf_obj),
+                  bbox = study_bbox,
                   datetime = paste(start_date_ind, end_date_ind, sep = "/"),
                   limit = 1000) %>%
       get_request() %>%
+      items_fetch() %>%
       items_sign(sign_fn = sign_planetary_computer())
 
-    features_month <- c()
-    dates_month <- c()
-    bboxes_month <- c()
-    features <- c()
-    for (i in 1:length(it_obj$features)){
-      if (names(it_obj$features[[i]]$assets)==paste0(indicator)){
-        if ((it_obj$features[[i]]$bbox[3]-it_obj$features[[i]]$bbox[1])==360 &
-            (it_obj$features[[i]]$bbox[4]-it_obj$features[[i]]$bbox[2])>170){
-          features_month <- c(features_month, paste0("/vsicurl/", it_obj$features[[i]]$assets[[indicator]]$href))
-          dates_month <- c(dates_month, it_obj$features[[i]]$properties$datetime)
-          bboxes_month <- c(bboxes_month, list(it_obj$features[[i]]$bbox))
-          features <- c(features, list(it_obj$features[[i]]))
-        }
-      }
-    }
+    keep <- vapply(it_obj$features, function(f)
+      identical(names(f$assets), indicator) &&
+        identical(f$properties[["s5p:processing_mode"]], "OFFL"), logical(1))
+    hrefs <- vapply(it_obj$features[keep], function(f) f$assets[[indicator]]$href, character(1))
 
-    if (length(features_month) > 0) {
-      features_month <- features_month[which(lubridate::day(dates_month)==
-                                               lubridate::day(dates_month[which.max(lubridate::day(dates_month))]))]
-      bboxes_month <- bboxes_month[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
-      features <- features[which(day(dates_month)==day(dates_month[which.max(day(dates_month))]))]
-
-      url_list <- c(url_list, list(features_month))
-      bboxes <- c(bboxes, list(bboxes_month))
+    if (length(hrefs) > 0) {
+      url_list <- c(url_list, list(hrefs))
       valid_months <- c(valid_months, x)
     } else {
-      print(paste0("No data available for month ", x, " (", start_date_ind, "). Skipping."))
+      print(paste0("No OFFL ", indicator, " orbit found for month ", x, " (", start_date_ind, "). Skipping."))
     }
   }
 
@@ -4329,49 +4342,28 @@ geolink_pollution <- function(
     "so2" ~ "sulfurdioxide_total_vertical_column"
   )
 
+  if (is.null(qa_min)) qa_min <- .s5p_qa_default[[indicator]]
+  template <- terra::rast(terra::ext(study_bbox[c("xmin", "xmax", "ymin", "ymax")]),
+                          resolution = grid_res, crs = "EPSG:4326")
+
   raster_objs <- vector("list", length(allmonths$year))
 
-  for (i in 1:length(valid_months)) {
-    tryCatch({
-      month_idx <- valid_months[i]
-      bb <- as.vector(bboxes[[i]][[1]])
-      rall <- rast(url_list[[i]][[1]])
-
-      if (is.null(rall) || nlyr(rall) == 0) {
-        print(paste0("Invalid raster for month ", month_idx, ". Skipping."))
-        raster_objs[[month_idx]] <- NULL
-        next
-      }
-
-      if (!layer %in% names(rall)) {
-        print(paste0("Layer '", layer, "' not found in raster for month ", month_idx, ". Available layers: ",
-                     paste(names(rall), collapse=", "), ". Skipping."))
-        raster_objs[[month_idx]] <- NULL
-        next
-      }
-
-      tryCatch({
-        terra:::ext(rall) <- c(bb[1], bb[3], bb[2], bb[4])
-        terra:::crs(rall) <- "EPSG:4326"
-        raster_objs[[month_idx]] <- rall[[layer]]
-        print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed."))
-      }, error = function(e) {
-        print(paste0("Error setting extent/crs for month ", month_idx, ": ", e$message, ". Trying alternative approach."))
-        tryCatch({
-          raster_objs[[month_idx]] <- rall[[layer]]
-          if (is.na(crs(raster_objs[[month_idx]]))) {
-            crs(raster_objs[[month_idx]]) <- "EPSG:4326"
-          }
-          print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed with alternative approach."))
-        }, error = function(e2) {
-          print(paste0("Alternative approach also failed for month ", month_idx, ": ", e2$message, ". Skipping."))
-          raster_objs[[month_idx]] <- NULL
-        })
-      })
-    }, error = function(e) {
-      print(paste0("Error processing month ", valid_months[i], ": ", e$message, ". Skipping."))
-      raster_objs[[valid_months[i]]] <- NULL
-    })
+  ## Monthly mean of the good-quality pixels of every orbit, on a regular grid over the study area.
+  ## (The previous code read one orbit per month and stretched its swath array over the item's
+  ## global bounding box, so the cells it placed over the study area held pixels from elsewhere.)
+  for (i in seq_along(valid_months)) {
+    month_idx <- valid_months[i]
+    grids <- lapply(url_list[[i]], function(href) tryCatch(
+      .s5p_orbit_grid(href, layer = layer, qa_min = qa_min, template = template),
+      error = function(e) { print(paste0("Orbit skipped (", e$message, "): ", basename(sub("\\?.*", "", href)))); NULL }))
+    grids <- Filter(Negate(is.null), grids)
+    if (length(grids) == 0) {
+      print(paste0("No usable orbit for month ", month_idx, ". Skipping."))
+      next
+    }
+    s <- terra::rast(grids)
+    raster_objs[[month_idx]] <- terra::mean(s, na.rm = TRUE)
+    print(paste0("Month ", month_idx, " of ", nrow(allmonths), " completed (", length(grids), " orbits)."))
   }
 
   date_list <- as_date(paste0(allmonths$year, "-", allmonths$month, "-01"))
@@ -4492,4 +4484,42 @@ geolink_pollution <- function(
   print("Process Complete!!!")
 
   return(dt)
+}
+
+## Recommended qa_value thresholds from the Sentinel-5P product user manuals.
+.s5p_qa_default <- c(`aer-ai` = 0.8, hcho = 0.5, no2 = 0.75, o3 = 0.5, so2 = 0.5)
+
+#' Grid one Sentinel-5P Level-2 orbit onto a regular grid by its pixel coordinates
+#'
+#' Reads PRODUCT/latitude for the whole orbit, then PRODUCT/longitude, PRODUCT/qa_value and
+#' the indicator's layer for the scanlines that come within half a degree of the template's
+#' extent only. Pixels with qa_value >= qa_min and inside the extent are averaged into the
+#' template's cells by their own latitude and longitude.
+#'
+#' @param href signed https URL of the orbit's netCDF file (read over /vsicurl/), or a local path
+#' @param layer name of the indicator's variable in the PRODUCT group
+#' @param qa_min minimum qa_value (0 to 1)
+#' @param template SpatRaster defining the output grid (EPSG:4326)
+#' @return SpatRaster on the template grid, or NULL when the orbit has no usable pixel there
+#' @keywords internal
+.s5p_orbit_grid <- function(href, layer, qa_min, template) {
+  src <- if (grepl("^https?://", href)) paste0("/vsicurl/", href) else normalizePath(href, winslash = "/")
+  sds <- function(v) terra::rast(paste0('HDF5:"', src, '"://PRODUCT/', v))
+  e <- terra::ext(template)
+  lat_r <- suppressWarnings(sds("latitude"))
+  lat <- matrix(terra::values(lat_r, mat = FALSE), nrow = terra::nrow(lat_r), byrow = TRUE)
+  rows <- which(rowSums(lat >= e$ymin - 0.5 & lat <= e$ymax + 0.5, na.rm = TRUE) > 0)
+  if (length(rows) == 0) return(NULL)
+  r0 <- min(rows); nr <- max(rows) - r0 + 1
+  read_rows <- function(v) terra::values(suppressWarnings(sds(v)), mat = FALSE, row = r0, nrows = nr)
+  lo  <- read_rows("longitude")
+  la  <- as.vector(t(lat[r0:(r0 + nr - 1), , drop = FALSE]))
+  val <- read_rows(layer)
+  qa  <- read_rows("qa_value")
+  if (max(qa, na.rm = TRUE) > 1) qa <- qa / 100      # unscaled uint8 (scale_factor 0.01)
+  ok <- !is.na(val) & abs(val) < 1e30 & !is.na(qa) & qa >= qa_min &
+    lo >= e$xmin & lo <= e$xmax & la >= e$ymin & la <= e$ymax
+  if (!any(ok)) return(NULL)
+  pts <- terra::vect(cbind(lo[ok], la[ok]), atts = data.frame(v = val[ok]), crs = "EPSG:4326")
+  terra::rasterize(pts, template, field = "v", fun = mean)
 }

@@ -4,6 +4,7 @@
 
 #Test- A.
 test_that("Elevation Function works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_elevation(iso_code = "NGA",
                                                   shp_dt = shp_dt[shp_dt$ADM1_EN == "Abia",],
@@ -31,6 +32,7 @@ test_that("Elevation Function works using a shapefile:", {
 
 #Test- B
 test_that("Elevation Function works using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_elevation(iso_code = "Nigeria",
                                                   survey_dt =  st_as_sf(hhgeo_dt[1:10],
@@ -62,6 +64,7 @@ test_that("Elevation Function works using a survey :", {
 
 #Test- C.
 test_that("Elevation Function works using a shapefile from geodata:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))

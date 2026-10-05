@@ -1,6 +1,7 @@
 # Test A-
 test_that("Vegindex using a shapefile: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_vegindex(shp_dt = shp_dt[shp_dt$ADM1_EN ==  "Abia",],
                                                               start_date = "2019-01-01",
                                                               end_date = "2019-12-31",
@@ -31,6 +32,7 @@ test_that("Vegindex using a shapefile: ",
 #Test B
 test_that("Vegindex using a survey: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_vegindex(survey_dt =
                                                              st_as_sf(hhgeo_dt[1:10],
                                                                      crs = 4326),
@@ -59,6 +61,7 @@ test_that("Vegindex using a survey: ",
 #Test C
 test_that("Vegindex using a file of shapefile: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_vegindex(shp_fn = paste0(test_path(), "/testdata/shp_dt.shp"),
                                                            start_date = "2019-06-01",
                                                            end_date = "2019-06-30",
@@ -79,6 +82,7 @@ test_that("Vegindex using a file of shapefile: ",
 #Test D
 test_that("Vegindex using a survey from stata file: ",
           {
+            skip_if_not_live()
             suppressWarnings({ test_dt <- geolink_vegindex(survey_fn = paste0(test_path(), "/testdata/xy_hhgeo_dt.dta"),
                                                            survey_lat = "y",
                                                            survey_lon = "x",
@@ -101,6 +105,7 @@ test_that("Vegindex using a survey from stata file: ",
 
 # Test E
 test_that("Annual vegindex using a shapefile from geodata package:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))

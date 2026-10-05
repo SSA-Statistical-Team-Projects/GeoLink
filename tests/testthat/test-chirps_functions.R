@@ -6,6 +6,7 @@
 
 #Test- A.
 test_that("Monthly chirps works using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_chirps(time_unit = "month",
                                                start_date = "2020-01-01",
@@ -41,6 +42,7 @@ test_that("Monthly chirps works using a shapefile:", {
 
 #Test- B
 test_that("Monthly chirps using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <-  geolink_chirps(time_unit = "month",
                               start_date = "2024-01-01",
@@ -73,6 +75,7 @@ test_that("Monthly chirps using a survey :", {
 
 # Test -C
 test_that("Monthly chirps using a survey for stata users :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_chirps(time_unit = "month",
                                                start_date = "2020-01-01",
@@ -107,6 +110,7 @@ test_that("Monthly chirps using a survey for stata users :", {
 ###``
 #Test- D
 test_that("Annual chirps using a shapefile:", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_chirps(time_unit = "annual",
                                                start_date = "2020-01-01",
@@ -132,6 +136,7 @@ test_that("Annual chirps using a shapefile:", {
 
 #Test- E
 test_that("Annual chirps using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_chirps(time_unit = "annual",
                                                start_date = "2020-01-01",
@@ -177,6 +182,7 @@ test_that("Error is thrown for invalid date range", {
 
 #Test- F
 test_that("Annual chirps using a shapefile from geodata package:", {
+  skip_if_not_live()
 
   suppressWarnings({
     temp_gamd <- sf::st_as_sf(geodata::gadm("COL", level = 2, tempdir()))

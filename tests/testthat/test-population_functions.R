@@ -7,6 +7,7 @@
 
 #Test- A.
 test_that("Population works using a shapefile:", {
+  skip_if_not_live()
 #Create a consistent file directory:
 
   suppressWarnings({ test_dt <- geolink_population(start_year = 2018,
@@ -46,6 +47,7 @@ test_that("Population works using a shapefile:", {
 
 #Test- B
 test_that("Population works using a survey :", {
+  skip_if_not_live()
 
   suppressWarnings({ test_dt <- geolink_population(start_year = 2018,
                                                   end_year = 2019,
@@ -148,6 +150,7 @@ test_that("Population works using a survey :", {
 
 #Test- D.
 test_that("Population works using a shapefile from package geodata:", {
+  skip_if_not_live()
   #Create a consistent file directory:
 
   suppressWarnings({

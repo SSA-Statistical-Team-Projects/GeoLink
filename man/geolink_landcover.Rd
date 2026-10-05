@@ -60,12 +60,22 @@ source is downloaded.}
 \item{python}{Logical. Whether to use python code to help process rasters. Defaults to FALSE.}
 }
 \value{
-An sf object with land cover classifications by year
+An sf object with land cover classifications by year: the percentage of each
+polygon in each class, and \code{no_data}, the percentage without data. A polygon not covered by
+any tile gets NA for every class (and 100 for \code{no_data}).
 }
 \description{
 Download Land Use Land Cover data from the LULC dataset at annual intervals for a specified period.
 The data is downloaded in raster format and combined with shapefile and/or survey data provided
 by the user. Source data: https://planetarycomputer.microsoft.com/dataset/io-lulc-annual-v02
+}
+\details{
+io-lulc tiles are in different UTM zones. With \code{python = FALSE} (default) all the
+tiles of a year are combined in R with terra: each tile is reprojected to EPSG:4326 with
+nearest neighbour (at \code{target_resolution} meters, converted to degrees as meters / 111320,
+when \code{use_resampling = TRUE}, otherwise at the tiles' native resolution) and the tiles are
+merged; the class shares are computed from this mosaic. With \code{python = TRUE} the Python
+\code{resample_rasters()} and \code{mosaic_rasters()} utilities are used.
 }
 \examples{
 \dontrun{

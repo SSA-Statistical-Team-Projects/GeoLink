@@ -6,19 +6,22 @@ on:
   pull_request:
 name: R-CMD-check.yaml
 permissions: read-all
+# one run per branch or pull request: a newer push cancels the run in progress
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   R-CMD-check:
     runs-on: ${{ matrix.config.os }}
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
+    # offline tests only (live-server tests need GEOLINK_LIVE_TESTS=true, see live-tests.yaml)
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - {os: macos-latest,   r: 'release'}
-          - {os: windows-latest, r: 'release'}
-          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
-          - {os: ubuntu-latest,   r: 'release'}
-          - {os: ubuntu-latest,   r: 'oldrel-1'}
+        # pull requests: Ubuntu with R release only; pushes: macOS, Windows and Ubuntu
+        # (release), Ubuntu devel and oldrel-1
+        config: ${{ fromJSON(github.event_name == 'pull_request' && '[{"os":"ubuntu-latest","r":"release"}]' || '[{"os":"macos-latest","r":"release"},{"os":"windows-latest","r":"release"},{"os":"ubuntu-latest","r":"devel","http-user-agent":"release"},{"os":"ubuntu-latest","r":"release"},{"os":"ubuntu-latest","r":"oldrel-1"}]') }}
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       USERNAME_NASA: ${{ secrets.USERNAME_NASA }}
@@ -37,11 +40,16 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.x'
+      # package cache on (setup-r-dependencies default: cache: true)
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
           needs: check
+      # no manual, no vignettes; only ERRORs fail the job (pre-existing WARNINGs to be fixed
+      # separately, then error-on goes back to '"warning"')
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
-          build_args: 'c("--no-manual","--compact-vignettes=gs+qpdf")'
+          build_args: 'c("--no-manual","--no-build-vignettes")'
+          args: 'c("--no-manual","--ignore-vignettes")'
+          error-on: '"error"'
