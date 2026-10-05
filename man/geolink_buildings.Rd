@@ -15,7 +15,7 @@ geolink_buildings(
   survey_lat = NULL,
   survey_lon = NULL,
   buffer_size = NULL,
-  extract_fun = "mean",
+  extract_fun = NULL,
   survey_crs = 4326,
   indicators = "ALL",
   return_raster = FALSE,
@@ -44,7 +44,9 @@ geolink_buildings(
 \item{buffer_size}{A numeric, the buffer size to be used around each point in the survey data, in meters (optional).}
 
 \item{extract_fun}{A character, a function to be applied in extraction of raster into the shapefile.
-Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).}
+Default (NULL) aggregates each layer as described in the Aggregation section. If a function
+name is given ("mean", "sum", "min", "max", ...), it is applied to every layer over the pixels
+with data, i.e. pixels without buildings are skipped (optional).}
 
 \item{survey_crs}{An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).}
 
@@ -54,7 +56,8 @@ Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms"
 raster is cropped to the extent of \code{shp_dt} if \code{shp_dt} is specified. Otherwise, full raster from
 source is downloaded.}
 
-\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects}
+\item{weight_raster}{a raster object of class \code{spatRaster} or a list of \code{spatRaster} objects.
+Used only when \code{extract_fun} is specified.}
 }
 \value{
 A processed data frame or object based on the input parameters and downloaded data.
@@ -80,6 +83,25 @@ a .dta file which is read in with \code{haven::read_dta()} package. Likewise, th
 to pass a filepath for the location of the shapefile \code{shp_fn} which is read in with the
 \code{sf::read_sf()} function.
 }
+\section{Aggregation}{
+
+In the WorldPop building-pattern rasters, pixels without buildings are NoData. With the
+default \code{extract_fun = NULL}, each polygon gets:
+\itemize{
+\item \code{count}, \code{total_area}, \code{total_length}: the polygon total, the sum of the pixel values
+weighted by the share of each pixel inside the polygon, with pixels without buildings
+counting as zero (0, not NA, in a polygon without buildings);
+\item \code{density}, \code{urban}: the coverage-weighted mean over the whole polygon with pixels
+without buildings counting as zero (\code{urban} is then the share of the polygon that is urban);
+\item per-building attributes (\code{mean_area}, \code{mean_length}, \code{cv_area}, \code{cv_length},
+\code{imagery_year}): the coverage-weighted mean over the pixels with buildings only, NA in a
+polygon without buildings.
+}
+A polygon that lies entirely outside the rasters gets NA. Columns already present in
+\code{shp_dt} (or \code{survey_dt}) are never overwritten: a layer whose name is already a column (for
+example \code{urban}) is written as \verb{<name>_buildings}.
+}
+
 \examples{
 
 \dontrun{

@@ -1157,14 +1157,33 @@ geolink_elevation <- function(iso_code,
 #' @param survey_lon A character, longitude variable from survey (for STATA users only & if use survey is TRUE) (optional).
 #' @param buffer_size A numeric, the buffer size to be used around each point in the survey data, in meters (optional).
 #' @param extract_fun A character, a function to be applied in extraction of raster into the shapefile.
-#' Default is "mean". Other options are "sum", "min", "max", "sd", "skew" and "rms" (optional).
+#' Default (NULL) aggregates each layer as described in the Aggregation section. If a function
+#' name is given ("mean", "sum", "min", "max", ...), it is applied to every layer over the pixels
+#' with data, i.e. pixels without buildings are skipped (optional).
 #' @param survey_crs An integer, the Coordinate Reference System (CRS) for the survey data. Default is 4326 (WGS84) (optional).
 #' @param indicators character, default = "ALL", the set of indicators of interest
 #' @param return_raster logical, default is FALSE, if TRUE a raster will be returned ONLY. The resulting
 #' raster is cropped to the extent of `shp_dt` if `shp_dt` is specified. Otherwise, full raster from
 #' source is downloaded.
-#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects
+#' @param weight_raster a raster object of class `spatRaster` or a list of `spatRaster` objects.
+#' Used only when `extract_fun` is specified.
 #'
+#' @section Aggregation:
+#' In the WorldPop building-pattern rasters, pixels without buildings are NoData. With the
+#' default `extract_fun = NULL`, each polygon gets:
+#' \itemize{
+#'   \item `count`, `total_area`, `total_length`: the polygon total, the sum of the pixel values
+#'   weighted by the share of each pixel inside the polygon, with pixels without buildings
+#'   counting as zero (0, not NA, in a polygon without buildings);
+#'   \item `density`, `urban`: the coverage-weighted mean over the whole polygon with pixels
+#'   without buildings counting as zero (`urban` is then the share of the polygon that is urban);
+#'   \item per-building attributes (`mean_area`, `mean_length`, `cv_area`, `cv_length`,
+#'   `imagery_year`): the coverage-weighted mean over the pixels with buildings only, NA in a
+#'   polygon without buildings.
+#' }
+#' A polygon that lies entirely outside the rasters gets NA. Columns already present in
+#' `shp_dt` (or `survey_dt`) are never overwritten: a layer whose name is already a column (for
+#' example `urban`) is written as `<name>_buildings`.
 #'
 #' @return A processed data frame or object based on the input parameters and downloaded data.
 #'
@@ -1194,59 +1213,25 @@ geolink_buildings <- function(version,
                               survey_lat = NULL,
                               survey_lon = NULL,
                               buffer_size = NULL,
-                              extract_fun = "mean",
+                              extract_fun = NULL,
                               survey_crs = 4326,
                               indicators = "ALL",
                               return_raster = FALSE,
                               weight_raster = NULL){
 
-  temp_dir <- tempdir()
-
-  if (version == "v1.1") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v1.1/", iso_code, "_buildings_v1_1.zip")
-    tryCatch({
-      response <- httr::GET(url, httr::write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
-      if (httr::http_type(response) == "application/zip") {
-        message("File downloaded successfully.")
-        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
-        message("File unzipped successfully.")
-      } else {
-        warning("Downloaded file may not be a ZIP file.")
-      }
-    }, error = function(e) {
-      print(e)
-    })
-  }
-
-  if (version == "v2.0") {
-    url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/v2.0/", iso_code, "_buildings_v2_0.zip")
-    tryCatch({
-      response <- httr::GET(url, httr::write_disk(file.path(tempdir(), basename(url)), overwrite = TRUE))
-      if (httr::http_type(response) == "application/zip") {
-        message("File downloaded successfully.")
-        utils::unzip(file.path(tempdir(), basename(url)), exdir = tempdir())
-        message("File unzipped successfully.")
-      } else {
-        warning("Downloaded file may not be a ZIP file.")
-      }
-    }, error = function(e) {
-      print(e)
-    })
-  }
-
-  tif_files <- list.files(path = temp_dir, pattern = "\\.tif$", full.names = TRUE)
+  ## download into a dedicated folder so that only this download's rasters are used
+  dl_dir <- file.path(tempdir(), paste0("geolink_buildings_", iso_code, "_", version))
+  tif_files <- .buildings_download(version = version, iso_code = iso_code, dest_dir = dl_dir)
+  ## the rasters below are read from these files: keep them when rasters are returned
+  if (!isTRUE(return_raster)) on.exit(unlink(dl_dir, recursive = TRUE), add = TRUE)
 
   if (!all(indicators == "ALL")) {
     indicators <- paste(indicators, collapse = "|")
     tif_files <- tif_files[grepl(indicators, basename(tif_files))]
+    if (length(tif_files) == 0) stop("None of the downloaded building layers matches `indicators`.")
   }
 
-  name_set <- c()
-  for (file in tif_files) {
-    base_name <- basename(file)
-    extracted_string <- sub(".*1_([^\\.]+)\\.tif$", "\\1", base_name)
-    name_set <- c(name_set, extracted_string)
-  }
+  name_set <- .buildings_layer_names(tif_files)
 
   raster_objs <- lapply(tif_files, function(f) {
     r <- raster::raster(f)
@@ -1312,7 +1297,6 @@ geolink_buildings <- function(version,
     })
 
     print("Process Complete!!!")
-    unlink(paste0(tempdir(), "/", toupper(iso_code), "*"), recursive = TRUE)
     return(raster_objs)
   }
 
@@ -1329,11 +1313,134 @@ geolink_buildings <- function(version,
                                survey_crs = survey_crs,
                                name_set = name_set,
                                return_raster = return_raster,
-                               weight_raster = weight_raster)
+                               weight_raster = weight_raster,
+                               zonalstats_fun = .buildings_zonalstats)
 
   print("Process Complete!!!")
-  unlink(paste0(tempdir(), "/", toupper(iso_code), "*"), recursive = TRUE)
   return(dt)
+}
+
+## WorldPop building-pattern layers that are totals per pixel and layers that are shares or
+## densities of the pixel; in both, pixels without buildings are NoData and mean zero.
+.buildings_total_layers <- c("count", "total_area", "total_length")
+.buildings_share_layers <- c("density", "urban")
+
+#' Download and unzip a WorldPop building-pattern archive into its own folder
+#'
+#' @param version "v1.1" or "v2.0"
+#' @param iso_code ISO3 country code
+#' @param dest_dir folder used for this download only (emptied first)
+#' @return paths of the .tif files extracted into `dest_dir`; stops if the download or the
+#'   unzip fails or yields no .tif
+#' @noRd
+.buildings_download <- function(version, iso_code, dest_dir) {
+
+  if (!version %in% c("v1.1", "v2.0")) stop('version must be "v1.1" or "v2.0"')
+
+  url <- paste0("https://data.worldpop.org/repo/wopr/_MULT/buildings/", version, "/",
+                iso_code, "_buildings_", gsub(".", "_", version, fixed = TRUE), ".zip")
+
+  unlink(dest_dir, recursive = TRUE)
+  dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
+  zip_path <- file.path(dest_dir, basename(url))
+
+  response <- tryCatch(
+    httr::GET(url, httr::write_disk(zip_path, overwrite = TRUE)),
+    error = function(e) stop("Download of ", url, " failed: ", conditionMessage(e), call. = FALSE)
+  )
+  if (httr::http_error(response)) {
+    stop("Download of ", url, " failed with HTTP status ", httr::status_code(response), call. = FALSE)
+  }
+  message("File downloaded successfully.")
+
+  tryCatch(
+    utils::unzip(zip_path, exdir = dest_dir),
+    error = function(e) stop("Unzipping ", zip_path, " failed: ", conditionMessage(e), call. = FALSE),
+    warning = function(w) stop("Unzipping ", zip_path, " failed: ", conditionMessage(w), call. = FALSE)
+  )
+  unlink(zip_path)
+
+  tif_files <- list.files(path = dest_dir, pattern = "\\.tif$", full.names = TRUE, recursive = TRUE)
+  if (length(tif_files) == 0) stop("The archive ", url, " contains no .tif file.", call. = FALSE)
+  message("File unzipped successfully.")
+
+  tif_files
+}
+
+#' Layer names of WorldPop building-pattern files, e.g. NGA_buildings_v1_1_count.tif -> count
+#' @noRd
+.buildings_layer_names <- function(tif_files) {
+  sub("^.*_v[0-9]+_[0-9]+_", "", sub("\\.tif$", "", basename(tif_files)))
+}
+
+#' Zonal statistics for WorldPop building-pattern layers
+#'
+#' Called by `postdownload_processor` with the arguments of `compute_zonalstats`. With
+#' `extract_fun = NULL`, `count`, `total_area` and `total_length` are coverage-weighted sums
+#' (NoData = no building = 0), `density` and `urban` are coverage-weighted means over the whole
+#' polygon with NoData as 0, and the other layers (per-building attributes) are
+#' coverage-weighted means over the pixels with buildings (NA without buildings). Polygons
+#' entirely outside the raster get NA. With a non-NULL `extract_fun`, that statistic is applied
+#' to every layer through `compute_zonalstats`. Layers whose name is already a column of
+#' `shp_dt` are written as `<name>_buildings`.
+#'
+#' @inheritParams compute_zonalstats
+#' @return `shp_dt` (in the CRS of the rasters) with one column per layer
+#' @noRd
+.buildings_zonalstats <- function(shp_dt,
+                                  raster_objs,
+                                  extract_fun = NULL,
+                                  name_set,
+                                  weight_raster = NULL) {
+
+  if (!inherits(shp_dt, "sf")) stop("shp_dt must be an sf object")
+  if (!is.list(raster_objs)) raster_objs <- list(raster_objs)
+  if (length(name_set) != length(raster_objs)) {
+    stop("Length of name_set must match the number of raster objects")
+  }
+
+  ## never overwrite a column of the input
+  out_names <- name_set
+  clash <- out_names %in% names(shp_dt)
+  if (any(clash)) {
+    out_names[clash] <- paste0(out_names[clash], "_buildings")
+    message("Columns ", paste(name_set[clash], collapse = ", "),
+            " already exist in the input and are kept; the building layers are written as ",
+            paste(out_names[clash], collapse = ", "), ".")
+  }
+
+  if (!is.null(extract_fun)) {
+    return(compute_zonalstats(shp_dt = shp_dt,
+                              raster_objs = raster_objs,
+                              extract_fun = extract_fun,
+                              name_set = out_names,
+                              weight_raster = weight_raster))
+  }
+  if (!is.null(weight_raster)) {
+    warning("weight_raster is ignored when extract_fun is NULL (layer-specific aggregation).")
+  }
+
+  rasters <- lapply(raster_objs, function(r) if (inherits(r, "SpatRaster")) r else terra::rast(r))
+  shp_dt <- sf::st_transform(shp_dt, terra::crs(rasters[[1]]))
+
+  for (i in seq_along(rasters)) {
+    if (name_set[i] %in% .buildings_total_layers) {
+      ## sum over pixels with buildings; "count" with default_value = 0 is the covered area
+      ## (in pixels) of the polygon, 0 only when the polygon is outside the raster
+      s <- exactextractr::exact_extract(rasters[[i]], shp_dt, fun = c("sum", "count"),
+                                        default_value = 0, progress = FALSE)
+      v <- ifelse(s[["count"]] > 0, s[["sum"]], NA_real_)
+    } else if (name_set[i] %in% .buildings_share_layers) {
+      v <- exactextractr::exact_extract(rasters[[i]], shp_dt, fun = "mean",
+                                        default_value = 0, progress = FALSE)
+    } else {
+      v <- exactextractr::exact_extract(rasters[[i]], shp_dt, fun = "mean", progress = FALSE)
+    }
+    v[is.nan(v)] <- NA_real_
+    shp_dt[[out_names[i]]] <- v
+  }
+
+  shp_dt
 }
 
 #' Download CMIP6 climate model data

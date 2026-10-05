@@ -395,6 +395,9 @@ compute_zonalstats <- function(shp_dt,
 #' @inheritParams zonalstats_prepsurvey
 #' @param shp_fn a character, the name of shapefile for STATA users only (.shp/.gpkg file)
 #' @param grid_size a numeric, size of the size of the grid in meters
+#' @param zonalstats_fun the function that extracts the rasters into the polygons, called
+#' with the arguments of `compute_zonalstats` (the default). `geolink_buildings` uses it to
+#' choose the aggregation per layer.
 #'
 #' @export
 
@@ -411,7 +414,8 @@ postdownload_processor <- function(raster_objs,
                                    shp_fn = NULL,
                                    grid_size = 1000,
                                    return_raster,
-                                   weight_raster) {
+                                   weight_raster,
+                                   zonalstats_fun = compute_zonalstats) {
 
   # Check if return_raster is TRUE early and return immediately
   if (return_raster == TRUE) {
@@ -489,7 +493,7 @@ postdownload_processor <- function(raster_objs,
 
   # Extract raster into shapefile
   if (!is.null(shp_dt)) {
-    shp_dt <- compute_zonalstats(
+    shp_dt <- zonalstats_fun(
       shp_dt = shp_dt,
       raster_objs = raster_objs,
       extract_fun = extract_fun,
@@ -501,7 +505,7 @@ postdownload_processor <- function(raster_objs,
   # Process survey data if it exists and has buffer
   if (!is.null(survey_dt)) {
     if (!is.null(buffer_size)) {
-      survey_dt <- compute_zonalstats(
+      survey_dt <- zonalstats_fun(
         shp_dt = survey_dt,
         raster_objs = raster_objs,
         extract_fun = extract_fun,
