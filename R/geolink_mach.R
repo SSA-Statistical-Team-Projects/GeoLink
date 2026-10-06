@@ -4301,6 +4301,9 @@ geolink_pollution <- function(
   ## The search is paged with items_fetch(): a month holds several thousand items across all
   ## products, so a single page of 1000 could miss every file of the indicator. The files are
   ## Level-2 orbit swaths, not grids: each one is gridded by its own latitude/longitude below.
+  ## The items are signed later, each one just before its file is read: a Planetary Computer
+  ## token lasts about 45 minutes, less than reading a long period takes, so URLs signed here
+  ## would expire before the later months are read.
   url_list <- c()
   valid_months <- c()
 
@@ -4313,16 +4316,15 @@ geolink_pollution <- function(
                   datetime = paste(start_date_ind, end_date_ind, sep = "/"),
                   limit = 1000) %>%
       get_request() %>%
-      items_fetch() %>%
-      items_sign(sign_fn = sign_planetary_computer())
+      items_fetch()
 
     keep <- vapply(it_obj$features, function(f)
       identical(names(f$assets), indicator) &&
         identical(f$properties[["s5p:processing_mode"]], "OFFL"), logical(1))
-    hrefs <- vapply(it_obj$features[keep], function(f) f$assets[[indicator]]$href, character(1))
+    items <- it_obj$features[keep]
 
-    if (length(hrefs) > 0) {
-      url_list <- c(url_list, list(hrefs))
+    if (length(items) > 0) {
+      url_list <- c(url_list, list(items))
       valid_months <- c(valid_months, x)
     } else {
       print(paste0("No OFFL ", indicator, " orbit found for month ", x, " (", start_date_ind, "). Skipping."))
@@ -4351,11 +4353,17 @@ geolink_pollution <- function(
   ## Monthly mean of the good-quality pixels of every orbit, on a regular grid over the study area.
   ## (The previous code read one orbit per month and stretched its swath array over the item's
   ## global bounding box, so the cells it placed over the study area held pixels from elsewhere.)
+  ## rstac's signer reuses its token until less than 5 minutes are left, then gets a new one.
+  sign_item <- sign_planetary_computer()
   for (i in seq_along(valid_months)) {
     month_idx <- valid_months[i]
-    grids <- lapply(url_list[[i]], function(href) tryCatch(
-      .s5p_orbit_grid(href, layer = layer, qa_min = qa_min, template = template),
-      error = function(e) { print(paste0("Orbit skipped (", e$message, "): ", basename(sub("\\?.*", "", href)))); NULL }))
+    grids <- lapply(url_list[[i]], function(item) {
+      href <- item$assets[[indicator]]$href
+      tryCatch({
+        href <- sign_item(item)$assets[[indicator]]$href
+        .s5p_orbit_grid(href, layer = layer, qa_min = qa_min, template = template)
+      }, error = function(e) { print(paste0("Orbit skipped (", e$message, "): ", basename(sub("\\?.*", "", href)))); NULL })
+    })
     grids <- Filter(Negate(is.null), grids)
     if (length(grids) == 0) {
       print(paste0("No usable orbit for month ", month_idx, ". Skipping."))
