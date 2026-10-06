@@ -95,3 +95,38 @@ test_that("an orbit that does not cross the study area returns NULL", {
   f <- write_swath(tempfile(fileext = ".nc"), o$lat, o$lon, o$val, o$qa)
   expect_null(GeoLink:::.s5p_orbit_grid(f, "ozone_total_vertical_column", 0.5, template()))
 })
+
+test_that("geolink_pollution signs each orbit just before reading it, not all at the search", {
+  ## A Planetary Computer token lasts about 45 minutes; reading 14 months over Nigeria takes
+  ## longer, so URLs signed at the search expired before the later months were read (every
+  ## orbit after that failed as "file does not exist"). Offline: STAC search, signer and reader
+  ## are mocked; two months of two orbits each.
+  events <- character()
+  n_sign <- 0
+  item <- function(id) list(assets = list(no2 = list(href = paste0("https://acc.blob.core.windows.net/c/", id, ".nc"))),
+                            properties = list(`s5p:processing_mode` = "OFFL"))
+  local_mocked_bindings(
+    stac = function(...) "stac",
+    stac_search = function(q, ...) q,
+    get_request = function(q, ...) q,
+    items_fetch = function(q, ...) list(features = list(item("a"), item("b"))),
+    sign_planetary_computer = function(...) function(it) {
+      n_sign <<- n_sign + 1
+      events <<- c(events, paste0("sign", n_sign))
+      it$assets$no2$href <- paste0(it$assets$no2$href, "?sig=", n_sign)
+      it
+    },
+    .s5p_orbit_grid = function(href, layer, qa_min, template) {
+      events <<- c(events, paste0("read", sub("^.*sig=", "", href)))
+      terra::init(template, 0.1)
+    })
+  shp <- sf::st_sf(id = 1, geometry = sf::st_sfc(sf::st_polygon(list(
+    rbind(c(0, 0), c(1, 0), c(1, 1), c(0, 1), c(0, 0)))), crs = 4326))
+  res <- NULL
+  utils::capture.output(res <- suppressWarnings(suppressMessages(geolink_pollution(
+    start_date = "2019-01-01", end_date = "2019-02-28", indicator = "no2", shp_dt = shp,
+    grid_res = 0.25))))
+  ## each read uses the signature made just before it
+  expect_equal(events, c("sign1", "read1", "sign2", "read2", "sign3", "read3", "sign4", "read4"))
+  expect_true(all(c("no2_y2019_m1", "no2_y2019_m2") %in% names(res)))
+})
